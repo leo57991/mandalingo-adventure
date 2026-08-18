@@ -1,82 +1,101 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#10172f" />
-    <meta name="description" content="Mandalingo：一場穿越字境、學習中文聲調的 2.5D 冒險。" />
-    <title>Mandalingo — 字境行者</title>
+    <meta name="description" content="Mandalingo is a contextual Mandarin discovery game set in the cultivation town of Wuyin." />
+    <title>Mandalingo — 霧隱鎮</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main id="app">
-      <canvas id="game" width="1600" height="900" aria-label="Mandalingo 遊戲畫面"></canvas>
+      <canvas id="game" width="1600" height="900" aria-label="Wuyin Town exploration view"></canvas>
 
       <section id="title-screen" class="screen title-screen is-visible" aria-labelledby="game-title">
-        <div class="brand-mark" aria-hidden="true"><span>文</span></div>
-        <p class="eyebrow">一場中文聲調冒險</p>
+        <div class="seal">言</div>
+        <p class="eyebrow">A CONTEXTUAL LANGUAGE MYSTERY</p>
         <h1 id="game-title">MANDA<span>LINGO</span></h1>
-        <p class="subtitle">字境行者</p>
-        <p class="intro">墨影偷走了世界的聲音。尋回五枚字靈，<br />讓沉睡的月門再次開口。</p>
-        <button id="start-btn" class="primary-button">
-          <span>踏入字境</span><kbd>Enter</kbd>
-        </button>
-        <button id="how-btn" class="text-button">遊玩方式</button>
-        <div class="title-footer"><span>移動探索</span><i></i><span>聽音辨調</span><i></i><span>喚醒漢字</span></div>
+        <p class="chinese-title">霧隱鎮</p>
+        <p class="intro">You arrive unable to understand a single word.<br />Watch closely. Listen. Make your own meaning.</p>
+        <button id="start-btn" class="primary-button"><span>Enter the town</span><kbd>Enter</kbd></button>
+        <button id="how-btn" class="text-button">How this prototype works</button>
+        <div class="principles"><span>No translations</span><i></i><span>No instant grading</span><i></i><span>Your own notebook</span></div>
       </section>
 
-      <section id="how-screen" class="modal-panel" aria-hidden="true">
-        <button class="close-button" data-close="how-screen" aria-label="關閉">×</button>
-        <p class="panel-kicker">行者手冊</p>
-        <h2>在字境中穿梭</h2>
+      <section id="how-screen" class="modal-card how-card" aria-hidden="true">
+        <button class="close-button" data-close="how-screen" aria-label="Close">×</button>
+        <p class="panel-kicker">THE TRAVELLER'S METHOD</p>
+        <h2>Meaning lives in context</h2>
         <div class="how-grid">
-          <article><strong>01</strong><span class="key-pair">WASD</span><h3>移動</h3><p>靠近發光字靈，開始中文挑戰。</p></article>
-          <article><strong>02</strong><span class="key-pair">SPACE</span><h3>靈步</h3><p>短距離衝刺，避開會追蹤你的墨影。</p></article>
-          <article><strong>03</strong><span class="key-pair">1—4</span><h3>作答</h3><p>選出字義、拼音或正確聲調。</p></article>
+          <article><b>01</b><span>WASD</span><h3>Explore</h3><p>Walk through Wuyin Town. Approach people and objects, then press E.</p></article>
+          <article><b>02</b><span>E</span><h3>Observe</h3><p>Actions and repeated words are your clues. The game never gives a translation.</p></article>
+          <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Write an English guess in your notebook. Revise it whenever new context appears.</p></article>
         </div>
-        <p class="tip">提示：答對會累積連擊並恢復月門光芒；答錯會失去一顆心。</p>
+        <p class="tip">When you feel confident, mark a note as understood. Only your confirmed guesses become flashcards.</p>
       </section>
 
       <header id="hud" class="hud" aria-hidden="true">
-        <div class="hud-brand"><span>文</span><div><small>字境行者</small><b>MANDA<span>LINGO</span></b></div></div>
-        <div class="objective"><small>目前任務</small><strong id="objective-text">尋回散落的字靈</strong></div>
-        <div class="stats">
-          <div id="hearts" class="hearts" aria-label="生命值"></div>
-          <div class="shard-counter"><span class="shard-icon">◆</span><b id="shard-count">0</b><small>/ 5</small></div>
-          <button id="sound-btn" class="icon-button" aria-label="切換聲音">♫</button>
+        <div class="hud-brand"><span>言</span><div><small>MANDALINGO</small><b>霧隱鎮</b></div></div>
+        <div class="location"><small id="location-english">South Gate</small><strong id="location-name">南門</strong></div>
+        <div class="objective"><small>CURRENT THREAD</small><strong id="objective-text">Learn how this town speaks</strong></div>
+        <div class="hud-actions">
+          <div class="word-count"><b id="word-count">0</b><small>words seen</small></div>
+          <button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button>
+          <button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button>
         </div>
       </header>
 
-      <div id="streak" class="streak" aria-live="polite"><span>連擊</span><b>×2</b></div>
+      <div id="interaction-prompt" class="interaction-prompt" aria-live="polite">
+        <kbd>E</kbd><div><small id="interaction-action">Talk</small><strong id="interaction-label">守門人</strong></div>
+      </div>
       <div id="toast" class="toast" aria-live="polite"></div>
 
-      <section id="quiz-panel" class="quiz-panel" aria-hidden="true" aria-labelledby="quiz-prompt">
-        <div class="quiz-topline"><span id="quiz-type">字義試煉</span><b id="quiz-progress">01 / 05</b></div>
-        <div class="hanzi-orb"><span id="quiz-hanzi">月</span><i></i></div>
-        <button id="speak-btn" class="speak-button" aria-label="播放讀音"><span>◖))</span> 聽讀音</button>
-        <p id="quiz-hint" class="quiz-hint">yuè · 第四聲</p>
-        <h2 id="quiz-prompt">「月」是什麼意思？</h2>
-        <div id="answers" class="answers"></div>
-        <p class="answer-help">按 1—4 快速選擇</p>
+      <section id="dialogue-panel" class="dialogue-panel" aria-hidden="true">
+        <div class="context-strip"><span class="eye-icon">◉</span><p id="context-text"></p></div>
+        <div class="speaker-row"><span id="speaker-type">PERSON</span><strong id="speaker-name"></strong><small id="line-count"></small></div>
+        <p id="dialogue-text" class="dialogue-text" lang="zh-Hant"></p>
+        <div id="encountered-tokens" class="encountered-tokens"></div>
+        <div class="dialogue-footer">
+          <button id="dialogue-notes" class="secondary-button">Open notes <kbd>N</kbd></button>
+          <button id="dialogue-next" class="primary-small">Continue <kbd>E</kbd></button>
+        </div>
       </section>
 
-      <section id="end-screen" class="screen end-screen" aria-hidden="true">
-        <div id="end-seal" class="end-seal">醒</div>
-        <p id="end-kicker" class="eyebrow">月門已甦醒</p>
-        <h2 id="end-title">字境重獲聲音</h2>
-        <p id="end-copy">你的聲音穿過群山，讓每個漢字再次發光。</p>
-        <div class="score-card">
-          <div><small>本次分數</small><strong id="final-score">0</strong></div>
-          <div><small>最高連擊</small><strong id="final-streak">0</strong></div>
-          <div><small>準確率</small><strong id="final-accuracy">0%</strong></div>
+      <section id="notebook-panel" class="notebook-panel" aria-hidden="true" aria-labelledby="notebook-title">
+        <aside class="notebook-sidebar">
+          <div class="book-emblem">▤</div><p>TRAVELLER'S</p><h2 id="notebook-title">Notebook</h2>
+          <nav><button class="tab-button is-active" data-tab="journal">Observed words <b id="journal-count">0</b></button><button class="tab-button" data-tab="cards">Flashcards <b id="card-count">0</b></button></nav>
+          <div class="book-help"><kbd>N</kbd><span>Close notebook</span></div>
+        </aside>
+        <div class="notebook-content">
+          <div class="notebook-top"><div><p id="notebook-kicker">FIELD NOTES</p><h3 id="notebook-heading">Words encountered</h3></div><button id="close-notebook" class="close-button" aria-label="Close notebook">×</button></div>
+          <p id="notebook-intro" class="notebook-intro">These are hypotheses, not answers. New contexts may change what you think a word means.</p>
+          <div id="journal-view" class="journal-view"></div>
+          <div id="cards-view" class="cards-view" hidden></div>
         </div>
-        <button id="restart-btn" class="primary-button"><span>再次啟程</span><kbd>R</kbd></button>
+      </section>
+
+      <section id="invocation-panel" class="modal-card invocation-card" aria-hidden="true">
+        <button id="close-invocation" class="close-button" aria-label="Close">×</button>
+        <p class="panel-kicker">言靈 · WORD INVOCATION</p>
+        <h2>Speak with the words you know</h2>
+        <p class="invocation-context">The disciple watches your hands and the flask at your belt. Choose words from your notebook to express an intention.</p>
+        <div id="selected-words" class="selected-words"><span>Select up to three words</span></div>
+        <div id="word-bank" class="word-bank"></div>
+        <button id="invoke-btn" class="primary-button"><span>Whisper the invocation</span><kbd>E</kbd></button>
+        <p id="invocation-reaction" class="invocation-reaction" aria-live="polite"></p>
+      </section>
+
+      <section id="chapter-banner" class="chapter-banner" aria-hidden="true">
+        <p>THREAD RESOLVED</p><h2>A Bowl of Water</h2><span>The way to 問仙臺 now glows through the mist.</span>
+        <button id="continue-town" class="primary-small">Continue exploring</button>
       </section>
 
       <div id="mobile-controls" class="mobile-controls" aria-hidden="true">
         <div id="joystick" class="joystick"><div id="joystick-knob"></div></div>
-        <button id="dash-btn" class="dash-button"><span>靈步</span></button>
+        <button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button>
       </div>
     </main>
     <script type="module" src="src/main.js"></script>

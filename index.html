@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#10172f" />
+    <meta name="description" content="Mandalingo：一場穿越字境、學習中文聲調的 2.5D 冒險。" />
+    <title>Mandalingo — 字境行者</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" width="1600" height="900" aria-label="Mandalingo 遊戲畫面"></canvas>
+
+      <section id="title-screen" class="screen title-screen is-visible" aria-labelledby="game-title">
+        <div class="brand-mark" aria-hidden="true"><span>文</span></div>
+        <p class="eyebrow">一場中文聲調冒險</p>
+        <h1 id="game-title">MANDA<span>LINGO</span></h1>
+        <p class="subtitle">字境行者</p>
+        <p class="intro">墨影偷走了世界的聲音。尋回五枚字靈，<br />讓沉睡的月門再次開口。</p>
+        <button id="start-btn" class="primary-button">
+          <span>踏入字境</span><kbd>Enter</kbd>
+        </button>
+        <button id="how-btn" class="text-button">遊玩方式</button>
+        <div class="title-footer"><span>移動探索</span><i></i><span>聽音辨調</span><i></i><span>喚醒漢字</span></div>
+      </section>
+
+      <section id="how-screen" class="modal-panel" aria-hidden="true">
+        <button class="close-button" data-close="how-screen" aria-label="關閉">×</button>
+        <p class="panel-kicker">行者手冊</p>
+        <h2>在字境中穿梭</h2>
+        <div class="how-grid">
+          <article><strong>01</strong><span class="key-pair">WASD</span><h3>移動</h3><p>靠近發光字靈，開始中文挑戰。</p></article>
+          <article><strong>02</strong><span class="key-pair">SPACE</span><h3>靈步</h3><p>短距離衝刺，避開會追蹤你的墨影。</p></article>
+          <article><strong>03</strong><span class="key-pair">1—4</span><h3>作答</h3><p>選出字義、拼音或正確聲調。</p></article>
+        </div>
+        <p class="tip">提示：答對會累積連擊並恢復月門光芒；答錯會失去一顆心。</p>
+      </section>
+
+      <header id="hud" class="hud" aria-hidden="true">
+        <div class="hud-brand"><span>文</span><div><small>字境行者</small><b>MANDA<span>LINGO</span></b></div></div>
+        <div class="objective"><small>目前任務</small><strong id="objective-text">尋回散落的字靈</strong></div>
+        <div class="stats">
+          <div id="hearts" class="hearts" aria-label="生命值"></div>
+          <div class="shard-counter"><span class="shard-icon">◆</span><b id="shard-count">0</b><small>/ 5</small></div>
+          <button id="sound-btn" class="icon-button" aria-label="切換聲音">♫</button>
+        </div>
+      </header>
+
+      <div id="streak" class="streak" aria-live="polite"><span>連擊</span><b>×2</b></div>
+      <div id="toast" class="toast" aria-live="polite"></div>
+
+      <section id="quiz-panel" class="quiz-panel" aria-hidden="true" aria-labelledby="quiz-prompt">
+        <div class="quiz-topline"><span id="quiz-type">字義試煉</span><b id="quiz-progress">01 / 05</b></div>
+        <div class="hanzi-orb"><span id="quiz-hanzi">月</span><i></i></div>
+        <button id="speak-btn" class="speak-button" aria-label="播放讀音"><span>◖))</span> 聽讀音</button>
+        <p id="quiz-hint" class="quiz-hint">yuè · 第四聲</p>
+        <h2 id="quiz-prompt">「月」是什麼意思？</h2>
+        <div id="answers" class="answers"></div>
+        <p class="answer-help">按 1—4 快速選擇</p>
+      </section>
+
+      <section id="end-screen" class="screen end-screen" aria-hidden="true">
+        <div id="end-seal" class="end-seal">醒</div>
+        <p id="end-kicker" class="eyebrow">月門已甦醒</p>
+        <h2 id="end-title">字境重獲聲音</h2>
+        <p id="end-copy">你的聲音穿過群山，讓每個漢字再次發光。</p>
+        <div class="score-card">
+          <div><small>本次分數</small><strong id="final-score">0</strong></div>
+          <div><small>最高連擊</small><strong id="final-streak">0</strong></div>
+          <div><small>準確率</small><strong id="final-accuracy">0%</strong></div>
+        </div>
+        <button id="restart-btn" class="primary-button"><span>再次啟程</span><kbd>R</kbd></button>
+      </section>
+
+      <div id="mobile-controls" class="mobile-controls" aria-hidden="true">
+        <div id="joystick" class="joystick"><div id="joystick-knob"></div></div>
+        <button id="dash-btn" class="dash-button"><span>靈步</span></button>
+      </div>
+    </main>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

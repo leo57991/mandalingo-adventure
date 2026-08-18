@@ -1,0 +1,14 @@
+{
+  "name": "mandalingo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A polished 2.5D Mandarin learning adventure playable in the browser.",
+  "scripts": {
+    "dev": "node tools/dev-server.js",
+    "test": "node --test",
+    "check": "node --check src/game.js && node --check src/main.js && node --test"
+  },
+  "keywords": ["game", "mandarin", "canvas", "language-learning", "web-game"],
+  "license": "MIT"
+}

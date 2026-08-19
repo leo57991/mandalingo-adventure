@@ -1,0 +1,36 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/environment/stele.png" id="1_texture"]
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="2_interact"]
+
+[sub_resource type="RectangleShape2D" id="Stele_shape"]
+size = Vector2(145, 88)
+
+[sub_resource type="CircleShape2D" id="Stele_area"]
+radius = 140.0
+
+[node name="Stele" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_texture")
+scale = Vector2(0.25, 0.25)
+position = Vector2(0, -32)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(0, 68)
+shape = SubResource("Stele_shape")
+
+[node name="Interactable" type="Area2D" parent="." groups=["interactable"]]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("2_interact")
+word = "霧隱鎮"
+context = "石碑被雨水磨得發亮。三個字仍然清楚：\n\n『霧　隱　鎮』"
+location_name = "南門石碑"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]
+shape = SubResource("Stele_area")

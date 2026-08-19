@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/environment/lantern.png" id="1_texture"]
+
+[sub_resource type="CircleShape2D" id="Lantern_shape"]
+radius = 27.0
+
+[node name="Lantern" type="Node2D"]
+
+[node name="Glow" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-72, -18, 0, -100, 72, -18, 0, 22)
+color = Color(1, 0.62, 0.25, 0.085)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_texture")
+scale = Vector2(0.115, 0.115)
+position = Vector2(0, -75)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(0, -4)
+shape = SubResource("Lantern_shape")

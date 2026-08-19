@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/environment/gatehouse.png" id="1_texture"]
+
+[sub_resource type="RectangleShape2D" id="Gate_left"]
+size = Vector2(185, 82)
+
+[sub_resource type="RectangleShape2D" id="Gate_right"]
+size = Vector2(185, 82)
+
+[node name="Gatehouse" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_texture")
+scale = Vector2(0.39, 0.39)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 2
+
+[node name="LeftPillar" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(-205, 125)
+shape = SubResource("Gate_left")
+
+[node name="RightPillar" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(205, 125)
+shape = SubResource("Gate_right")

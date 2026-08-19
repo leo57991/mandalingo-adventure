@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A polished 2.5D Mandarin learning adventure playable in the browser.",
+  "description": "A contextual Mandarin discovery game set in an ancient cultivation town.",
   "scripts": {
     "dev": "node tools/dev-server.js",
     "test": "node --test",

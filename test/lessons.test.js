@@ -1,32 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { WORDS, buildQuiz, getAccuracy, shuffle } from "../src/lessons.js";
+import { buildFlashcards, canInvokeWaterGift, createJournal, grantItem, recordEncounter, resolveWaterGift, setConfirmed, setGuess } from "../src/lessons.js";
 
-test("every lesson has the required learning fields", () => {
-  assert.ok(WORDS.length >= 10);
-  for (const word of WORDS) {
-    assert.ok(word.hanzi && word.pinyin && word.tone && word.meaning);
-  }
-});
-
-test("quiz contains exactly one correct answer and four unique choices", () => {
-  for (const kind of ["meaning", "pinyin", "tone"]) {
-    const quiz = buildQuiz(2, kind, () => .37);
-    assert.equal(quiz.answers.length, 4);
-    assert.equal(new Set(quiz.answers).size, 4);
-    assert.equal(quiz.answers.filter(answer => answer === quiz.correct).length, 1);
-  }
-});
-
-test("shuffle does not mutate its source", () => {
-  const source = [1, 2, 3, 4];
-  const result = shuffle(source, () => 0);
-  assert.deepEqual(source, [1, 2, 3, 4]);
-  assert.notEqual(result, source);
-});
-
-test("accuracy handles empty and partial attempts", () => {
-  assert.equal(getAccuracy(0, 0), 0);
-  assert.equal(getAccuracy(4, 5), 80);
-  assert.equal(getAccuracy(2, 3), 67);
-});
+test("encounters accumulate without revealing a canonical answer", () => { let journal = createJournal(); journal = recordEncounter(journal, "水", "長街", "well", 1); journal = recordEncounter(journal, "水", "茶坊", "disciple", 2); assert.equal(journal.entries.water.count, 2); assert.equal(journal.entries.water.lastLocation, "茶坊"); assert.deepEqual(journal.entries.water.locations, ["長街", "茶坊"]); assert.equal("answer" in journal.entries.water, false); });
+test("player guesses remain editable and confirmation is self-directed", () => { let journal = recordEncounter(createJournal(), "茶", "茶坊", "tea-pot", 1); journal = setGuess(journal, "tea", "  tea / a drink  "); journal = setConfirmed(journal, "tea", true); assert.equal(journal.entries.tea.guess, "tea / a drink"); assert.equal(journal.entries.tea.confirmed, true); });
+test("only player-confirmed guesses become flashcards", () => { let journal = recordEncounter(createJournal(), "茶", "茶坊", "tea-pot", 1); journal = recordEncounter(journal, "水", "長街", "well", 2); journal = setGuess(journal, "tea", "tea"); journal = setConfirmed(journal, "tea", true); journal = setGuess(journal, "water", "water"); assert.deepEqual(buildFlashcards(journal).map(card => card.id), ["tea"]); });
+test("the contextual event requires the observed words and the world item", () => { let journal = createJournal(); journal = recordEncounter(journal, "給", "長街", "water-carrier", 1); journal = recordEncounter(journal, "水", "長街", "well", 2); assert.equal(canInvokeWaterGift(journal, ["give", "water"]), false); journal = grantItem(journal, "water-flask"); assert.equal(canInvokeWaterGift(journal, ["water"]), false); assert.equal(canInvokeWaterGift(journal, ["give", "water"]), true); assert.equal(resolveWaterGift(journal, ["give", "water"]).quest, "resolved"); });

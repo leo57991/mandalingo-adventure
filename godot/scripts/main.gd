@@ -5,11 +5,11 @@ const INTERACT_DISTANCE := 175.0
 @onready var player: MandalingoPlayer = $World/Objects/Player
 @onready var dialogue_panel: PanelContainer = $UI/DialoguePanel
 @onready var dialogue_text: RichTextLabel = $UI/DialoguePanel/Margin/DialogueText
-@onready var notebook_panel: PanelContainer = $UI/NotebookPanel
-@onready var notebook_text: RichTextLabel = $UI/NotebookPanel/Margin/VBox/NotebookText
-@onready var guess_input: LineEdit = $UI/NotebookPanel/Margin/VBox/GuessRow/GuessInput
-@onready var save_guess_button: Button = $UI/NotebookPanel/Margin/VBox/GuessRow/SaveGuess
-@onready var notebook_button: Button = $UI/NotebookButton
+@onready var character_panel: PanelContainer = $UI/CharacterPanel
+@onready var notebook_text: RichTextLabel = $UI/CharacterPanel/Margin/VBox/Tabs/Notebook/NotebookText
+@onready var guess_input: LineEdit = $UI/CharacterPanel/Margin/VBox/Tabs/Notebook/GuessRow/GuessInput
+@onready var save_guess_button: Button = $UI/CharacterPanel/Margin/VBox/Tabs/Notebook/GuessRow/SaveGuess
+@onready var character_button: Button = $UI/CharacterButton
 @onready var hint: Label = $UI/Hint
 
 var notebook: Dictionary = {}
@@ -19,27 +19,25 @@ func _ready() -> void:
 	player.interact_requested.connect(_on_interact_requested)
 	save_guess_button.pressed.connect(_save_guess)
 	guess_input.text_submitted.connect(_save_guess)
-	notebook_button.pressed.connect(_toggle_notebook)
+	character_button.pressed.connect(_toggle_character_menu)
 	dialogue_panel.hide()
-	notebook_panel.hide()
-	hint.text = "WASD Move　Shift Run　E Observe / Talk　N Notebook　Esc Close"
+	character_panel.hide()
+	hint.text = "WASD Move　Shift Run　E Observe / Talk　I Character　Esc Close"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if dialogue_panel.visible or notebook_panel.visible:
+		if dialogue_panel.visible or character_panel.visible:
 			dialogue_panel.hide()
-			notebook_panel.hide()
-			notebook_button.text = "NOTEBOOK"
+			_set_character_menu_open(false)
 			get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed("notebook"):
-		_toggle_notebook()
+			return
+	if event.is_action_pressed("inventory") or event.is_action_pressed("notebook"):
+		_toggle_character_menu()
 	if event.is_action_pressed("debug_collisions"):
 		get_tree().debug_collisions_hint = not get_tree().debug_collisions_hint
 
 func _on_interact_requested(from_position: Vector2) -> void:
-	notebook_panel.hide()
-	notebook_button.text = "NOTEBOOK"
+	_set_character_menu_open(false)
 	var nearest: MandalingoInteractable
 	var nearest_distance := INF
 	for candidate in get_tree().get_nodes_in_group("interactable"):
@@ -72,11 +70,18 @@ func _record_entry(entry: Dictionary) -> void:
 	)
 	_refresh_notebook()
 
-func _toggle_notebook() -> void:
-	notebook_panel.visible = not notebook_panel.visible
-	dialogue_panel.hide()
-	notebook_button.text = "CLOSE NOTEBOOK" if notebook_panel.visible else "NOTEBOOK"
-	_refresh_notebook()
+func _toggle_character_menu() -> void:
+	_set_character_menu_open(not character_panel.visible)
+
+func _set_character_menu_open(is_open: bool) -> void:
+	character_panel.visible = is_open
+	character_button.text = "CLOSE [I]" if is_open else "CHARACTER [I]"
+	player.set_movement_enabled(not is_open)
+	if is_open:
+		dialogue_panel.hide()
+		_refresh_notebook()
+	else:
+		guess_input.release_focus()
 
 func _save_guess(_submitted_text := "") -> void:
 	var guess := guess_input.text.strip_edges()

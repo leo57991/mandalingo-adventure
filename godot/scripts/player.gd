@@ -6,7 +6,18 @@ signal interact_requested(from_position: Vector2)
 @export var walk_speed := 145.0
 @export var run_speed := 235.0
 
+var movement_enabled := true
+
+func set_movement_enabled(enabled: bool) -> void:
+	movement_enabled = enabled
+	if not movement_enabled:
+		velocity = Vector2.ZERO
+
 func _physics_process(_delta: float) -> void:
+	if not movement_enabled:
+		velocity = Vector2.ZERO
+		$Sprite2D.rotation = lerp($Sprite2D.rotation, 0.0, 0.2)
+		return
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var is_running := Input.is_physical_key_pressed(KEY_SHIFT) and input_vector.length_squared() > 0.01
 	var movement_speed := run_speed if is_running else walk_speed
@@ -22,5 +33,5 @@ func _physics_process(_delta: float) -> void:
 		$Sprite2D.rotation = lerp($Sprite2D.rotation, 0.0, 0.2)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact"):
+	if movement_enabled and event.is_action_pressed("interact"):
 		interact_requested.emit(global_position)

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mandalingo Godot Release"
+  short_description: "Validate, export, and publish Mandalingo safely"
+  default_prompt: "Use $mandalingo-godot-release to validate and publish the current Mandalingo game change."

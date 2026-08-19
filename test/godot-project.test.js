@@ -72,14 +72,29 @@ test("Water Ward curriculum leads into contextual water spells", () => {
   assert.ok(curriculum.future_spell_path.some(({ target }) => target === "止"));
 });
 
-test("dialogues close with Escape and the notebook has a clickable toggle", () => {
+test("dialogues close with Escape and the character menu has notebook and equipment tabs", () => {
   const game = read("godot/scripts/main.gd");
   const mainScene = read("godot/scenes/main.tscn");
+  const project = read("godot/project.godot");
 
   assert.match(game, /event\.is_action_pressed\("ui_cancel"\)/);
   assert.match(game, /dialogue_panel\.hide\(\)/);
-  assert.match(game, /notebook_button\.pressed\.connect\(_toggle_notebook\)/);
-  assert.match(mainScene, /name="NotebookButton" type="Button"/);
+  assert.match(game, /character_button\.pressed\.connect\(_toggle_character_menu\)/);
+  assert.match(mainScene, /name="CharacterButton" type="Button"/);
+  assert.match(mainScene, /name="Tabs" type="TabContainer"/);
+  assert.match(mainScene, /name="Notebook" type="VBoxContainer"/);
+  assert.match(mainScene, /name="Equipment" type="VBoxContainer"/);
+  assert.match(project, /inventory=.*physical_keycode":73/);
+});
+
+test("opening the character menu locks movement while guesses are typed", () => {
+  const game = read("godot/scripts/main.gd");
+  const player = read("godot/scripts/player.gd");
+
+  assert.match(game, /player\.set_movement_enabled\(not is_open\)/);
+  assert.match(player, /var movement_enabled := true/);
+  assert.match(player, /if not movement_enabled:[\s\S]*velocity = Vector2\.ZERO[\s\S]*return/);
+  assert.match(player, /if movement_enabled and event\.is_action_pressed\("interact"\)/);
 });
 
 test("the widened town has seamless walls, open exploration, and overlap-based occlusion", () => {

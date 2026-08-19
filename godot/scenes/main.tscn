@@ -41,6 +41,18 @@ corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
 
+[sub_resource type="StyleBoxFlat" id="EquipmentSlot_style"]
+bg_color = Color(0.12, 0.115, 0.095, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.38, 0.34, 0.25, 0.9)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
@@ -259,11 +271,11 @@ theme_override_colors/font_color = Color(0.91, 0.82, 0.62, 1)
 theme_override_font_sizes/font_size = 28
 text = "WATER WARD · SOUTH GATE"
 
-[node name="NotebookButton" type="Button" parent="UI"]
+[node name="CharacterButton" type="Button" parent="UI"]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -214.0
+offset_left = -234.0
 offset_top = 24.0
 offset_right = -28.0
 offset_bottom = 70.0
@@ -271,7 +283,7 @@ grow_horizontal = 0
 theme_override_colors/font_color = Color(0.91, 0.82, 0.62, 1)
 theme_override_colors/font_hover_color = Color(1, 0.92, 0.72, 1)
 theme_override_font_sizes/font_size = 18
-text = "NOTEBOOK"
+text = "CHARACTER [I]"
 
 [node name="Hint" type="Label" parent="UI"]
 anchors_preset = 7
@@ -290,7 +302,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 17
-text = "WASD Move　Shift Run　E Observe / Talk　N Notebook　Esc Close"
+text = "WASD Move　Shift Run　E Observe / Talk　I Character　Esc Close"
 horizontal_alignment = 1
 
 [node name="DialoguePanel" type="PanelContainer" parent="UI"]
@@ -321,50 +333,120 @@ fit_content = true
 scroll_active = false
 autowrap_mode = 2
 
-[node name="NotebookPanel" type="PanelContainer" parent="UI"]
+[node name="CharacterPanel" type="PanelContainer" parent="UI"]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -360.0
-offset_top = -265.0
-offset_right = 360.0
-offset_bottom = 265.0
+offset_left = -410.0
+offset_top = -290.0
+offset_right = 410.0
+offset_bottom = 290.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("Notebook_style")
 
-[node name="Margin" type="MarginContainer" parent="UI/NotebookPanel"]
+[node name="Margin" type="MarginContainer" parent="UI/CharacterPanel"]
 theme_override_constants/margin_left = 30
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 30
 theme_override_constants/margin_bottom = 24
 
-[node name="VBox" type="VBoxContainer" parent="UI/NotebookPanel/Margin"]
-theme_override_constants/separation = 14
+[node name="VBox" type="VBoxContainer" parent="UI/CharacterPanel/Margin"]
+theme_override_constants/separation = 10
 
-[node name="NotebookText" type="RichTextLabel" parent="UI/NotebookPanel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 390)
+[node name="Title" type="Label" parent="UI/CharacterPanel/Margin/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.82, 0.62, 1)
+theme_override_font_sizes/font_size = 28
+text = "CHARACTER"
+
+[node name="Subtitle" type="Label" parent="UI/CharacterPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.63, 0.7, 0.66, 1)
+theme_override_font_sizes/font_size = 15
+text = "Journal and equipment"
+
+[node name="Tabs" type="TabContainer" parent="UI/CharacterPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 450)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 18
+
+[node name="Notebook" type="VBoxContainer" parent="UI/CharacterPanel/Margin/VBox/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NotebookText" type="RichTextLabel" parent="UI/CharacterPanel/Margin/VBox/Tabs/Notebook"]
+custom_minimum_size = Vector2(0, 350)
+layout_mode = 2
+size_flags_vertical = 3
 bbcode_enabled = true
 fit_content = true
 scroll_active = true
 text = "[font_size=24]Water Foundations[/font_size]"
 
-[node name="GuessRow" type="HBoxContainer" parent="UI/NotebookPanel/Margin/VBox"]
+[node name="GuessRow" type="HBoxContainer" parent="UI/CharacterPanel/Margin/VBox/Tabs/Notebook"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="GuessLabel" type="Label" parent="UI/NotebookPanel/Margin/VBox/GuessRow"]
+[node name="GuessLabel" type="Label" parent="UI/CharacterPanel/Margin/VBox/Tabs/Notebook/GuessRow"]
 layout_mode = 2
 text = "Your English guess"
 
-[node name="GuessInput" type="LineEdit" parent="UI/NotebookPanel/Margin/VBox/GuessRow"]
+[node name="GuessInput" type="LineEdit" parent="UI/CharacterPanel/Margin/VBox/Tabs/Notebook/GuessRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Save your current interpretation"
 
-[node name="SaveGuess" type="Button" parent="UI/NotebookPanel/Margin/VBox/GuessRow"]
+[node name="SaveGuess" type="Button" parent="UI/CharacterPanel/Margin/VBox/Tabs/Notebook/GuessRow"]
 layout_mode = 2
 text = "Save"
+
+[node name="Equipment" type="VBoxContainer" parent="UI/CharacterPanel/Margin/VBox/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="EquipmentIntro" type="RichTextLabel" parent="UI/CharacterPanel/Margin/VBox/Tabs/Equipment"]
+custom_minimum_size = Vector2(0, 105)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+text = "[font_size=26][color=#edcf8b]Traveller's Loadout[/color][/font_size]\n[color=#9fb3a6]Equipment will later shape exploration, dialogue access, and word-spell combinations.[/color]"
+
+[node name="EquipmentSlots" type="GridContainer" parent="UI/CharacterPanel/Margin/VBox/Tabs/Equipment"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 14
+
+[node name="Robe" type="Button" parent="UI/CharacterPanel/Margin/VBox/Tabs/Equipment/EquipmentSlots"]
+custom_minimum_size = Vector2(350, 105)
+layout_mode = 2
+theme_override_styles/disabled = SubResource("EquipmentSlot_style")
+disabled = true
+text = "TRAVELLER'S ROBE\nEquipped"
+
+[node name="WordFocus" type="Button" parent="UI/CharacterPanel/Margin/VBox/Tabs/Equipment/EquipmentSlots"]
+custom_minimum_size = Vector2(350, 105)
+layout_mode = 2
+theme_override_styles/disabled = SubResource("EquipmentSlot_style")
+disabled = true
+text = "WORD FOCUS\nEmpty"
+
+[node name="Talisman" type="Button" parent="UI/CharacterPanel/Margin/VBox/Tabs/Equipment/EquipmentSlots"]
+custom_minimum_size = Vector2(350, 105)
+layout_mode = 2
+theme_override_styles/disabled = SubResource("EquipmentSlot_style")
+disabled = true
+text = "TALISMAN\nEmpty"
+
+[node name="Relic" type="Button" parent="UI/CharacterPanel/Margin/VBox/Tabs/Equipment/EquipmentSlots"]
+custom_minimum_size = Vector2(350, 105)
+layout_mode = 2
+theme_override_styles/disabled = SubResource("EquipmentSlot_style")
+disabled = true
+text = "RELIC\nEmpty"

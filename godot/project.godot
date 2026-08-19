@@ -26,6 +26,7 @@ move_up={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":87),Ob
 move_down={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":83),Object(InputEventKey,"physical_keycode":4194322)]}
 interact={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":69)]}
 notebook={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":78)]}
+inventory={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":73)]}
 debug_collisions={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":4194334)]}
 
 [gui]

@@ -3,7 +3,7 @@ extends Area2D
 
 @export var word := ""
 @export_multiline var context := ""
-@export var location_name := "南門"
+@export var location_name := "South Gate"
 
 func read_entry() -> Dictionary:
 	return {

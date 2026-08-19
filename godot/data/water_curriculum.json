@@ -1,0 +1,13 @@
+{
+  "town_id": "water_ward",
+  "theme": "water",
+  "first_target": "水",
+  "minimum_contexts_before_spell_insight": 2,
+  "teaching_rule": "Only the current target appears in Chinese; all support text stays in English.",
+  "future_spell_path": [
+    { "target": "水", "role": "water source" },
+    { "target": "引", "role": "draw or guide" },
+    { "target": "止", "role": "stop or hold" },
+    { "target": "流", "role": "flow" }
+  ]
+}

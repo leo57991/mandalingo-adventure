@@ -42,3 +42,27 @@ test("the project bundles a Traditional Chinese font for Web exports", () => {
   assert.ok(existsSync(font));
   assert.ok(statSync(font).size > 10_000_000, "the full CJK font must be bundled, not a Latin-only subset");
 });
+
+test("the first town isolates one large Chinese learning target", () => {
+  const game = read("godot/scripts/main.gd");
+  const mainScene = read("godot/scenes/main.tscn");
+  const stele = read("godot/scenes/props/stele.tscn");
+  const gatekeeper = read("godot/scenes/props/gatekeeper.tscn");
+  const project = read("godot/project.godot");
+  const learnerFacingText = [game, mainScene, stele, gatekeeper, project].join("\n");
+  const hanzi = learnerFacingText.match(/[\u3400-\u9fff]/g) ?? [];
+
+  assert.deepEqual([...new Set(hanzi)], ["水"]);
+  assert.match(stele, /name="Inscription"[\s\S]*text = "水"/);
+  assert.match(game, /\[font_size=72\]/);
+  assert.match(mainScene, /name="DialogueText" type="RichTextLabel"/);
+});
+
+test("Water Ward curriculum leads into contextual water spells", () => {
+  const curriculum = JSON.parse(read("godot/data/water_curriculum.json"));
+  assert.equal(curriculum.theme, "water");
+  assert.equal(curriculum.first_target, "水");
+  assert.equal(curriculum.minimum_contexts_before_spell_insight, 2);
+  assert.ok(curriculum.future_spell_path.some(({ target }) => target === "引"));
+  assert.ok(curriculum.future_spell_path.some(({ target }) => target === "止"));
+});

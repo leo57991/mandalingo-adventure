@@ -4,7 +4,7 @@ const INTERACT_DISTANCE := 175.0
 
 @onready var player: MandalingoPlayer = $World/Objects/Player
 @onready var dialogue_panel: PanelContainer = $UI/DialoguePanel
-@onready var dialogue_text: Label = $UI/DialoguePanel/Margin/DialogueText
+@onready var dialogue_text: RichTextLabel = $UI/DialoguePanel/Margin/DialogueText
 @onready var notebook_panel: PanelContainer = $UI/NotebookPanel
 @onready var notebook_text: RichTextLabel = $UI/NotebookPanel/Margin/VBox/NotebookText
 @onready var guess_input: LineEdit = $UI/NotebookPanel/Margin/VBox/GuessRow/GuessInput
@@ -20,7 +20,7 @@ func _ready() -> void:
 	guess_input.text_submitted.connect(_save_guess)
 	dialogue_panel.hide()
 	notebook_panel.hide()
-	hint.text = "WASD 移動　E 觀察／交談　N 筆記本"
+	hint.text = "WASD Move　E Observe / Talk　N Notebook"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("notebook"):
@@ -40,7 +40,7 @@ func _on_interact_requested(from_position: Vector2) -> void:
 				nearest = candidate
 				nearest_distance = distance
 	if nearest == null:
-		dialogue_text.text = "附近沒有可觀察的事物。"
+		dialogue_text.text = "[center][font_size=20]There is nothing nearby to examine.[/font_size][/center]"
 	else:
 		_record_entry(nearest.read_entry())
 	dialogue_panel.show()
@@ -48,11 +48,16 @@ func _on_interact_requested(from_position: Vector2) -> void:
 func _record_entry(entry: Dictionary) -> void:
 	var word: String = entry.word
 	if not notebook.has(word):
-		notebook[word] = {"count": 0, "location": "", "guess": "（尚未猜測）"}
+		notebook[word] = {"count": 0, "location": "", "guess": "(no guess yet)"}
 	notebook[word]["count"] += 1
 	notebook[word]["location"] = entry.location
 	last_word = word
-	dialogue_text.text = entry.context + "\n\n[ 已記入筆記：" + word + " ]"
+	dialogue_text.text = (
+		"[center][font_size=19][color=#c8d0cc]" + entry.context + "[/color][/font_size]\n"
+		+ "[font_size=72][color=#edcf8b]" + word + "[/color][/font_size]\n"
+		+ "[font_size=15][color=#9fb3a6]Added to notebook · encounter "
+		+ str(notebook[word]["count"]) + "[/color][/font_size][/center]"
+	)
 	_refresh_notebook()
 
 func _save_guess(_submitted_text := "") -> void:
@@ -65,12 +70,15 @@ func _save_guess(_submitted_text := "") -> void:
 
 func _refresh_notebook() -> void:
 	if notebook.is_empty():
-		notebook_text.text = "[font_size=24]旅人筆記[/font_size]\n\n尚未記下任何詞語。去觀察石碑或與守門人交談。"
+		notebook_text.text = "[font_size=24]Water Foundations[/font_size]\n\nNo words recorded yet. Examine the stele or watch the gatekeeper."
 		return
-	var lines := "[font_size=24]旅人筆記[/font_size]\n[color=#9fb3a6]不立即判定正誤；先留下你的理解。[/color]\n\n"
+	var lines := "[font_size=24]Water Foundations[/font_size]\n[color=#9fb3a6]Keep your own interpretation. The notebook will simply save it for now.[/color]\n\n"
 	for word in notebook:
 		var entry: Dictionary = notebook[word]
-		lines += "[font_size=28][color=#edcf8b]" + word + "[/color][/font_size]\n"
-		lines += "出現：" + str(entry["count"]) + " 次　最後地點：" + entry["location"] + "\n"
-		lines += "英文猜測：" + entry["guess"] + "\n\n"
+		lines += "[font_size=48][color=#edcf8b]" + word + "[/color][/font_size]\n"
+		lines += "Seen: " + str(entry["count"]) + " times　Last place: " + entry["location"] + "\n"
+		lines += "Your English guess: " + entry["guess"] + "\n"
+		if entry["count"] >= 2:
+			lines += "[color=#79b9cf]Water-spell insight is beginning to form.[/color]\n"
+		lines += "\n"
 	notebook_text.text = lines

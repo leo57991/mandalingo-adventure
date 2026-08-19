@@ -6,6 +6,7 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const lerp = (a, b, t) => a + (b - a) * t;
 const CAMERA_ANCHOR_Y = HEIGHT * .54;
 const FIXED_ZOOM = 1.5;
+export const SOUTH_GATE_DETAIL = Object.freeze({ x: 645, y: 1000, width: 1115, height: 627 });
 const WALKABLE_AREAS = [
   [880, 220, 640, 1330],
   [190, 540, 840, 630],
@@ -29,6 +30,8 @@ export class MandalingoGame {
     this.state = "title"; this.nearby = null; this.location = LOCATIONS[0]; this.questResolved = false;
     this.background = new Image(); this.background.src = "assets/mandalingo-key-art.png"; this.backgroundLoaded = false; this.background.onload = () => { this.backgroundLoaded = true; };
     this.townBackground = new Image(); this.townBackground.src = "assets/wuyin-town-map-v2.png"; this.townBackgroundLoaded = false; this.townBackground.onload = () => { this.townBackgroundLoaded = true; };
+    this.southGateDetail = new Image(); this.southGateDetail.src = "assets/south-gate-detail-v1.png"; this.southGateDetailLoaded = false; this.southGateDetailLayer = null;
+    this.southGateDetail.onload = () => { this.southGateDetailLoaded = true; this.southGateDetailLayer = createFeatheredLayer(this.southGateDetail); };
     this.playerSprite = new Image(); this.playerSprite.src = "assets/wuxia-traveller.png"; this.playerSpriteLoaded = false; this.playerSprite.onload = () => { this.playerSpriteLoaded = true; };
     this.motes = seededMotes(); this.attachInput(); this.reset(); requestAnimationFrame(time => this.loop(time));
   }
@@ -109,6 +112,7 @@ export class MandalingoGame {
     const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT); sky.addColorStop(0, "#0b1822"); sky.addColorStop(.52, "#233b41"); sky.addColorStop(1, "#53635b"); ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT);
     if (this.townBackgroundLoaded) drawStableMap(ctx, this.townBackground, this.camera);
     else drawFallbackLandscape(ctx);
+    if (this.southGateDetailLoaded && this.southGateDetailLayer) drawLocalDetail(ctx, this.southGateDetailLayer, SOUTH_GATE_DETAIL, this.camera);
 
     const depthWash = ctx.createLinearGradient(0, 0, 0, HEIGHT);
     depthWash.addColorStop(0, "rgba(4,12,22,.38)"); depthWash.addColorStop(.46, "rgba(9,19,27,.02)"); depthWash.addColorStop(1, "rgba(4,9,15,.28)");
@@ -180,6 +184,26 @@ function drawStableMap(ctx, image, camera) {
   ctx.save(); ctx.imageSmoothingEnabled = true;
   ctx.drawImage(image, topLeft.x, topLeft.y, WORLD.width * camera.zoom, WORLD.height * camera.zoom);
   ctx.restore();
+}
+
+function drawLocalDetail(ctx, image, area, camera) {
+  const topLeft = projectWorldPoint(area.x, area.y, camera);
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(image, topLeft.x, topLeft.y, area.width * camera.zoom, area.height * camera.zoom);
+  ctx.restore();
+}
+
+function createFeatheredLayer(image) {
+  const layer = document.createElement("canvas"); layer.width = image.naturalWidth; layer.height = image.naturalHeight;
+  const ctx = layer.getContext("2d"); ctx.drawImage(image, 0, 0);
+  ctx.globalCompositeOperation = "destination-in";
+  const horizontal = ctx.createLinearGradient(0, 0, layer.width, 0);
+  horizontal.addColorStop(0, "rgba(255,255,255,0)"); horizontal.addColorStop(.055, "rgba(255,255,255,1)"); horizontal.addColorStop(.945, "rgba(255,255,255,1)"); horizontal.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = horizontal; ctx.fillRect(0, 0, layer.width, layer.height);
+  const vertical = ctx.createLinearGradient(0, 0, 0, layer.height);
+  vertical.addColorStop(0, "rgba(255,255,255,0)"); vertical.addColorStop(.05, "rgba(255,255,255,1)"); vertical.addColorStop(.93, "rgba(255,255,255,1)"); vertical.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = vertical; ctx.fillRect(0, 0, layer.width, layer.height); ctx.globalCompositeOperation = "source-over";
+  return layer;
 }
 
 function isOnScreen(point, margin = 0) { return point.x > -margin && point.x < WIDTH + margin && point.y > -margin && point.y < HEIGHT + margin; }

@@ -7,14 +7,27 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const CAMERA_ANCHOR_Y = HEIGHT * .54;
 const FIXED_ZOOM = 1.5;
 export const SOUTH_GATE_DETAIL = Object.freeze({ x: 645, y: 1000, width: 1115, height: 627 });
+export const PLAYER_SPEED = Object.freeze({ x: 165, y: 150 });
+const PLAYER_COLLISION_RADIUS = 22;
 const WALKABLE_AREAS = [
   [880, 220, 640, 1330],
   [190, 540, 840, 630],
   [1380, 500, 850, 710],
-  [760, 80, 860, 570],
-  [720, 1180, 960, 370]
+  [760, 80, 860, 570]
 ];
-export const isWorldWalkable = (x, y) => WALKABLE_AREAS.some(([left, top, width, height]) => x >= left && x <= left + width && y >= top && y <= top + height);
+const SOUTH_GATE_COLLISION_BOUNDS = [645, 1000, 1115, 600];
+const SOUTH_GATE_WALKABLE_AREAS = [
+  [980, 1000, 440, 180],
+  [1085, 1140, 230, 170],
+  [900, 1260, 600, 295],
+  [1070, 1500, 260, 100]
+];
+const isInArea = (x, y, [left, top, width, height]) => x >= left && x <= left + width && y >= top && y <= top + height;
+export const isWorldWalkable = (x, y) => {
+  if (isInArea(x, y, SOUTH_GATE_COLLISION_BOUNDS)) return SOUTH_GATE_WALKABLE_AREAS.some(area => isInArea(x, y, area));
+  return WALKABLE_AREAS.some(area => isInArea(x, y, area));
+};
+export const isPlayerWalkable = (x, y, radius = PLAYER_COLLISION_RADIUS) => [[0, 0], [radius, 0], [-radius, 0], [0, radius], [0, -radius], [radius * .7, radius * .7], [-radius * .7, radius * .7], [radius * .7, -radius * .7], [-radius * .7, -radius * .7]].every(([offsetX, offsetY]) => isWorldWalkable(x + offsetX, y + offsetY));
 export const projectWorldPoint = (x, y, camera) => {
   return {
     x: WIDTH / 2 + (x - camera.focusX) * camera.zoom,
@@ -67,11 +80,11 @@ export class MandalingoGame {
       let y = this.mobileVector.y + (this.keys.has("s") || this.keys.has("arrowdown") ? 1 : 0) - (this.keys.has("w") || this.keys.has("arrowup") ? 1 : 0);
       const magnitude = Math.hypot(x, y); if (magnitude > 1) { x /= magnitude; y /= magnitude; }
       if (Math.abs(x) > .05) this.player.facing = Math.sign(x);
-      this.player.vx = lerp(this.player.vx, x * 315, 1 - Math.pow(.001, delta));
-      this.player.vy = lerp(this.player.vy, y * 285, 1 - Math.pow(.001, delta));
+      this.player.vx = lerp(this.player.vx, x * PLAYER_SPEED.x, 1 - Math.pow(.001, delta));
+      this.player.vy = lerp(this.player.vy, y * PLAYER_SPEED.y, 1 - Math.pow(.001, delta));
       const nextX = clamp(this.player.x + this.player.vx * delta, 70, WORLD.width - 70), nextY = clamp(this.player.y + this.player.vy * delta, 90, WORLD.height - 70);
-      if (isWorldWalkable(nextX, this.player.y)) this.player.x = nextX; else this.player.vx *= .18;
-      if (isWorldWalkable(this.player.x, nextY)) this.player.y = nextY; else this.player.vy *= .18;
+      if (isPlayerWalkable(nextX, this.player.y)) this.player.x = nextX; else this.player.vx *= .18;
+      if (isPlayerWalkable(this.player.x, nextY)) this.player.y = nextY; else this.player.vy *= .18;
 
       const nearest = ENTITIES.map(entity => ({ entity, distance: dist(this.player, entity) })).sort((a, b) => a.distance - b.distance)[0];
       const nextNearby = nearest?.distance < 105 ? nearest.entity : null;

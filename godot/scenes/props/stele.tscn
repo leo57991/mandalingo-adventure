@@ -43,6 +43,7 @@ collision_mask = 2
 script = ExtResource("2_interact")
 word = "水"
 context = "Rain runs over the stone. One carved mark remains dark and clear."
+display_line = "水"
 location_name = "South Gate Stele"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]

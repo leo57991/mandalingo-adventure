@@ -3,7 +3,8 @@
   "theme": "water",
   "first_target": "水",
   "minimum_contexts_before_spell_insight": 2,
-  "teaching_rule": "Only the current target appears in Chinese; all support text stays in English.",
+  "teaching_rule": "Chinese appears only in the current contextual line; English describes the speaker's gesture.",
+  "opening_dialogue_targets": ["你", "水"],
   "future_spell_path": [
     { "target": "水", "role": "water source" },
     { "target": "引", "role": "draw or guide" },

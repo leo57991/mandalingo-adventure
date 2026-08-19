@@ -5,7 +5,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const lerp = (a, b, t) => a + (b - a) * t;
 const CAMERA_ANCHOR_Y = HEIGHT * .54;
-const FIXED_ZOOM = .98;
+const FIXED_ZOOM = 1.5;
 const WALKABLE_AREAS = [
   [880, 220, 640, 1330],
   [190, 540, 840, 630],

@@ -4,7 +4,8 @@ const WIDTH = 1600, HEIGHT = 900, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const lerp = (a, b, t) => a + (b - a) * t;
-const VIEW_CENTRE_Y = HEIGHT * .43;
+const CAMERA_ANCHOR_Y = HEIGHT * .54;
+const FIXED_ZOOM = .98;
 const WALKABLE_AREAS = [
   [880, 220, 640, 1330],
   [190, 540, 840, 630],
@@ -14,12 +15,10 @@ const WALKABLE_AREAS = [
 ];
 export const isWorldWalkable = (x, y) => WALKABLE_AREAS.some(([left, top, width, height]) => x >= left && x <= left + width && y >= top && y <= top + height);
 export const projectWorldPoint = (x, y, camera) => {
-  const relativeY = y - camera.focusY;
-  const depth = clamp(1 + relativeY * .00034, .76, 1.28);
   return {
-    x: WIDTH / 2 + (x - camera.focusX) * camera.zoom * depth,
-    y: VIEW_CENTRE_Y + relativeY * camera.zoom * .68,
-    scale: depth * camera.zoom
+    x: WIDTH / 2 + (x - camera.focusX) * camera.zoom,
+    y: CAMERA_ANCHOR_Y + (y - camera.focusY) * camera.zoom,
+    scale: camera.zoom
   };
 };
 
@@ -48,7 +47,7 @@ export class MandalingoGame {
 
   reset() {
     this.player = { x: 1200, y: 1480, vx: 0, vy: 0, facing: 1 };
-    this.camera = { focusX: this.player.x, focusY: this.player.y - 520, zoom: .96 };
+    this.camera = { focusX: this.player.x, focusY: WORLD.height - (HEIGHT - CAMERA_ANCHOR_Y) / FIXED_ZOOM, zoom: FIXED_ZOOM };
     this.cinematicTarget = null;
     this.nearby = null; this.location = LOCATIONS[0];
   }
@@ -80,14 +79,14 @@ export class MandalingoGame {
     }
 
     const focus = this.cinematicTarget
-      ? { x: (this.player.x + this.cinematicTarget.x) / 2, y: (this.player.y + this.cinematicTarget.y) / 2 - 260 }
-      : { x: this.player.x + this.player.vx * .26, y: this.player.y + this.player.vy * .13 - 520 };
-    const speed = Math.hypot(this.player.vx, this.player.vy);
-    const targetZoom = this.cinematicTarget ? 1.17 : this.nearby ? 1.04 : lerp(.98, .91, clamp(speed / 420, 0, 1));
-    const follow = 1 - Math.pow(.00055, delta), zoomFollow = 1 - Math.pow(.018, delta);
-    this.camera.focusX = lerp(this.camera.focusX, clamp(focus.x, 500, WORLD.width - 500), follow);
-    this.camera.focusY = lerp(this.camera.focusY, clamp(focus.y, 250, WORLD.height - 500), follow);
-    this.camera.zoom = lerp(this.camera.zoom, targetZoom, zoomFollow);
+      ? { x: (this.player.x + this.cinematicTarget.x) / 2, y: (this.player.y + this.cinematicTarget.y) / 2 - 85 }
+      : { x: this.player.x + this.player.vx * .22, y: this.player.y + this.player.vy * .1 - 85 };
+    const minX = WIDTH / 2 / FIXED_ZOOM, maxX = WORLD.width - minX;
+    const minY = CAMERA_ANCHOR_Y / FIXED_ZOOM, maxY = WORLD.height - (HEIGHT - CAMERA_ANCHOR_Y) / FIXED_ZOOM;
+    const follow = 1 - Math.pow(.00055, delta);
+    this.camera.focusX = lerp(this.camera.focusX, clamp(focus.x, minX, maxX), follow);
+    this.camera.focusY = lerp(this.camera.focusY, clamp(focus.y, minY, maxY), follow);
+    this.camera.zoom = FIXED_ZOOM;
   }
 
   loop(now) { const delta = Math.min(.035, (now - this.lastTime) / 1000); this.lastTime = now; this.update(delta); this.draw(); requestAnimationFrame(time => this.loop(time)); }
@@ -108,7 +107,7 @@ export class MandalingoGame {
 
   drawTown(ctx) {
     const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT); sky.addColorStop(0, "#0b1822"); sky.addColorStop(.52, "#233b41"); sky.addColorStop(1, "#53635b"); ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    if (this.townBackgroundLoaded) drawPerspectiveMap(ctx, this.townBackground, this.camera);
+    if (this.townBackgroundLoaded) drawStableMap(ctx, this.townBackground, this.camera);
     else drawFallbackLandscape(ctx);
 
     const depthWash = ctx.createLinearGradient(0, 0, 0, HEIGHT);
@@ -135,7 +134,7 @@ export class MandalingoGame {
     const entities = [...ENTITIES].sort((a, b) => a.y - b.y);
     for (const entity of entities) {
       const point = projectWorldPoint(entity.x, entity.y, this.camera); if (!isOnScreen(point, 120)) continue;
-      ctx.save(); ctx.translate(point.x, point.y); ctx.scale(point.scale, point.scale);
+      ctx.save(); ctx.translate(point.x, point.y); ctx.scale(point.scale * .82, point.scale * .82);
       if (!["well", "tea-pot", "gate-sign"].includes(entity.id)) {
         if (entity.type === "npc") drawNpc(ctx, 0, 0, entity.id, this.time); else drawObject(ctx, 0, 0, entity.id, this.time);
       }
@@ -146,7 +145,7 @@ export class MandalingoGame {
 
   drawPlayer(ctx) {
     const p = this.player; const moving = Math.hypot(p.vx, p.vy) > 8; const bob = moving ? Math.sin(this.time * 11) * 3 : Math.sin(this.time * 2) * 1.5;
-    const point = projectWorldPoint(p.x, p.y, this.camera), scale = .88;
+    const point = projectWorldPoint(p.x, p.y, this.camera), scale = .46;
     ctx.save(); ctx.translate(point.x, point.y + bob * point.scale); ctx.scale(p.facing * point.scale, point.scale);
     ctx.fillStyle = "rgba(2,7,12,.42)"; ctx.filter = "blur(2px)"; ctx.beginPath(); ctx.ellipse(0, 7, 34 * scale, 10 * scale, 0, 0, TAU); ctx.fill(); ctx.filter = "none";
     if (this.playerSpriteLoaded) {
@@ -158,9 +157,7 @@ export class MandalingoGame {
 
   drawForegroundMist(ctx) {
     ctx.save(); const mist = ctx.createLinearGradient(0, HEIGHT * .7, 0, HEIGHT); mist.addColorStop(0, "rgba(199,216,215,0)"); mist.addColorStop(1, "rgba(174,194,197,.13)"); ctx.fillStyle = mist; ctx.fillRect(0, HEIGHT * .7, WIDTH, HEIGHT * .3);
-    drawMistBand(ctx, -600 + (this.time * 22 % 3000), HEIGHT - 35, 620, 50, .09);
-    drawForegroundBranches(ctx, this.time);
-    if (this.cinematicTarget) { ctx.fillStyle = "rgba(2,7,11,.42)"; ctx.fillRect(0, 0, WIDTH, 22); ctx.fillRect(0, HEIGHT - 22, WIDTH, 22); }
+    drawMistBand(ctx, -600 + (this.time * 22 % 3000), HEIGHT - 25, 620, 42, .07);
     ctx.restore();
   }
 
@@ -170,48 +167,22 @@ export class MandalingoGame {
     if (this.townBackgroundLoaded) { ctx.globalAlpha = .78; ctx.drawImage(this.townBackground, left, top, width, height); ctx.globalAlpha = 1; }
     else { ctx.fillStyle = "#263b3e"; ctx.fillRect(left, top, width, height); }
     const scaleX = width / WORLD.width, scaleY = height / WORLD.height;
-    const viewWidth = 1500 / this.camera.zoom, viewHeight = 1180 / this.camera.zoom;
-    ctx.strokeStyle = "rgba(235,204,145,.78)"; ctx.lineWidth = 2; ctx.strokeRect(left + (this.camera.focusX - viewWidth / 2) * scaleX, top + (this.camera.focusY - viewHeight / 2) * scaleY, viewWidth * scaleX, viewHeight * scaleY);
+    const viewWidth = WIDTH / this.camera.zoom, viewHeight = HEIGHT / this.camera.zoom;
+    const viewTop = this.camera.focusY - CAMERA_ANCHOR_Y / this.camera.zoom;
+    ctx.strokeStyle = "rgba(235,204,145,.78)"; ctx.lineWidth = 2; ctx.strokeRect(left + (this.camera.focusX - viewWidth / 2) * scaleX, top + viewTop * scaleY, viewWidth * scaleX, viewHeight * scaleY);
     ctx.fillStyle = "#e9c279"; ctx.shadowColor = "#e9c279"; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(left + this.player.x * scaleX, top + this.player.y * scaleY, 4, 0, TAU); ctx.fill();
     ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(216,173,103,.5)"; ctx.strokeRect(left, top, width, height); ctx.fillStyle = "rgba(239,229,207,.78)"; ctx.font = "10px 'Noto Sans TC',sans-serif"; ctx.textAlign = "right"; ctx.fillText(this.location.name, left + width - 8, top + height - 8); ctx.restore();
   }
 }
 
-function drawPerspectiveMap(ctx, image, camera) {
-  const sourceHeight = image.naturalHeight || image.height;
-  const sourceWidth = image.naturalWidth || image.width;
-  const strip = 5;
-  ctx.save();
-  ctx.imageSmoothingEnabled = true;
-  for (let worldY = 0; worldY < WORLD.height; worldY += strip) {
-    const nextY = Math.min(WORLD.height, worldY + strip);
-    const a = projectWorldPoint(0, worldY, camera);
-    const b = projectWorldPoint(WORLD.width, worldY, camera);
-    const next = projectWorldPoint(0, nextY, camera);
-    if (next.y < -2 || a.y > HEIGHT + 2) continue;
-    const sourceY = worldY / WORLD.height * sourceHeight;
-    const sourceStrip = Math.max(1, (nextY - worldY) / WORLD.height * sourceHeight + .6);
-    ctx.drawImage(image, 0, sourceY, sourceWidth, sourceStrip, a.x, a.y, b.x - a.x, Math.max(1.1, next.y - a.y + .75));
-  }
+function drawStableMap(ctx, image, camera) {
+  const topLeft = projectWorldPoint(0, 0, camera);
+  ctx.save(); ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(image, topLeft.x, topLeft.y, WORLD.width * camera.zoom, WORLD.height * camera.zoom);
   ctx.restore();
 }
 
 function isOnScreen(point, margin = 0) { return point.x > -margin && point.x < WIDTH + margin && point.y > -margin && point.y < HEIGHT + margin; }
-
-function drawForegroundBranches(ctx, time) {
-  ctx.save();
-  ctx.strokeStyle = "rgba(4,13,14,.72)"; ctx.fillStyle = "rgba(7,25,22,.58)"; ctx.lineCap = "round";
-  for (const side of [-1, 1]) {
-    const anchor = side < 0 ? 20 : WIDTH - 20;
-    ctx.lineWidth = 16; ctx.beginPath(); ctx.moveTo(anchor, HEIGHT + 25); ctx.quadraticCurveTo(anchor + side * 55, HEIGHT * .77, anchor + side * 8, HEIGHT * .58); ctx.stroke();
-    for (let i = 0; i < 8; i++) {
-      const sway = Math.sin(time * .55 + i) * 5;
-      const x = anchor + side * (18 + (i % 3) * 34) + sway, y = HEIGHT - 50 - i * 43;
-      ctx.beginPath(); ctx.ellipse(x, y, 42, 13, side * -.45, 0, TAU); ctx.fill();
-    }
-  }
-  ctx.restore();
-}
 
 function drawFallbackLandscape(ctx) {
   const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT); sky.addColorStop(0, "#152b35"); sky.addColorStop(1, "#52645d"); ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT);

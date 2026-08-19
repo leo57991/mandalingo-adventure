@@ -28,6 +28,10 @@ interact={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":69)]}
 notebook={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":78)]}
 debug_collisions={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":4194334)]}
 
+[gui]
+
+theme/custom="res://assets/fonts/mandalingo_theme.tres"
+
 [layer_names]
 
 2d_physics/layer_1="world"

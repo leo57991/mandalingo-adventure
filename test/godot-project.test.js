@@ -31,3 +31,14 @@ test("the deployable Godot Web build is present", () => {
     assert.ok(statSync(path).size > 0, `${file} must not be empty`);
   }
 });
+
+test("the project bundles a Traditional Chinese font for Web exports", () => {
+  const project = read("godot/project.godot");
+  const theme = read("godot/assets/fonts/mandalingo_theme.tres");
+  const font = new URL("../godot/assets/fonts/NotoSansCJKtc-Regular.otf", import.meta.url);
+
+  assert.match(project, /theme\/custom="res:\/\/assets\/fonts\/mandalingo_theme\.tres"/);
+  assert.match(theme, /NotoSansCJKtc-Regular\.otf/);
+  assert.ok(existsSync(font));
+  assert.ok(statSync(font).size > 10_000_000, "the full CJK font must be bundled, not a Latin-only subset");
+});

@@ -20,3 +20,5 @@
 - `scenes/player.tscn`：玩家、碰撞、跟隨鏡頭與慢速探索移動。
 
 每個物件都能在 Godot 編輯器中單獨移動、縮放、替換圖片或修改 CollisionShape2D，不再依賴整張場景圖片。
+
+介面全域使用 `assets/fonts/NotoSansCJKtc-Regular.otf`，確保 Windows 與 Web 匯出都能顯示繁體中文。字型依 SIL Open Font License 1.1 發布，授權文字位於 `assets/fonts/OFL.txt`。

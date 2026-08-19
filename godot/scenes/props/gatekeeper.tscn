@@ -21,9 +21,13 @@ scale = Vector2(0.092, 0.092)
 collision_layer = 4
 collision_mask = 2
 script = ExtResource("1_interact")
-word = "水"
-context = "The gatekeeper points to his empty cup, then to the rainwater. He repeats one sound."
+word = "你"
+context = "The gatekeeper points directly at you."
+display_line = "你是誰"
 location_name = "South Gate Guard"
+sequence_words = PackedStringArray("你", "水")
+sequence_contexts = PackedStringArray("The gatekeeper points directly at you.", "The gatekeeper points down at the stone beneath his feet, then opens his arms to the town.")
+sequence_lines = PackedStringArray("你是誰", "這裡是水鎮")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]
 shape = SubResource("Talk_area")

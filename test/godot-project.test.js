@@ -43,7 +43,7 @@ test("the project bundles a Traditional Chinese font for Web exports", () => {
   assert.ok(statSync(font).size > 10_000_000, "the full CJK font must be bundled, not a Latin-only subset");
 });
 
-test("the first town isolates one large Chinese learning target", () => {
+test("the opening limits Chinese to the required contextual phrases", () => {
   const game = read("godot/scripts/main.gd");
   const mainScene = read("godot/scenes/main.tscn");
   const stele = read("godot/scenes/props/stele.tscn");
@@ -52,10 +52,14 @@ test("the first town isolates one large Chinese learning target", () => {
   const learnerFacingText = [game, mainScene, stele, gatekeeper, project].join("\n");
   const hanzi = learnerFacingText.match(/[\u3400-\u9fff]/g) ?? [];
 
-  assert.deepEqual([...new Set(hanzi)], ["水"]);
+  const allowed = new Set(["你", "是", "誰", "這", "裡", "水", "鎮"]);
+  assert.ok(hanzi.length > 0);
+  assert.ok(hanzi.every((character) => allowed.has(character)));
   assert.match(stele, /name="Inscription"[\s\S]*text = "水"/);
   assert.match(game, /\[font_size=72\]/);
   assert.match(mainScene, /name="DialogueText" type="RichTextLabel"/);
+  assert.match(gatekeeper, /sequence_lines = PackedStringArray\("你是誰", "這裡是水鎮"\)/);
+  assert.match(gatekeeper, /sequence_contexts = PackedStringArray\("The gatekeeper points directly at you\./);
 });
 
 test("Water Ward curriculum leads into contextual water spells", () => {
@@ -63,6 +67,17 @@ test("Water Ward curriculum leads into contextual water spells", () => {
   assert.equal(curriculum.theme, "water");
   assert.equal(curriculum.first_target, "水");
   assert.equal(curriculum.minimum_contexts_before_spell_insight, 2);
+  assert.deepEqual(curriculum.opening_dialogue_targets, ["你", "水"]);
   assert.ok(curriculum.future_spell_path.some(({ target }) => target === "引"));
   assert.ok(curriculum.future_spell_path.some(({ target }) => target === "止"));
+});
+
+test("dialogues close with Escape and the notebook has a clickable toggle", () => {
+  const game = read("godot/scripts/main.gd");
+  const mainScene = read("godot/scenes/main.tscn");
+
+  assert.match(game, /event\.is_action_pressed\("ui_cancel"\)/);
+  assert.match(game, /dialogue_panel\.hide\(\)/);
+  assert.match(game, /notebook_button\.pressed\.connect\(_toggle_notebook\)/);
+  assert.match(mainScene, /name="NotebookButton" type="Button"/);
 });

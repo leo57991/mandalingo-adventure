@@ -4,6 +4,7 @@ const WIDTH = 1600, HEIGHT = 900, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const lerp = (a, b, t) => a + (b - a) * t;
+const VIEW_CENTRE_Y = HEIGHT * .43;
 const WALKABLE_AREAS = [
   [880, 220, 640, 1330],
   [190, 540, 840, 630],
@@ -12,6 +13,15 @@ const WALKABLE_AREAS = [
   [720, 1180, 960, 370]
 ];
 export const isWorldWalkable = (x, y) => WALKABLE_AREAS.some(([left, top, width, height]) => x >= left && x <= left + width && y >= top && y <= top + height);
+export const projectWorldPoint = (x, y, camera) => {
+  const relativeY = y - camera.focusY;
+  const depth = clamp(1 + relativeY * .00034, .76, 1.28);
+  return {
+    x: WIDTH / 2 + (x - camera.focusX) * camera.zoom * depth,
+    y: VIEW_CENTRE_Y + relativeY * camera.zoom * .68,
+    scale: depth * camera.zoom
+  };
+};
 
 export class MandalingoGame {
   constructor(canvas, callbacks = {}) {
@@ -38,37 +48,46 @@ export class MandalingoGame {
 
   reset() {
     this.player = { x: 1200, y: 1480, vx: 0, vy: 0, facing: 1 };
-    this.camera = { x: clamp(this.player.x - WIDTH / 2, 0, WORLD.width - WIDTH), y: clamp(this.player.y - HEIGHT / 2, 0, WORLD.height - HEIGHT) };
+    this.camera = { focusX: this.player.x, focusY: this.player.y - 520, zoom: .96 };
+    this.cinematicTarget = null;
     this.nearby = null; this.location = LOCATIONS[0];
   }
   start() { this.reset(); this.state = "playing"; this.callbacks.onLocation?.(this.location); this.callbacks.onNearby?.(null); }
-  setPaused(paused) { if (paused && this.state === "playing") this.state = "modal"; else if (!paused && this.state === "modal") this.state = "playing"; }
+  setPaused(paused) { if (paused && this.state === "playing") this.state = "modal"; else if (!paused && this.state === "modal") { this.state = "playing"; this.cinematicTarget = null; } }
   setMobileVector(x, y) { this.mobileVector = { x, y }; }
   setQuestResolved(value) { this.questResolved = value; }
-  interact() { if (this.nearby) this.callbacks.onInteract?.(this.nearby); }
+  interact() { if (this.nearby) { this.cinematicTarget = this.nearby; this.callbacks.onInteract?.(this.nearby); } }
 
   update(delta) {
-    this.time += delta; if (this.state !== "playing") return;
-    let x = this.mobileVector.x + (this.keys.has("d") || this.keys.has("arrowright") ? 1 : 0) - (this.keys.has("a") || this.keys.has("arrowleft") ? 1 : 0);
-    let y = this.mobileVector.y + (this.keys.has("s") || this.keys.has("arrowdown") ? 1 : 0) - (this.keys.has("w") || this.keys.has("arrowup") ? 1 : 0);
-    const magnitude = Math.hypot(x, y); if (magnitude > 1) { x /= magnitude; y /= magnitude; }
-    if (Math.abs(x) > .05) this.player.facing = Math.sign(x);
-    this.player.vx = lerp(this.player.vx, x * 315, 1 - Math.pow(.001, delta));
-    this.player.vy = lerp(this.player.vy, y * 285, 1 - Math.pow(.001, delta));
-    const nextX = clamp(this.player.x + this.player.vx * delta, 70, WORLD.width - 70), nextY = clamp(this.player.y + this.player.vy * delta, 90, WORLD.height - 70);
-    if (isWorldWalkable(nextX, this.player.y)) this.player.x = nextX; else this.player.vx *= .18;
-    if (isWorldWalkable(this.player.x, nextY)) this.player.y = nextY; else this.player.vy *= .18;
+    this.time += delta;
+    if (this.state === "playing") {
+      let x = this.mobileVector.x + (this.keys.has("d") || this.keys.has("arrowright") ? 1 : 0) - (this.keys.has("a") || this.keys.has("arrowleft") ? 1 : 0);
+      let y = this.mobileVector.y + (this.keys.has("s") || this.keys.has("arrowdown") ? 1 : 0) - (this.keys.has("w") || this.keys.has("arrowup") ? 1 : 0);
+      const magnitude = Math.hypot(x, y); if (magnitude > 1) { x /= magnitude; y /= magnitude; }
+      if (Math.abs(x) > .05) this.player.facing = Math.sign(x);
+      this.player.vx = lerp(this.player.vx, x * 315, 1 - Math.pow(.001, delta));
+      this.player.vy = lerp(this.player.vy, y * 285, 1 - Math.pow(.001, delta));
+      const nextX = clamp(this.player.x + this.player.vx * delta, 70, WORLD.width - 70), nextY = clamp(this.player.y + this.player.vy * delta, 90, WORLD.height - 70);
+      if (isWorldWalkable(nextX, this.player.y)) this.player.x = nextX; else this.player.vx *= .18;
+      if (isWorldWalkable(this.player.x, nextY)) this.player.y = nextY; else this.player.vy *= .18;
 
-    const nearest = ENTITIES.map(entity => ({ entity, distance: dist(this.player, entity) })).sort((a, b) => a.distance - b.distance)[0];
-    const nextNearby = nearest?.distance < 92 ? nearest.entity : null;
-    if (nextNearby?.id !== this.nearby?.id) { this.nearby = nextNearby; this.callbacks.onNearby?.(nextNearby); }
+      const nearest = ENTITIES.map(entity => ({ entity, distance: dist(this.player, entity) })).sort((a, b) => a.distance - b.distance)[0];
+      const nextNearby = nearest?.distance < 105 ? nearest.entity : null;
+      if (nextNearby?.id !== this.nearby?.id) { this.nearby = nextNearby; this.callbacks.onNearby?.(nextNearby); }
 
-    const nextLocation = LOCATIONS.find(location => { const [left, top, right, bottom] = location.bounds; return this.player.x >= left && this.player.x <= right && this.player.y >= top && this.player.y <= bottom; }) ?? this.location;
-    if (nextLocation.id !== this.location.id) { this.location = nextLocation; this.callbacks.onLocation?.(nextLocation); }
+      const nextLocation = LOCATIONS.find(location => { const [left, top, right, bottom] = location.bounds; return this.player.x >= left && this.player.x <= right && this.player.y >= top && this.player.y <= bottom; }) ?? this.location;
+      if (nextLocation.id !== this.location.id) { this.location = nextLocation; this.callbacks.onLocation?.(nextLocation); }
+    }
 
-    const follow = 1 - Math.pow(.0008, delta);
-    const targetX = clamp(this.player.x - WIDTH / 2, 0, WORLD.width - WIDTH), targetY = clamp(this.player.y - HEIGHT / 2, 0, WORLD.height - HEIGHT);
-    this.camera.x = lerp(this.camera.x, targetX, follow); this.camera.y = lerp(this.camera.y, targetY, follow);
+    const focus = this.cinematicTarget
+      ? { x: (this.player.x + this.cinematicTarget.x) / 2, y: (this.player.y + this.cinematicTarget.y) / 2 - 260 }
+      : { x: this.player.x + this.player.vx * .26, y: this.player.y + this.player.vy * .13 - 520 };
+    const speed = Math.hypot(this.player.vx, this.player.vy);
+    const targetZoom = this.cinematicTarget ? 1.17 : this.nearby ? 1.04 : lerp(.98, .91, clamp(speed / 420, 0, 1));
+    const follow = 1 - Math.pow(.00055, delta), zoomFollow = 1 - Math.pow(.018, delta);
+    this.camera.focusX = lerp(this.camera.focusX, clamp(focus.x, 500, WORLD.width - 500), follow);
+    this.camera.focusY = lerp(this.camera.focusY, clamp(focus.y, 250, WORLD.height - 500), follow);
+    this.camera.zoom = lerp(this.camera.zoom, targetZoom, zoomFollow);
   }
 
   loop(now) { const delta = Math.min(.035, (now - this.lastTime) / 1000); this.lastTime = now; this.update(delta); this.draw(); requestAnimationFrame(time => this.loop(time)); }
@@ -76,8 +95,7 @@ export class MandalingoGame {
   draw() {
     const ctx = this.ctx; ctx.clearRect(0, 0, WIDTH, HEIGHT);
     if (this.state === "title") { this.drawTitle(ctx); return; }
-    ctx.save(); ctx.translate(-Math.round(this.camera.x), -Math.round(this.camera.y));
-    this.drawTown(ctx); this.drawEntities(ctx); this.drawPlayer(ctx); this.drawForegroundMist(ctx); ctx.restore();
+    this.drawTown(ctx); this.drawEntities(ctx); this.drawPlayer(ctx); this.drawForegroundMist(ctx);
     this.drawMiniMap(ctx);
   }
 
@@ -89,39 +107,47 @@ export class MandalingoGame {
   }
 
   drawTown(ctx) {
-    if (this.townBackgroundLoaded) ctx.drawImage(this.townBackground, 0, 0, WORLD.width, WORLD.height);
+    const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT); sky.addColorStop(0, "#0b1822"); sky.addColorStop(.52, "#233b41"); sky.addColorStop(1, "#53635b"); ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    if (this.townBackgroundLoaded) drawPerspectiveMap(ctx, this.townBackground, this.camera);
     else drawFallbackLandscape(ctx);
 
-    const depthWash = ctx.createLinearGradient(0, 0, 0, WORLD.height);
-    depthWash.addColorStop(0, "rgba(4,12,22,.16)"); depthWash.addColorStop(.48, "rgba(9,19,27,.02)"); depthWash.addColorStop(1, "rgba(4,9,15,.22)");
-    ctx.fillStyle = depthWash; ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+    const depthWash = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+    depthWash.addColorStop(0, "rgba(4,12,22,.38)"); depthWash.addColorStop(.46, "rgba(9,19,27,.02)"); depthWash.addColorStop(1, "rgba(4,9,15,.28)");
+    ctx.fillStyle = depthWash; ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    drawHangingSign(ctx, 615, 700, "藥"); drawHangingSign(ctx, 1930, 650, "茶");
-    drawHangingSign(ctx, 2090, 845, "客"); drawHangingSign(ctx, 310, 1010, "雜");
+    for (const [x, y, text] of [[615, 700, "藥"], [1930, 650, "茶"], [2090, 845, "客"], [310, 1010, "雜"]]) {
+      const point = projectWorldPoint(x, y, this.camera); if (!isOnScreen(point, 100)) continue;
+      ctx.save(); ctx.translate(point.x, point.y); ctx.scale(point.scale, point.scale); drawHangingSign(ctx, 0, 0, text); ctx.restore();
+    }
 
     if (this.questResolved) {
       ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.strokeStyle = "rgba(126,224,196,.42)"; ctx.shadowColor = "#7ce0c4"; ctx.shadowBlur = 20; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(1210, 930); ctx.bezierCurveTo(1360, 790, 1120, 650, 1200, 420); ctx.stroke(); ctx.restore();
+      const a = projectWorldPoint(1210, 930, this.camera), b = projectWorldPoint(1360, 790, this.camera), c = projectWorldPoint(1120, 650, this.camera), d = projectWorldPoint(1200, 420, this.camera);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.bezierCurveTo(b.x, b.y, c.x, c.y, d.x, d.y); ctx.stroke(); ctx.restore();
     }
 
-    drawMistBand(ctx, -500 + (this.time * 13 % 3300), 380, 430, 25, .065);
-    drawMistBand(ctx, 2700 - (this.time * 9 % 3300), 1040, 520, 34, .075);
-    for (const mote of this.motes.slice(0, 34)) { ctx.globalAlpha = .08 + mote.depth * .18; ctx.fillStyle = mote.warm ? "#ffd798" : "#dcece4"; ctx.beginPath(); ctx.arc(mote.x, mote.y + Math.sin(this.time * mote.speed + mote.phase) * 10, mote.size * .75, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
+    drawMistBand(ctx, -380 + (this.time * 17 % 2300), 250, 410, 25, .055);
+    drawMistBand(ctx, 1900 - (this.time * 11 % 2300), 665, 510, 38, .085);
+    for (const mote of this.motes.slice(0, 42)) { const point = projectWorldPoint(mote.x, mote.y, this.camera); if (!isOnScreen(point, 20)) continue; ctx.globalAlpha = .08 + mote.depth * .2; ctx.fillStyle = mote.warm ? "#ffd798" : "#dcece4"; ctx.beginPath(); ctx.arc(point.x, point.y + Math.sin(this.time * mote.speed + mote.phase) * 10, mote.size * point.scale, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
   }
 
   drawEntities(ctx) {
     const entities = [...ENTITIES].sort((a, b) => a.y - b.y);
     for (const entity of entities) {
-      if (["well", "tea-pot", "gate-sign"].includes(entity.id)) { if (this.nearby?.id === entity.id) drawFocusMarker(ctx, entity.x, entity.y, this.time); continue; }
-      if (entity.type === "npc") drawNpc(ctx, entity.x, entity.y, entity.id, this.time); else drawObject(ctx, entity.x, entity.y, entity.id, this.time);
-      if (this.nearby?.id === entity.id) drawFocusMarker(ctx, entity.x, entity.y, this.time);
+      const point = projectWorldPoint(entity.x, entity.y, this.camera); if (!isOnScreen(point, 120)) continue;
+      ctx.save(); ctx.translate(point.x, point.y); ctx.scale(point.scale, point.scale);
+      if (!["well", "tea-pot", "gate-sign"].includes(entity.id)) {
+        if (entity.type === "npc") drawNpc(ctx, 0, 0, entity.id, this.time); else drawObject(ctx, 0, 0, entity.id, this.time);
+      }
+      if (this.nearby?.id === entity.id) drawFocusMarker(ctx, 0, 0, this.time);
+      ctx.restore();
     }
   }
 
   drawPlayer(ctx) {
     const p = this.player; const moving = Math.hypot(p.vx, p.vy) > 8; const bob = moving ? Math.sin(this.time * 11) * 3 : Math.sin(this.time * 2) * 1.5;
-    const scale = .72;
-    ctx.save(); ctx.translate(p.x, p.y + bob); ctx.scale(p.facing, 1);
+    const point = projectWorldPoint(p.x, p.y, this.camera), scale = .88;
+    ctx.save(); ctx.translate(point.x, point.y + bob * point.scale); ctx.scale(p.facing * point.scale, point.scale);
     ctx.fillStyle = "rgba(2,7,12,.42)"; ctx.filter = "blur(2px)"; ctx.beginPath(); ctx.ellipse(0, 7, 34 * scale, 10 * scale, 0, 0, TAU); ctx.fill(); ctx.filter = "none";
     if (this.playerSpriteLoaded) {
       const height = 132 * scale, width = height * (this.playerSprite.width / this.playerSprite.height);
@@ -131,8 +157,11 @@ export class MandalingoGame {
   }
 
   drawForegroundMist(ctx) {
-    ctx.save(); const mist = ctx.createLinearGradient(0, WORLD.height - 300, 0, WORLD.height); mist.addColorStop(0, "rgba(199,216,215,0)"); mist.addColorStop(1, "rgba(174,194,197,.11)"); ctx.fillStyle = mist; ctx.fillRect(0, WORLD.height - 320, WORLD.width, 320);
-    drawMistBand(ctx, -500 + (this.time * 18 % 3300), 1510, 580, 42, .08); ctx.restore();
+    ctx.save(); const mist = ctx.createLinearGradient(0, HEIGHT * .7, 0, HEIGHT); mist.addColorStop(0, "rgba(199,216,215,0)"); mist.addColorStop(1, "rgba(174,194,197,.13)"); ctx.fillStyle = mist; ctx.fillRect(0, HEIGHT * .7, WIDTH, HEIGHT * .3);
+    drawMistBand(ctx, -600 + (this.time * 22 % 3000), HEIGHT - 35, 620, 50, .09);
+    drawForegroundBranches(ctx, this.time);
+    if (this.cinematicTarget) { ctx.fillStyle = "rgba(2,7,11,.42)"; ctx.fillRect(0, 0, WIDTH, 22); ctx.fillRect(0, HEIGHT - 22, WIDTH, 22); }
+    ctx.restore();
   }
 
   drawMiniMap(ctx) {
@@ -141,15 +170,52 @@ export class MandalingoGame {
     if (this.townBackgroundLoaded) { ctx.globalAlpha = .78; ctx.drawImage(this.townBackground, left, top, width, height); ctx.globalAlpha = 1; }
     else { ctx.fillStyle = "#263b3e"; ctx.fillRect(left, top, width, height); }
     const scaleX = width / WORLD.width, scaleY = height / WORLD.height;
-    ctx.strokeStyle = "rgba(235,204,145,.78)"; ctx.lineWidth = 2; ctx.strokeRect(left + this.camera.x * scaleX, top + this.camera.y * scaleY, WIDTH * scaleX, HEIGHT * scaleY);
+    const viewWidth = 1500 / this.camera.zoom, viewHeight = 1180 / this.camera.zoom;
+    ctx.strokeStyle = "rgba(235,204,145,.78)"; ctx.lineWidth = 2; ctx.strokeRect(left + (this.camera.focusX - viewWidth / 2) * scaleX, top + (this.camera.focusY - viewHeight / 2) * scaleY, viewWidth * scaleX, viewHeight * scaleY);
     ctx.fillStyle = "#e9c279"; ctx.shadowColor = "#e9c279"; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(left + this.player.x * scaleX, top + this.player.y * scaleY, 4, 0, TAU); ctx.fill();
     ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(216,173,103,.5)"; ctx.strokeRect(left, top, width, height); ctx.fillStyle = "rgba(239,229,207,.78)"; ctx.font = "10px 'Noto Sans TC',sans-serif"; ctx.textAlign = "right"; ctx.fillText(this.location.name, left + width - 8, top + height - 8); ctx.restore();
   }
 }
 
+function drawPerspectiveMap(ctx, image, camera) {
+  const sourceHeight = image.naturalHeight || image.height;
+  const sourceWidth = image.naturalWidth || image.width;
+  const strip = 5;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  for (let worldY = 0; worldY < WORLD.height; worldY += strip) {
+    const nextY = Math.min(WORLD.height, worldY + strip);
+    const a = projectWorldPoint(0, worldY, camera);
+    const b = projectWorldPoint(WORLD.width, worldY, camera);
+    const next = projectWorldPoint(0, nextY, camera);
+    if (next.y < -2 || a.y > HEIGHT + 2) continue;
+    const sourceY = worldY / WORLD.height * sourceHeight;
+    const sourceStrip = Math.max(1, (nextY - worldY) / WORLD.height * sourceHeight + .6);
+    ctx.drawImage(image, 0, sourceY, sourceWidth, sourceStrip, a.x, a.y, b.x - a.x, Math.max(1.1, next.y - a.y + .75));
+  }
+  ctx.restore();
+}
+
+function isOnScreen(point, margin = 0) { return point.x > -margin && point.x < WIDTH + margin && point.y > -margin && point.y < HEIGHT + margin; }
+
+function drawForegroundBranches(ctx, time) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(4,13,14,.72)"; ctx.fillStyle = "rgba(7,25,22,.58)"; ctx.lineCap = "round";
+  for (const side of [-1, 1]) {
+    const anchor = side < 0 ? 20 : WIDTH - 20;
+    ctx.lineWidth = 16; ctx.beginPath(); ctx.moveTo(anchor, HEIGHT + 25); ctx.quadraticCurveTo(anchor + side * 55, HEIGHT * .77, anchor + side * 8, HEIGHT * .58); ctx.stroke();
+    for (let i = 0; i < 8; i++) {
+      const sway = Math.sin(time * .55 + i) * 5;
+      const x = anchor + side * (18 + (i % 3) * 34) + sway, y = HEIGHT - 50 - i * 43;
+      ctx.beginPath(); ctx.ellipse(x, y, 42, 13, side * -.45, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
 function drawFallbackLandscape(ctx) {
-  ctx.fillStyle = "#20353a"; ctx.fillRect(0, 0, WORLD.width, WORLD.height); ctx.fillStyle = "#66736b"; ctx.fillRect(1030, 100, 340, 1420); ctx.fillRect(180, 650, 2040, 330);
-  ctx.fillStyle = "rgba(11,29,30,.58)"; for (let y = 100; y < WORLD.height; y += 190) for (let x = 100; x < WORLD.width; x += 210) { if (x > 900 && x < 1500 || y > 560 && y < 1080) continue; ctx.beginPath(); ctx.arc(x, y, 72, 0, TAU); ctx.fill(); }
+  const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT); sky.addColorStop(0, "#152b35"); sky.addColorStop(1, "#52645d"); ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillStyle = "rgba(18,38,38,.68)"; for (let x = -80; x < WIDTH + 120; x += 180) { ctx.beginPath(); ctx.arc(x, HEIGHT * .25 + Math.sin(x) * 45, 150, 0, TAU); ctx.fill(); }
 }
 function drawHangingSign(ctx, x, y, text) { ctx.save(); ctx.translate(x, y); ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 8; ctx.fillStyle = "rgba(35,29,24,.9)"; ctx.fillRect(-19, -34, 38, 54); ctx.strokeStyle = "rgba(213,166,91,.72)"; ctx.lineWidth = 2; ctx.strokeRect(-16, -31, 32, 48); ctx.fillStyle = "#e2c890"; ctx.font = "25px 'Noto Sans TC',serif"; ctx.textAlign = "center"; ctx.fillText(text, 0, 2); ctx.restore(); }
 function drawStone(ctx, x, y) { ctx.save(); ctx.translate(x, y); ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 12; ctx.fillStyle = "#69716b"; ctx.beginPath(); ctx.moveTo(-36, 34); ctx.lineTo(-30, -66); ctx.quadraticCurveTo(0, -84, 31, -61); ctx.lineTo(39, 34); ctx.closePath(); ctx.fill(); ctx.strokeStyle = "rgba(218,222,205,.28)"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#252f2d"; ctx.font = "22px 'Noto Sans TC',serif"; ctx.textAlign = "center"; ctx.fillText("霧隱鎮", 0, -14); ctx.restore(); }

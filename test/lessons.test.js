@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { ENTITIES, LOCATIONS, WORLD, buildFlashcards, canInvokeWaterGift, createJournal, grantItem, recordEncounter, resolveWaterGift, setConfirmed, setGuess } from "../src/lessons.js";
 import { PLAYER_SPEED, SOUTH_GATE_DETAIL, isPlayerWalkable, isWorldWalkable, projectWorldPoint } from "../src/game.js";
 
@@ -12,3 +13,4 @@ test("the close exploration camera reveals only a local part of town at a stable
 test("the high-detail South Gate plate covers the opening interactions at native display density", () => { const inside = entity => entity.x >= SOUTH_GATE_DETAIL.x && entity.x <= SOUTH_GATE_DETAIL.x + SOUTH_GATE_DETAIL.width && entity.y >= SOUTH_GATE_DETAIL.y && entity.y <= SOUTH_GATE_DETAIL.y + SOUTH_GATE_DETAIL.height; assert.ok(inside(ENTITIES.find(entity => entity.id === "gate-sign"))); assert.ok(inside(ENTITIES.find(entity => entity.id === "gatekeeper"))); assert.ok(Math.abs(SOUTH_GATE_DETAIL.width * 1.5 - 1672) < 2); assert.ok(Math.abs(SOUTH_GATE_DETAIL.height * 1.5 - 941) < 2); });
 test("the South Gate walls block the player while the central doorway stays open", () => { assert.equal(isPlayerWalkable(1010, 1200), false); assert.equal(isPlayerWalkable(1390, 1200), false); assert.equal(isPlayerWalkable(850, 1400), false); for (let y = 1020; y <= 1530; y += 10) assert.equal(isPlayerWalkable(1200, y), true, `central route blocked at y=${y}`); });
 test("walking speed is tuned for close, deliberate exploration", () => { assert.ok(PLAYER_SPEED.x <= 170); assert.ok(PLAYER_SPEED.y <= 155); assert.ok(PLAYER_SPEED.x * 1.5 <= 255); });
+test("the deployed module chain uses one cache-busting version", () => { const index = readFileSync(new URL("../index.html", import.meta.url), "utf8"); const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8"); const game = readFileSync(new URL("../src/game.js", import.meta.url), "utf8"); const version = index.match(/main\.js\?v=([\w-]+)/)?.[1]; assert.ok(version); assert.ok(main.includes(`game.js?v=${version}`)); assert.ok(main.includes(`audio.js?v=${version}`)); assert.ok(main.includes(`lessons.js?v=${version}`)); assert.ok(game.includes(`lessons.js?v=${version}`)); });

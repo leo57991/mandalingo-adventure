@@ -1,9 +1,17 @@
-import { ENTITIES, LOCATIONS } from "./lessons.js";
+import { ENTITIES, LOCATIONS, WORLD } from "./lessons.js";
 
 const WIDTH = 1600, HEIGHT = 900, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const lerp = (a, b, t) => a + (b - a) * t;
+const WALKABLE_AREAS = [
+  [880, 220, 640, 1330],
+  [190, 540, 840, 630],
+  [1380, 500, 850, 710],
+  [760, 80, 860, 570],
+  [720, 1180, 960, 370]
+];
+export const isWorldWalkable = (x, y) => WALKABLE_AREAS.some(([left, top, width, height]) => x >= left && x <= left + width && y >= top && y <= top + height);
 
 export class MandalingoGame {
   constructor(canvas, callbacks = {}) {
@@ -11,7 +19,7 @@ export class MandalingoGame {
     this.keys = new Set(); this.mobileVector = { x: 0, y: 0 }; this.time = 0; this.lastTime = performance.now();
     this.state = "title"; this.nearby = null; this.location = LOCATIONS[0]; this.questResolved = false;
     this.background = new Image(); this.background.src = "assets/mandalingo-key-art.png"; this.backgroundLoaded = false; this.background.onload = () => { this.backgroundLoaded = true; };
-    this.townBackground = new Image(); this.townBackground.src = "assets/wuyin-town-wuxia-background.png"; this.townBackgroundLoaded = false; this.townBackground.onload = () => { this.townBackgroundLoaded = true; };
+    this.townBackground = new Image(); this.townBackground.src = "assets/wuyin-town-map-v2.png"; this.townBackgroundLoaded = false; this.townBackground.onload = () => { this.townBackgroundLoaded = true; };
     this.playerSprite = new Image(); this.playerSprite.src = "assets/wuxia-traveller.png"; this.playerSpriteLoaded = false; this.playerSprite.onload = () => { this.playerSpriteLoaded = true; };
     this.motes = seededMotes(); this.attachInput(); this.reset(); requestAnimationFrame(time => this.loop(time));
   }
@@ -28,7 +36,11 @@ export class MandalingoGame {
     window.addEventListener("blur", () => this.keys.clear());
   }
 
-  reset() { this.player = { x: 800, y: 810, vx: 0, vy: 0, facing: 1 }; this.nearby = null; this.location = LOCATIONS[0]; }
+  reset() {
+    this.player = { x: 1200, y: 1480, vx: 0, vy: 0, facing: 1 };
+    this.camera = { x: clamp(this.player.x - WIDTH / 2, 0, WORLD.width - WIDTH), y: clamp(this.player.y - HEIGHT / 2, 0, WORLD.height - HEIGHT) };
+    this.nearby = null; this.location = LOCATIONS[0];
+  }
   start() { this.reset(); this.state = "playing"; this.callbacks.onLocation?.(this.location); this.callbacks.onNearby?.(null); }
   setPaused(paused) { if (paused && this.state === "playing") this.state = "modal"; else if (!paused && this.state === "modal") this.state = "playing"; }
   setMobileVector(x, y) { this.mobileVector = { x, y }; }
@@ -41,10 +53,11 @@ export class MandalingoGame {
     let y = this.mobileVector.y + (this.keys.has("s") || this.keys.has("arrowdown") ? 1 : 0) - (this.keys.has("w") || this.keys.has("arrowup") ? 1 : 0);
     const magnitude = Math.hypot(x, y); if (magnitude > 1) { x /= magnitude; y /= magnitude; }
     if (Math.abs(x) > .05) this.player.facing = Math.sign(x);
-    this.player.vx = lerp(this.player.vx, x * 245, 1 - Math.pow(.001, delta));
-    this.player.vy = lerp(this.player.vy, y * 205, 1 - Math.pow(.001, delta));
-    this.player.x = clamp(this.player.x + this.player.vx * delta, 90, 1510);
-    this.player.y = clamp(this.player.y + this.player.vy * delta, 185, 825);
+    this.player.vx = lerp(this.player.vx, x * 315, 1 - Math.pow(.001, delta));
+    this.player.vy = lerp(this.player.vy, y * 285, 1 - Math.pow(.001, delta));
+    const nextX = clamp(this.player.x + this.player.vx * delta, 70, WORLD.width - 70), nextY = clamp(this.player.y + this.player.vy * delta, 90, WORLD.height - 70);
+    if (isWorldWalkable(nextX, this.player.y)) this.player.x = nextX; else this.player.vx *= .18;
+    if (isWorldWalkable(this.player.x, nextY)) this.player.y = nextY; else this.player.vy *= .18;
 
     const nearest = ENTITIES.map(entity => ({ entity, distance: dist(this.player, entity) })).sort((a, b) => a.distance - b.distance)[0];
     const nextNearby = nearest?.distance < 92 ? nearest.entity : null;
@@ -52,6 +65,10 @@ export class MandalingoGame {
 
     const nextLocation = LOCATIONS.find(location => { const [left, top, right, bottom] = location.bounds; return this.player.x >= left && this.player.x <= right && this.player.y >= top && this.player.y <= bottom; }) ?? this.location;
     if (nextLocation.id !== this.location.id) { this.location = nextLocation; this.callbacks.onLocation?.(nextLocation); }
+
+    const follow = 1 - Math.pow(.0008, delta);
+    const targetX = clamp(this.player.x - WIDTH / 2, 0, WORLD.width - WIDTH), targetY = clamp(this.player.y - HEIGHT / 2, 0, WORLD.height - HEIGHT);
+    this.camera.x = lerp(this.camera.x, targetX, follow); this.camera.y = lerp(this.camera.y, targetY, follow);
   }
 
   loop(now) { const delta = Math.min(.035, (now - this.lastTime) / 1000); this.lastTime = now; this.update(delta); this.draw(); requestAnimationFrame(time => this.loop(time)); }
@@ -59,7 +76,9 @@ export class MandalingoGame {
   draw() {
     const ctx = this.ctx; ctx.clearRect(0, 0, WIDTH, HEIGHT);
     if (this.state === "title") { this.drawTitle(ctx); return; }
-    this.drawTown(ctx); this.drawEntities(ctx); this.drawPlayer(ctx); this.drawForegroundMist(ctx);
+    ctx.save(); ctx.translate(-Math.round(this.camera.x), -Math.round(this.camera.y));
+    this.drawTown(ctx); this.drawEntities(ctx); this.drawPlayer(ctx); this.drawForegroundMist(ctx); ctx.restore();
+    this.drawMiniMap(ctx);
   }
 
   drawTitle(ctx) {
@@ -70,24 +89,23 @@ export class MandalingoGame {
   }
 
   drawTown(ctx) {
-    if (this.townBackgroundLoaded) ctx.drawImage(this.townBackground, 0, 0, WIDTH, HEIGHT);
+    if (this.townBackgroundLoaded) ctx.drawImage(this.townBackground, 0, 0, WORLD.width, WORLD.height);
     else drawFallbackLandscape(ctx);
 
-    const depthWash = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+    const depthWash = ctx.createLinearGradient(0, 0, 0, WORLD.height);
     depthWash.addColorStop(0, "rgba(4,12,22,.16)"); depthWash.addColorStop(.48, "rgba(9,19,27,.02)"); depthWash.addColorStop(1, "rgba(4,9,15,.22)");
-    ctx.fillStyle = depthWash; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = depthWash; ctx.fillRect(0, 0, WORLD.width, WORLD.height);
 
-    drawHangingSign(ctx, 448, 432, "藥"); drawHangingSign(ctx, 1198, 476, "茶");
-    drawHangingSign(ctx, 1265, 267, "客"); drawHangingSign(ctx, 238, 610, "雜");
-    drawStone(ctx, 800, 758);
+    drawHangingSign(ctx, 615, 700, "藥"); drawHangingSign(ctx, 1930, 650, "茶");
+    drawHangingSign(ctx, 2090, 845, "客"); drawHangingSign(ctx, 310, 1010, "雜");
 
     if (this.questResolved) {
       ctx.save(); ctx.globalCompositeOperation = "screen"; ctx.strokeStyle = "rgba(126,224,196,.42)"; ctx.shadowColor = "#7ce0c4"; ctx.shadowBlur = 20; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(800, 735); ctx.bezierCurveTo(765, 625, 840, 520, 800, 385); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(1210, 930); ctx.bezierCurveTo(1360, 790, 1120, 650, 1200, 420); ctx.stroke(); ctx.restore();
     }
 
-    drawMistBand(ctx, -170 + (this.time * 13 % 1900), 315, 360, 22, .07);
-    drawMistBand(ctx, 1580 - (this.time * 9 % 1900), 575, 470, 30, .08);
+    drawMistBand(ctx, -500 + (this.time * 13 % 3300), 380, 430, 25, .065);
+    drawMistBand(ctx, 2700 - (this.time * 9 % 3300), 1040, 520, 34, .075);
     for (const mote of this.motes.slice(0, 34)) { ctx.globalAlpha = .08 + mote.depth * .18; ctx.fillStyle = mote.warm ? "#ffd798" : "#dcece4"; ctx.beginPath(); ctx.arc(mote.x, mote.y + Math.sin(this.time * mote.speed + mote.phase) * 10, mote.size * .75, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
   }
 
@@ -102,7 +120,7 @@ export class MandalingoGame {
 
   drawPlayer(ctx) {
     const p = this.player; const moving = Math.hypot(p.vx, p.vy) > 8; const bob = moving ? Math.sin(this.time * 11) * 3 : Math.sin(this.time * 2) * 1.5;
-    const scale = .62 + p.y / 1500;
+    const scale = .72;
     ctx.save(); ctx.translate(p.x, p.y + bob); ctx.scale(p.facing, 1);
     ctx.fillStyle = "rgba(2,7,12,.42)"; ctx.filter = "blur(2px)"; ctx.beginPath(); ctx.ellipse(0, 7, 34 * scale, 10 * scale, 0, 0, TAU); ctx.fill(); ctx.filter = "none";
     if (this.playerSpriteLoaded) {
@@ -113,21 +131,31 @@ export class MandalingoGame {
   }
 
   drawForegroundMist(ctx) {
-    ctx.save(); const mist = ctx.createLinearGradient(0, 710, 0, HEIGHT); mist.addColorStop(0, "rgba(199,216,215,0)"); mist.addColorStop(1, "rgba(174,194,197,.11)"); ctx.fillStyle = mist; ctx.fillRect(0, 660, WIDTH, 240);
-    drawMistBand(ctx, -100 + (this.time * 18 % 1800), 820, 520, 38, .085); ctx.restore();
+    ctx.save(); const mist = ctx.createLinearGradient(0, WORLD.height - 300, 0, WORLD.height); mist.addColorStop(0, "rgba(199,216,215,0)"); mist.addColorStop(1, "rgba(174,194,197,.11)"); ctx.fillStyle = mist; ctx.fillRect(0, WORLD.height - 320, WORLD.width, 320);
+    drawMistBand(ctx, -500 + (this.time * 18 % 3300), 1510, 580, 42, .08); ctx.restore();
+  }
+
+  drawMiniMap(ctx) {
+    const width = 230, height = width * WORLD.height / WORLD.width, left = WIDTH - width - 25, top = 88;
+    ctx.save(); ctx.fillStyle = "rgba(5,12,17,.82)"; ctx.fillRect(left - 5, top - 5, width + 10, height + 10);
+    if (this.townBackgroundLoaded) { ctx.globalAlpha = .78; ctx.drawImage(this.townBackground, left, top, width, height); ctx.globalAlpha = 1; }
+    else { ctx.fillStyle = "#263b3e"; ctx.fillRect(left, top, width, height); }
+    const scaleX = width / WORLD.width, scaleY = height / WORLD.height;
+    ctx.strokeStyle = "rgba(235,204,145,.78)"; ctx.lineWidth = 2; ctx.strokeRect(left + this.camera.x * scaleX, top + this.camera.y * scaleY, WIDTH * scaleX, HEIGHT * scaleY);
+    ctx.fillStyle = "#e9c279"; ctx.shadowColor = "#e9c279"; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(left + this.player.x * scaleX, top + this.player.y * scaleY, 4, 0, TAU); ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(216,173,103,.5)"; ctx.strokeRect(left, top, width, height); ctx.fillStyle = "rgba(239,229,207,.78)"; ctx.font = "10px 'Noto Sans TC',sans-serif"; ctx.textAlign = "right"; ctx.fillText(this.location.name, left + width - 8, top + height - 8); ctx.restore();
   }
 }
 
 function drawFallbackLandscape(ctx) {
-  const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT); sky.addColorStop(0, "#17273a"); sky.addColorStop(.55, "#36505a"); sky.addColorStop(1, "#18252a"); ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.fillStyle = "rgba(7,18,25,.72)"; ctx.beginPath(); ctx.moveTo(0, 440); ctx.quadraticCurveTo(180, 160, 380, 440); ctx.quadraticCurveTo(620, 210, 820, 440); ctx.quadraticCurveTo(1060, 130, 1260, 440); ctx.quadraticCurveTo(1440, 230, 1600, 440); ctx.lineTo(1600, HEIGHT); ctx.lineTo(0, HEIGHT); ctx.fill();
-  const road = ctx.createLinearGradient(0, 300, 0, HEIGHT); road.addColorStop(0, "#626d69"); road.addColorStop(1, "#303c3c"); ctx.fillStyle = road; ctx.beginPath(); ctx.moveTo(715, 350); ctx.lineTo(885, 350); ctx.lineTo(1260, 900); ctx.lineTo(300, 900); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#20353a"; ctx.fillRect(0, 0, WORLD.width, WORLD.height); ctx.fillStyle = "#66736b"; ctx.fillRect(1030, 100, 340, 1420); ctx.fillRect(180, 650, 2040, 330);
+  ctx.fillStyle = "rgba(11,29,30,.58)"; for (let y = 100; y < WORLD.height; y += 190) for (let x = 100; x < WORLD.width; x += 210) { if (x > 900 && x < 1500 || y > 560 && y < 1080) continue; ctx.beginPath(); ctx.arc(x, y, 72, 0, TAU); ctx.fill(); }
 }
 function drawHangingSign(ctx, x, y, text) { ctx.save(); ctx.translate(x, y); ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 8; ctx.fillStyle = "rgba(35,29,24,.9)"; ctx.fillRect(-19, -34, 38, 54); ctx.strokeStyle = "rgba(213,166,91,.72)"; ctx.lineWidth = 2; ctx.strokeRect(-16, -31, 32, 48); ctx.fillStyle = "#e2c890"; ctx.font = "25px 'Noto Sans TC',serif"; ctx.textAlign = "center"; ctx.fillText(text, 0, 2); ctx.restore(); }
 function drawStone(ctx, x, y) { ctx.save(); ctx.translate(x, y); ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 12; ctx.fillStyle = "#69716b"; ctx.beginPath(); ctx.moveTo(-36, 34); ctx.lineTo(-30, -66); ctx.quadraticCurveTo(0, -84, 31, -61); ctx.lineTo(39, 34); ctx.closePath(); ctx.fill(); ctx.strokeStyle = "rgba(218,222,205,.28)"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#252f2d"; ctx.font = "22px 'Noto Sans TC',serif"; ctx.textAlign = "center"; ctx.fillText("霧隱鎮", 0, -14); ctx.restore(); }
-function drawNpc(ctx, x, y, id, time) { const palette = id === "thirsty-disciple" ? ["#c4c9ae", "#536b63", "#8f5748"] : id === "tea-keeper" ? ["#c99a76", "#714849", "#b18154"] : id === "herbalist" ? ["#b7ac82", "#405b53", "#82704e"] : ["#c4aa82", "#435e62", "#8a5d45"]; const bob = Math.sin(time * 1.8 + x) * 1.5; const scale = .58 + y / 1500; ctx.save(); ctx.translate(x, y + bob); ctx.scale(scale, scale); ctx.fillStyle = "rgba(2,7,12,.38)"; ctx.beginPath(); ctx.ellipse(0, 18, 28, 8, 0, 0, TAU); ctx.fill(); ctx.fillStyle = palette[1]; ctx.beginPath(); ctx.moveTo(-18, -27); ctx.quadraticCurveTo(0, -38, 18, -27); ctx.lineTo(29, 17); ctx.quadraticCurveTo(0, 28, -29, 17); ctx.closePath(); ctx.fill(); ctx.fillStyle = palette[2]; ctx.fillRect(-21, -4, 42, 6); ctx.strokeStyle = "rgba(225,217,187,.42)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-15, -20); ctx.lineTo(-27, 1); ctx.moveTo(15, -20); ctx.lineTo(29, 0); ctx.stroke(); ctx.fillStyle = palette[0]; ctx.beginPath(); ctx.arc(0, -47, 13, 0, TAU); ctx.fill(); ctx.fillStyle = "#202b2d"; ctx.beginPath(); ctx.arc(0, -53, 14, Math.PI, TAU); ctx.fill(); ctx.fillRect(-4, -64, 8, 11); if (id === "thirsty-disciple") { ctx.strokeStyle = "#d5c19a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(30, -5, 13, 5, 0, 0, TAU); ctx.stroke(); } ctx.restore(); }
+function drawNpc(ctx, x, y, id, time) { const palette = id === "thirsty-disciple" ? ["#c4c9ae", "#536b63", "#8f5748"] : id === "tea-keeper" ? ["#c99a76", "#714849", "#b18154"] : id === "herbalist" ? ["#b7ac82", "#405b53", "#82704e"] : ["#c4aa82", "#435e62", "#8a5d45"]; const bob = Math.sin(time * 1.8 + x) * 1.5; const scale = .74; ctx.save(); ctx.translate(x, y + bob); ctx.scale(scale, scale); ctx.fillStyle = "rgba(2,7,12,.38)"; ctx.beginPath(); ctx.ellipse(0, 18, 28, 8, 0, 0, TAU); ctx.fill(); ctx.fillStyle = palette[1]; ctx.beginPath(); ctx.moveTo(-18, -27); ctx.quadraticCurveTo(0, -38, 18, -27); ctx.lineTo(29, 17); ctx.quadraticCurveTo(0, 28, -29, 17); ctx.closePath(); ctx.fill(); ctx.fillStyle = palette[2]; ctx.fillRect(-21, -4, 42, 6); ctx.strokeStyle = "rgba(225,217,187,.42)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-15, -20); ctx.lineTo(-27, 1); ctx.moveTo(15, -20); ctx.lineTo(29, 0); ctx.stroke(); ctx.fillStyle = palette[0]; ctx.beginPath(); ctx.arc(0, -47, 13, 0, TAU); ctx.fill(); ctx.fillStyle = "#202b2d"; ctx.beginPath(); ctx.arc(0, -53, 14, Math.PI, TAU); ctx.fill(); ctx.fillRect(-4, -64, 8, 11); if (id === "thirsty-disciple") { ctx.strokeStyle = "#d5c19a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(30, -5, 13, 5, 0, 0, TAU); ctx.stroke(); } ctx.restore(); }
 function drawObject(ctx, x, y, id, time) { ctx.save(); ctx.translate(x, y); if (id === "lantern") { ctx.fillStyle = "#ffd27d"; ctx.shadowBlur = 22; ctx.shadowColor = "#ffd27d"; ctx.fillRect(-10, -40, 20, 33); ctx.shadowBlur = 0; ctx.strokeStyle = "#4a342d"; ctx.strokeRect(-15, -45, 30, 43); } else if (id === "cat") { ctx.fillStyle = "#b9a58d"; ctx.beginPath(); ctx.ellipse(0, 4, 24, 13, 0, 0, TAU); ctx.arc(21, -7, 11, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.moveTo(15, -15); ctx.lineTo(17, -28); ctx.lineTo(23, -17); ctx.moveTo(25, -17); ctx.lineTo(31, -28); ctx.lineTo(32, -13); ctx.fill(); } ctx.restore(); }
 function drawFallbackPlayer(ctx, scale) { ctx.scale(scale, scale); ctx.fillStyle = "#27373b"; ctx.beginPath(); ctx.moveTo(-21, -72); ctx.lineTo(20, -72); ctx.lineTo(28, 5); ctx.lineTo(-28, 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#4b8b81"; ctx.fillRect(-20, -57, 40, 34); ctx.fillStyle = "#b75c4f"; ctx.fillRect(-22, -25, 44, 6); ctx.fillStyle = "#d2b184"; ctx.beginPath(); ctx.arc(0, -86, 13, 0, TAU); ctx.fill(); ctx.fillStyle = "#202a31"; ctx.beginPath(); ctx.arc(0, -92, 14, Math.PI, TAU); ctx.fill(); }
 function drawFocusMarker(ctx, x, y, time) { const pulse = 1 + Math.sin(time * 4) * .08; ctx.save(); ctx.translate(x, y + 22); ctx.scale(pulse, pulse); ctx.strokeStyle = "rgba(238,194,117,.88)"; ctx.shadowColor = "#efbc68"; ctx.shadowBlur = 12; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 39, 12, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = .55; ctx.beginPath(); ctx.ellipse(0, 0, 50, 16, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
 function drawMistBand(ctx, x, y, width, height, alpha) { ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = "#d7e2df"; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(x + i * width * .32, y + Math.sin(i * 1.7) * 9, width, height * (1 + i * .08), 0, 0, TAU); ctx.fill(); } ctx.restore(); }
-function seededMotes() { let seed = 17; const random = () => ((seed = seed * 16807 % 2147483647) - 1) / 2147483646; return Array.from({ length: 70 }, () => ({ x: random() * WIDTH, y: 80 + random() * 720, size: 1 + random() * 2.8, depth: random(), speed: .3 + random(), phase: random() * TAU, warm: random() > .55 })); }
+function seededMotes() { let seed = 17; const random = () => ((seed = seed * 16807 % 2147483647) - 1) / 2147483646; return Array.from({ length: 90 }, () => ({ x: random() * WORLD.width, y: 80 + random() * (WORLD.height - 160), size: 1 + random() * 2.8, depth: random(), speed: .3 + random(), phase: random() * TAU, warm: random() > .55 })); }

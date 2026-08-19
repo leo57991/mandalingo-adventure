@@ -37,7 +37,7 @@ function saveJournal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(journa
 
 function startGame() {
   sound.page(); elements.title.classList.remove("is-visible"); elements.hud.classList.add("is-visible"); elements.hud.setAttribute("aria-hidden", "false");
-  elements.mobile.classList.add("is-visible"); elements.mobile.setAttribute("aria-hidden", "false"); game.start(); showToast("Walk near a person or object, then press E");
+  elements.mobile.classList.add("is-visible"); elements.mobile.setAttribute("aria-hidden", "false"); game.start(); showToast("Explore the map. Walk near a person or object, then press E");
 }
 
 function showNearby(entity) {

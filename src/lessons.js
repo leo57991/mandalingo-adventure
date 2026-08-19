@@ -6,24 +6,27 @@ export const VOCABULARY = {
   藥: { id: "medicine", text: "藥" }, 貓: { id: "cat", text: "貓" }
 };
 
+export const WORLD = Object.freeze({ width: 2400, height: 1600 });
+
 export const LOCATIONS = [
-  { id: "south-gate", name: "南門", english: "South Gate", bounds: [0, 590, 1600, 900] },
-  { id: "market", name: "長街", english: "Market Street", bounds: [0, 310, 800, 590] },
-  { id: "tea-house", name: "茶坊", english: "Tea House", bounds: [800, 310, 1600, 590] },
-  { id: "shrine", name: "問仙臺", english: "Shrine Steps", bounds: [0, 0, 1600, 310] }
+  { id: "south-gate", name: "南門", english: "South Gate", bounds: [650, 1200, 1750, 1600] },
+  { id: "market", name: "長街", english: "Market Street", bounds: [0, 460, 900, 1250] },
+  { id: "tea-house", name: "茶坊", english: "Tea House", bounds: [1500, 400, 2400, 1250] },
+  { id: "shrine", name: "問仙臺", english: "Immortal Terrace", bounds: [650, 0, 1750, 580] },
+  { id: "crossroads", name: "雲水橋", english: "Mistwater Crossing", bounds: [880, 500, 1520, 1250] }
 ];
 
 export const ENTITIES = [
-  { id: "gate-sign", type: "object", x: 800, y: 758, label: "鎮門石碑", action: "Inspect", context: "Three carved marks repeat on the weathered town gate. The final mark also appears on a smaller road sign nearby.", lines: [{ speaker: "石碑", text: "霧 隱 鎮", tokens: ["霧", "鎮"] }] },
-  { id: "gatekeeper", type: "npc", x: 690, y: 730, label: "守門人", action: "Talk", context: "The guard lowers his spear, smiles, and presses one fist into his palm in greeting.", lines: [{ speaker: "守門人", text: "你好，旅人。", tokens: ["你好"] }, { speaker: "守門人", text: "霧隱鎮。", tokens: ["霧", "鎮"] }, { speaker: "守門人", text: "你好。", tokens: ["你好"] }] },
-  { id: "tea-pot", type: "object", x: 1270, y: 728, label: "冒煙的茶壺", action: "Inspect", context: "Steam curls from a clay pot. The same mark is painted on the pot, the cups, and the shop banner.", lines: [{ speaker: "茶壺", text: "茶", tokens: ["茶"] }] },
-  { id: "tea-keeper", type: "npc", x: 1380, y: 690, label: "茶攤老闆", action: "Talk", context: "The vendor pours amber liquid into a cup, raises it to her lips, and offers another cup to you.", lines: [{ speaker: "茶攤老闆", text: "茶。", tokens: ["茶"] }, { speaker: "茶攤老闆", text: "喝茶。", tokens: ["喝", "茶"] }, { speaker: "茶攤老闆", text: "請，喝茶。", tokens: ["請", "喝", "茶"] }] },
-  { id: "well", type: "object", x: 475, y: 700, label: "青石井", action: "Inspect", context: "A rope lowers a bucket into the dark well. It returns filled with clear liquid. Your empty flask is now full.", grants: "water-flask", lines: [{ speaker: "井沿刻字", text: "水", tokens: ["水"] }] },
-  { id: "water-carrier", type: "npc", x: 365, y: 660, label: "挑水人", action: "Talk", context: "The worker fills two buckets at the well, then hands one to a waiting villager.", lines: [{ speaker: "挑水人", text: "水。", tokens: ["水"] }, { speaker: "挑水人", text: "給你水。", tokens: ["給", "水"] }, { speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
-  { id: "thirsty-disciple", type: "npc", x: 915, y: 505, label: "年輕弟子", action: "Talk", context: "The young disciple coughs, points to his empty bowl, then mimics drinking. His lips are dry.", quest: true, lines: [{ speaker: "年輕弟子", text: "水……", tokens: ["水"] }, { speaker: "年輕弟子", text: "請給我水。", tokens: ["請", "給", "我", "水"] }], resolvedLines: [{ speaker: "年輕弟子", text: "水！謝謝你。", tokens: ["水", "謝謝"] }, { speaker: "年輕弟子", text: "問仙臺，請。", tokens: ["請"] }] },
-  { id: "lantern", type: "object", x: 760, y: 445, label: "長明燈", action: "Inspect", context: "A caretaker touches a taper to the brazier. A small flame catches, and every hanging lantern glows.", lines: [{ speaker: "燈座刻字", text: "火", tokens: ["火"] }, { speaker: "看燈人", text: "火。燈。", tokens: ["火", "燈"] }] },
-  { id: "herbalist", type: "npc", x: 455, y: 500, label: "藥師", action: "Talk", context: "The herbalist crushes leaves, binds them to a villager's bruised wrist, and taps the medicine drawer.", lines: [{ speaker: "藥師", text: "藥。", tokens: ["藥"] }, { speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
-  { id: "cat", type: "object", x: 1410, y: 520, label: "屋簷下的小獸", action: "Observe", context: "The small animal stretches, brushes against a child's leg, and meows. The child points at it excitedly.", lines: [{ speaker: "小孩", text: "貓！貓！", tokens: ["貓"] }] }
+  { id: "gate-sign", type: "object", x: 1180, y: 1450, label: "鎮門石碑", action: "Inspect", context: "Three carved marks repeat on the weathered town gate. The final mark also appears on a smaller road sign nearby.", lines: [{ speaker: "石碑", text: "霧 隱 鎮", tokens: ["霧", "鎮"] }] },
+  { id: "gatekeeper", type: "npc", x: 1035, y: 1320, label: "守門人", action: "Talk", context: "The guard lowers his spear, smiles, and presses one fist into his palm in greeting.", lines: [{ speaker: "守門人", text: "你好，旅人。", tokens: ["你好"] }, { speaker: "守門人", text: "霧隱鎮。", tokens: ["霧", "鎮"] }, { speaker: "守門人", text: "你好。", tokens: ["你好"] }] },
+  { id: "tea-pot", type: "object", x: 1930, y: 760, label: "冒煙的茶壺", action: "Inspect", context: "Steam curls from a clay pot. The same mark is painted on the pot, the cups, and the shop banner.", lines: [{ speaker: "茶壺", text: "茶", tokens: ["茶"] }] },
+  { id: "tea-keeper", type: "npc", x: 2050, y: 825, label: "茶攤老闆", action: "Talk", context: "The vendor pours amber liquid into a cup, raises it to her lips, and offers another cup to you.", lines: [{ speaker: "茶攤老闆", text: "茶。", tokens: ["茶"] }, { speaker: "茶攤老闆", text: "喝茶。", tokens: ["喝", "茶"] }, { speaker: "茶攤老闆", text: "請，喝茶。", tokens: ["請", "喝", "茶"] }] },
+  { id: "well", type: "object", x: 455, y: 920, label: "青石井", action: "Inspect", context: "A rope lowers a bucket into the dark well. It returns filled with clear liquid. Your empty flask is now full.", grants: "water-flask", lines: [{ speaker: "井沿刻字", text: "水", tokens: ["水"] }] },
+  { id: "water-carrier", type: "npc", x: 585, y: 970, label: "挑水人", action: "Talk", context: "The worker fills two buckets at the well, then hands one to a waiting villager.", lines: [{ speaker: "挑水人", text: "水。", tokens: ["水"] }, { speaker: "挑水人", text: "給你水。", tokens: ["給", "水"] }, { speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
+  { id: "thirsty-disciple", type: "npc", x: 1210, y: 930, label: "年輕弟子", action: "Talk", context: "The young disciple coughs, points to his empty bowl, then mimics drinking. His lips are dry.", quest: true, lines: [{ speaker: "年輕弟子", text: "水……", tokens: ["水"] }, { speaker: "年輕弟子", text: "請給我水。", tokens: ["請", "給", "我", "水"] }], resolvedLines: [{ speaker: "年輕弟子", text: "水！謝謝你。", tokens: ["水", "謝謝"] }, { speaker: "年輕弟子", text: "問仙臺，請。", tokens: ["請"] }] },
+  { id: "lantern", type: "object", x: 1285, y: 510, label: "長明燈", action: "Inspect", context: "A caretaker touches a taper to the brazier. A small flame catches, and every hanging lantern glows.", lines: [{ speaker: "燈座刻字", text: "火", tokens: ["火"] }, { speaker: "看燈人", text: "火。燈。", tokens: ["火", "燈"] }] },
+  { id: "herbalist", type: "npc", x: 610, y: 710, label: "藥師", action: "Talk", context: "The herbalist crushes leaves, binds them to a villager's bruised wrist, and taps the medicine drawer.", lines: [{ speaker: "藥師", text: "藥。", tokens: ["藥"] }, { speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
+  { id: "cat", type: "object", x: 1840, y: 980, label: "屋簷下的小獸", action: "Observe", context: "The small animal stretches, brushes against a child's leg, and meows. The child points at it excitedly.", lines: [{ speaker: "小孩", text: "貓！貓！", tokens: ["貓"] }] }
 ];
 
 export function createJournal(saved = {}) { return { entries: saved.entries ?? {}, inventory: saved.inventory ?? [], quest: saved.quest ?? "unmet" }; }

@@ -1,6 +1,6 @@
 [application]
 
-config/name="Mandalingo: 霧隱鎮"
+config/name="Mandalingo: Water Ward"
 run/main_scene="res://scenes/main.tscn"
 
 [display]

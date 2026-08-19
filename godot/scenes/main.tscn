@@ -224,7 +224,7 @@ offset_right = 302.0
 offset_bottom = 84.0
 theme_override_colors/font_color = Color(0.91, 0.82, 0.62, 1)
 theme_override_font_sizes/font_size = 28
-text = "霧隱鎮 · 南門"
+text = "WATER WARD · SOUTH GATE"
 
 [node name="Hint" type="Label" parent="UI"]
 anchors_preset = 7
@@ -243,7 +243,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 17
-text = "WASD 移動　E 觀察／交談　N 筆記本"
+text = "WASD Move　E Observe / Talk　N Notebook"
 horizontal_alignment = 1
 
 [node name="DialoguePanel" type="PanelContainer" parent="UI"]
@@ -266,12 +266,12 @@ theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 18
 
-[node name="DialogueText" type="Label" parent="UI/DialoguePanel/Margin"]
+[node name="DialogueText" type="RichTextLabel" parent="UI/DialoguePanel/Margin"]
 theme_override_colors/font_color = Color(0.91, 0.9, 0.83, 1)
-theme_override_font_sizes/font_size = 20
-text = "石碑被雨水磨得發亮。"
-horizontal_alignment = 1
-vertical_alignment = 1
+bbcode_enabled = true
+text = "[center]Examine the world to discover meaning.[/center]"
+fit_content = true
+scroll_active = false
 autowrap_mode = 2
 
 [node name="NotebookPanel" type="PanelContainer" parent="UI"]
@@ -303,7 +303,7 @@ layout_mode = 2
 bbcode_enabled = true
 fit_content = true
 scroll_active = true
-text = "[font_size=24]旅人筆記[/font_size]"
+text = "[font_size=24]Water Foundations[/font_size]"
 
 [node name="GuessRow" type="HBoxContainer" parent="UI/NotebookPanel/Margin/VBox"]
 layout_mode = 2
@@ -311,13 +311,13 @@ theme_override_constants/separation = 10
 
 [node name="GuessLabel" type="Label" parent="UI/NotebookPanel/Margin/VBox/GuessRow"]
 layout_mode = 2
-text = "你的英文猜測"
+text = "Your English guess"
 
 [node name="GuessInput" type="LineEdit" parent="UI/NotebookPanel/Margin/VBox/GuessRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "輸入後只記錄，不判定正誤"
+placeholder_text = "Save your current interpretation"
 
 [node name="SaveGuess" type="Button" parent="UI/NotebookPanel/Margin/VBox/GuessRow"]
 layout_mode = 2
-text = "記下"
+text = "Save"

@@ -81,3 +81,18 @@ test("dialogues close with Escape and the notebook has a clickable toggle", () =
   assert.match(game, /notebook_button\.pressed\.connect\(_toggle_notebook\)/);
   assert.match(mainScene, /name="NotebookButton" type="Button"/);
 });
+
+test("the widened town has seamless walls, open exploration, and overlap-based occlusion", () => {
+  const mainScene = read("godot/scenes/main.tscn");
+  const playerScene = read("godot/scenes/player.tscn");
+  const wall = read("godot/scenes/props/wall_segment.tscn");
+  const gate = read("godot/scenes/props/gatehouse.tscn");
+
+  assert.match(mainScene, /size = Vector2\(3200, 80\)/);
+  assert.match(playerScene, /limit_right = 3200/);
+  assert.doesNotMatch(mainScene, /CourtyardRails|LeftRail|RightRail|BottomRail/);
+  assert.match(mainScene, /name="MidLeftWall"[\s\S]*position = Vector2\(545, 330\)/);
+  assert.match(mainScene, /name="MidRightWall"[\s\S]*position = Vector2\(2655, 330\)/);
+  assert.match(wall, /name="Sprite2D"[\s\S]*z_index = 8/);
+  assert.match(gate, /name="Sprite2D"[\s\S]*z_index = 8/);
+});

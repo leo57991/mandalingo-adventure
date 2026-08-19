@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="1_interact"]
+[ext_resource type="Texture2D" path="res://assets/characters/gatekeeper.png" id="2_texture"]
+
+[sub_resource type="CircleShape2D" id="Talk_area"]
+radius = 145.0
+
+[node name="Gatekeeper" type="Node2D"]
+
+[node name="Shadow" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-22, -4, 0, -11, 22, -4, 0, 3)
+color = Color(0.02, 0.025, 0.025, 0.55)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_texture")
+position = Vector2(0, -67)
+scale = Vector2(0.092, 0.092)
+
+[node name="Interactable" type="Area2D" parent="." groups=["interactable"]]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_interact")
+word = "你好"
+context = "守門人抬起手，向你微微一揖。\n\n『你好，旅人。』"
+location_name = "南門守衛"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]
+shape = SubResource("Talk_area")

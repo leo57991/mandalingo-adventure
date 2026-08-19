@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/environment/bamboo_cluster.png" id="1_texture"]
+
+[sub_resource type="CapsuleShape2D" id="Bamboo_shape"]
+radius = 64.0
+height = 165.0
+
+[node name="BambooCluster" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_texture")
+scale = Vector2(0.27, 0.27)
+position = Vector2(0, -145)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(0, -28)
+shape = SubResource("Bamboo_shape")

@@ -1,4 +1,4 @@
-import { ENTITIES, LOCATIONS, WORLD } from "./lessons.js";
+import { ENTITIES, LOCATIONS, WORLD } from "./lessons.js?v=20260819-2";
 
 const WIDTH = 1600, HEIGHT = 900, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));

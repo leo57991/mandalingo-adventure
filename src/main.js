@@ -1,6 +1,6 @@
-import { MandalingoGame } from "./game.js";
-import { Soundscape } from "./audio.js";
-import { VOCABULARY, buildFlashcards, canInvokeWaterGift, createJournal, getEncounteredEntries, grantItem, recordEncounter, resolveWaterGift, setConfirmed, setGuess } from "./lessons.js";
+import { MandalingoGame } from "./game.js?v=20260819-2";
+import { Soundscape } from "./audio.js?v=20260819-2";
+import { VOCABULARY, buildFlashcards, canInvokeWaterGift, createJournal, getEncounteredEntries, grantItem, recordEncounter, resolveWaterGift, setConfirmed, setGuess } from "./lessons.js?v=20260819-2";
 
 const $ = selector => document.querySelector(selector);
 const elements = {

@@ -96,3 +96,14 @@ test("the widened town has seamless walls, open exploration, and overlap-based o
   assert.match(wall, /name="Sprite2D"[\s\S]*z_index = 8/);
   assert.match(gate, /name="Sprite2D"[\s\S]*z_index = 8/);
 });
+
+test("holding Shift makes the player run without changing exploration speed", () => {
+  const player = read("godot/scripts/player.gd");
+  const game = read("godot/scripts/main.gd");
+
+  assert.match(player, /@export var walk_speed := 145\.0/);
+  assert.match(player, /@export var run_speed := 235\.0/);
+  assert.match(player, /Input\.is_physical_key_pressed\(KEY_SHIFT\)/);
+  assert.match(player, /run_speed if is_running else walk_speed/);
+  assert.match(game, /Shift Run/);
+});

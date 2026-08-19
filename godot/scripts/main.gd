@@ -22,7 +22,7 @@ func _ready() -> void:
 	notebook_button.pressed.connect(_toggle_notebook)
 	dialogue_panel.hide()
 	notebook_panel.hide()
-	hint.text = "WASD Move　E Observe / Talk　N Notebook　Esc Close"
+	hint.text = "WASD Move　Shift Run　E Observe / Talk　N Notebook　Esc Close"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

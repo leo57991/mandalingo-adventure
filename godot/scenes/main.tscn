@@ -12,7 +12,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/gatekeeper.tscn" id="10_guard"]
 
 [sub_resource type="RectangleShape2D" id="Boundary_horizontal"]
-size = Vector2(2200, 80)
+size = Vector2(3200, 80)
 
 [sub_resource type="RectangleShape2D" id="Boundary_vertical"]
 size = Vector2(80, 1400)
@@ -40,12 +40,6 @@ corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
-
-[sub_resource type="RectangleShape2D" id="Courtyard_left"]
-size = Vector2(65, 900)
-
-[sub_resource type="RectangleShape2D" id="Courtyard_bottom"]
-size = Vector2(760, 55)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -75,6 +69,16 @@ texture = ExtResource("2_ground")
 position = Vector2(2194, 313)
 scale = Vector2(-0.5, 0.5)
 
+[node name="Tile40" type="Sprite2D" parent="World/GroundTiles"]
+texture = ExtResource("2_ground")
+position = Vector2(2821, 313)
+scale = Vector2(0.5, 0.5)
+
+[node name="Tile50" type="Sprite2D" parent="World/GroundTiles"]
+texture = ExtResource("2_ground")
+position = Vector2(3448, 313)
+scale = Vector2(-0.5, 0.5)
+
 [node name="Tile01" type="Sprite2D" parent="World/GroundTiles"]
 texture = ExtResource("2_ground")
 position = Vector2(313, 940)
@@ -93,6 +97,16 @@ scale = Vector2(0.5, -0.5)
 [node name="Tile31" type="Sprite2D" parent="World/GroundTiles"]
 texture = ExtResource("2_ground")
 position = Vector2(2194, 940)
+scale = Vector2(-0.5, -0.5)
+
+[node name="Tile41" type="Sprite2D" parent="World/GroundTiles"]
+texture = ExtResource("2_ground")
+position = Vector2(2821, 940)
+scale = Vector2(0.5, -0.5)
+
+[node name="Tile51" type="Sprite2D" parent="World/GroundTiles"]
+texture = ExtResource("2_ground")
+position = Vector2(3448, 940)
 scale = Vector2(-0.5, -0.5)
 
 [node name="Tile02" type="Sprite2D" parent="World/GroundTiles"]
@@ -115,75 +129,110 @@ texture = ExtResource("2_ground")
 position = Vector2(2194, 1567)
 scale = Vector2(-0.5, 0.5)
 
+[node name="Tile42" type="Sprite2D" parent="World/GroundTiles"]
+texture = ExtResource("2_ground")
+position = Vector2(2821, 1567)
+scale = Vector2(0.5, 0.5)
+
+[node name="Tile52" type="Sprite2D" parent="World/GroundTiles"]
+texture = ExtResource("2_ground")
+position = Vector2(3448, 1567)
+scale = Vector2(-0.5, 0.5)
+
 [node name="GroundTint" type="Polygon2D" parent="World"]
-polygon = PackedVector2Array(0, 0, 2200, 0, 2200, 1400, 0, 1400)
+polygon = PackedVector2Array(0, 0, 3200, 0, 3200, 1400, 0, 1400)
 color = Color(0.06, 0.13, 0.15, 0.18)
 
 [node name="Objects" type="Node2D" parent="World"]
 y_sort_enabled = true
 
 [node name="LeftWall" parent="World/Objects" instance=ExtResource("4_wall")]
-position = Vector2(310, 330)
+position = Vector2(1110, 330)
 
 [node name="RightWall" parent="World/Objects" instance=ExtResource("4_wall")]
-position = Vector2(1290, 330)
+position = Vector2(2090, 330)
+
+[node name="MidLeftWall" parent="World/Objects" instance=ExtResource("4_wall")]
+position = Vector2(545, 330)
+
+[node name="MidRightWall" parent="World/Objects" instance=ExtResource("4_wall")]
+position = Vector2(2655, 330)
 
 [node name="FarLeftWall" parent="World/Objects" instance=ExtResource("4_wall")]
-position = Vector2(-270, 330)
+position = Vector2(-20, 330)
 
 [node name="FarRightWall" parent="World/Objects" instance=ExtResource("4_wall")]
-position = Vector2(1870, 330)
+position = Vector2(3220, 330)
 
 [node name="SouthGate" parent="World/Objects" instance=ExtResource("5_gate")]
-position = Vector2(800, 330)
+position = Vector2(1600, 330)
 
 [node name="Stele" parent="World/Objects" instance=ExtResource("6_stele")]
-position = Vector2(800, 690)
+position = Vector2(1600, 690)
 
 [node name="LanternLeft" parent="World/Objects" instance=ExtResource("7_lantern")]
-position = Vector2(560, 635)
+position = Vector2(1360, 635)
 
 [node name="LanternRight" parent="World/Objects" instance=ExtResource("7_lantern")]
-position = Vector2(1040, 635)
+position = Vector2(1840, 635)
 
 [node name="GateLanternLeft" parent="World/Objects" instance=ExtResource("7_lantern")]
-position = Vector2(600, 408)
+position = Vector2(1400, 408)
 scale = Vector2(0.78, 0.78)
+z_index = 12
 
 [node name="GateLanternRight" parent="World/Objects" instance=ExtResource("7_lantern")]
-position = Vector2(1000, 408)
+position = Vector2(1800, 408)
 scale = Vector2(0.78, 0.78)
+z_index = 12
 
 [node name="BambooLeft" parent="World/Objects" instance=ExtResource("8_bamboo")]
-position = Vector2(250, 670)
+position = Vector2(850, 670)
 
 [node name="BambooRight" parent="World/Objects" instance=ExtResource("8_bamboo")]
-position = Vector2(1350, 630)
+position = Vector2(2350, 630)
 scale = Vector2(0.88, 0.88)
 
+[node name="BambooFarLeft" parent="World/Objects" instance=ExtResource("8_bamboo")]
+position = Vector2(280, 760)
+scale = Vector2(0.78, 0.78)
+
+[node name="BambooFarRight" parent="World/Objects" instance=ExtResource("8_bamboo")]
+position = Vector2(2920, 740)
+scale = Vector2(0.78, 0.78)
+
 [node name="RockLeft" parent="World/Objects" instance=ExtResource("9_rock")]
-position = Vector2(360, 820)
+position = Vector2(960, 820)
 
 [node name="RockRight" parent="World/Objects" instance=ExtResource("9_rock")]
-position = Vector2(1250, 850)
+position = Vector2(2250, 850)
 scale = Vector2(0.82, 0.82)
 
+[node name="RockFarLeft" parent="World/Objects" instance=ExtResource("9_rock")]
+position = Vector2(520, 920)
+scale = Vector2(0.68, 0.68)
+
+[node name="RockFarRight" parent="World/Objects" instance=ExtResource("9_rock")]
+position = Vector2(2680, 900)
+scale = Vector2(0.68, 0.68)
+
 [node name="Gatekeeper" parent="World/Objects" instance=ExtResource("10_guard")]
-position = Vector2(1040, 505)
+position = Vector2(1940, 525)
+z_index = 12
 
 [node name="Player" parent="World/Objects" instance=ExtResource("3_player")]
-position = Vector2(600, 760)
+position = Vector2(1400, 760)
 
 [node name="Boundaries" type="StaticBody2D" parent="World"]
 collision_layer = 1
 collision_mask = 2
 
 [node name="Top" type="CollisionShape2D" parent="World/Boundaries"]
-position = Vector2(1100, -40)
+position = Vector2(1600, -40)
 shape = SubResource("Boundary_horizontal")
 
 [node name="Bottom" type="CollisionShape2D" parent="World/Boundaries"]
-position = Vector2(1100, 1440)
+position = Vector2(1600, 1440)
 shape = SubResource("Boundary_horizontal")
 
 [node name="Left" type="CollisionShape2D" parent="World/Boundaries"]
@@ -191,28 +240,12 @@ position = Vector2(-40, 700)
 shape = SubResource("Boundary_vertical")
 
 [node name="Right" type="CollisionShape2D" parent="World/Boundaries"]
-position = Vector2(2240, 700)
+position = Vector2(3240, 700)
 shape = SubResource("Boundary_vertical")
-
-[node name="CourtyardRails" type="StaticBody2D" parent="World"]
-collision_layer = 1
-collision_mask = 2
-
-[node name="LeftRail" type="CollisionShape2D" parent="World/CourtyardRails"]
-position = Vector2(360, 960)
-shape = SubResource("Courtyard_left")
-
-[node name="RightRail" type="CollisionShape2D" parent="World/CourtyardRails"]
-position = Vector2(1240, 960)
-shape = SubResource("Courtyard_left")
-
-[node name="BottomRail" type="CollisionShape2D" parent="World/CourtyardRails"]
-position = Vector2(800, 1370)
-shape = SubResource("Courtyard_bottom")
 
 [node name="Mist" type="Polygon2D" parent="World"]
 z_index = 100
-polygon = PackedVector2Array(0, 0, 2200, 0, 2200, 1400, 0, 1400)
+polygon = PackedVector2Array(0, 0, 3200, 0, 3200, 1400, 0, 1400)
 color = Color(0.18, 0.27, 0.29, 0.035)
 
 [node name="UI" type="CanvasLayer" parent="."]

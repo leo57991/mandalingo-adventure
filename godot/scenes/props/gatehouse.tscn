@@ -11,6 +11,7 @@ size = Vector2(185, 82)
 [node name="Gatehouse" type="Node2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = 8
 texture = ExtResource("1_texture")
 scale = Vector2(0.39, 0.39)
 

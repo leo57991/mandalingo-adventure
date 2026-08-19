@@ -8,6 +8,7 @@ size = Vector2(575, 72)
 [node name="WallSegment" type="Node2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = 8
 texture = ExtResource("1_texture")
 scale = Vector2(0.33, 0.33)
 

@@ -4,6 +4,7 @@ export const GAME_STATE = Object.freeze({
   EXPLORING: "EXPLORING",
   DIALOGUE: "DIALOGUE",
   NOTEBOOK: "NOTEBOOK",
+  CUTSCENE: "CUTSCENE",
   CHAPTER: "CHAPTER"
 });
 

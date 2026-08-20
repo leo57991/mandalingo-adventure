@@ -1,4 +1,4 @@
-import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v4";
+import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v5";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -33,8 +33,10 @@ export class MandalingoGame {
     this.canvas = canvas; this.ctx = canvas.getContext("2d"); this.callbacks = callbacks;
     this.keys = new Set(); this.mobileVector = { x: 0, y: 0 }; this.time = 0; this.lastTime = performance.now();
     this.started = false; this.inputEnabled = false; this.debugCollisions = false; this.nearby = null; this.questResolved = false; this.gateOpenProgress = 0; this.gateApproachTriggered = false;
+    this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false;
     this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 };
-    this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget ? "empty-bowl" : null }]));
+    this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }]));
+    this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget ? "empty-bowl" : null, startedAt: 0 }]));
     this.images = new Map();
     for (const source of new Set([...ROOM.groundTiles, ROOM.playerSprite, ...RENDER_OBJECTS.map(item => item.sprite).filter(Boolean), "assets/gate-room/props/empty-bowl.png"])) this.loadImage(source);
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
@@ -42,19 +44,37 @@ export class MandalingoGame {
 
   loadImage(source) { const image = new Image(); image.src = source; this.images.set(source, image); return image; }
   imageReady(source) { const image = this.images.get(source); return image?.complete && image.naturalWidth > 0 ? image : null; }
-  start() { this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; }
+  start() { this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues(); }
   setInputEnabled(enabled) { this.inputEnabled = enabled; if (!enabled) this.clearKeys(); }
   setKey(key, down) { if (down) this.keys.add(key); else this.keys.delete(key); }
   setMobileVector(x, y) { this.mobileVector = { x, y }; }
   clearKeys() { this.keys.clear(); this.mobileVector = { x: 0, y: 0 }; }
   setQuestResolved(resolved) { this.questResolved = resolved; if (!resolved) this.gateOpenProgress = 0; }
-  setActorCue(actorId, cue = {}) { if (this.actorCues[actorId]) this.actorCues[actorId] = { ...this.actorCues[actorId], ...cue }; }
-  resetActorCues() { for (const npc of NPCS) this.actorCues[npc.id] = { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget ? "empty-bowl" : null }; }
+  setActorCue(actorId, cue = {}) { if (this.actorCues[actorId]) this.actorCues[actorId] = { ...this.actorCues[actorId], ...cue, startedAt: this.time }; }
+  resetActorCues() { for (const npc of NPCS) this.actorCues[npc.id] = { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget ? "empty-bowl" : null, startedAt: this.time }; }
+  worldEntity(entity) { const position = this.actorPositions[entity?.id]; return position ? { ...entity, ...position } : entity; }
+  beginWaterResolution() { this.setInputEnabled(false); this.nearby = null; this.callbacks.onNearby?.(null); this.resolution = { elapsed: 0 }; this.resolutionPhase = null; this.resolutionCompleted = false; this.setResolutionPhase("drink"); }
+  setResolutionPhase(phase) {
+    if (this.resolutionPhase === phase) return; this.resolutionPhase = phase; this.resetActorCues();
+    if (phase === "drink") this.setActorCue("thirsty-traveller", { pose: "drink-water", expression: "relieved", gestureTarget: "thirsty-traveller", prop: "water" });
+    else if (phase === "walk") this.setActorCue("thirsty-traveller", { pose: "idle", expression: "recovering", gestureTarget: null, prop: null });
+    else if (phase === "plead") { this.setActorCue("thirsty-traveller", { pose: "point-third", expression: "earnest", gestureTarget: "gatekeeper", prop: null }); this.setActorCue("gatekeeper", { pose: "question", expression: "listening", gestureTarget: "room-people", prop: null }); }
+    else if (phase === "open") { this.questResolved = true; this.setActorCue("thirsty-traveller", { pose: "nod", expression: "grateful", gestureTarget: "player", prop: null }); this.setActorCue("gatekeeper", { pose: "nod", expression: "approving", gestureTarget: "gate", prop: null }); }
+  }
+  updateResolution(dt) {
+    this.resolution.elapsed += dt; const elapsed = this.resolution.elapsed, traveller = this.actorPositions["thirsty-traveller"], origin = NPCS.find(npc => npc.id === "thirsty-traveller"), destination = { x: 735, y: 405 };
+    if (elapsed < 1.8) this.setResolutionPhase("drink");
+    else if (elapsed < 5.4) { this.setResolutionPhase("walk"); const progress = clamp((elapsed - 1.8) / 3.6, 0, 1); traveller.x = origin.x + (destination.x - origin.x) * progress; traveller.y = origin.y + (destination.y - origin.y) * progress; }
+    else if (elapsed < 7.8) { traveller.x = destination.x; traveller.y = destination.y; this.setResolutionPhase("plead"); }
+    else this.setResolutionPhase("open");
+    if (!this.resolutionCompleted && elapsed >= 9.4 && this.gateOpenProgress >= .9) { this.resolutionCompleted = true; this.callbacks.onResolutionComplete?.(); }
+  }
   toggleCollisionDebug() { this.debugCollisions = !this.debugCollisions; return this.debugCollisions; }
   interact() { if (this.inputEnabled && this.nearby) this.callbacks.onInteract?.(this.nearby); }
 
   loop(now) { const dt = Math.min((now - this.lastTime) / 1000, .04); this.lastTime = now; this.time += dt; if (this.started) this.update(dt); this.draw(); requestAnimationFrame(this.loop); }
   update(dt) {
+    if (this.resolution) this.updateResolution(dt);
     if (this.questResolved) this.gateOpenProgress = Math.min(1, this.gateOpenProgress + dt * 1.25);
     let x = this.mobileVector.x, y = this.mobileVector.y;
     if (this.inputEnabled) { x += Number(this.keys.has("d") || this.keys.has("arrowright")) - Number(this.keys.has("a") || this.keys.has("arrowleft")); y += Number(this.keys.has("s") || this.keys.has("arrowdown")) - Number(this.keys.has("w") || this.keys.has("arrowup")); }
@@ -64,12 +84,12 @@ export class MandalingoGame {
       this.player.lookX = x; this.player.lookY = y; if (Math.abs(x) > .1) this.player.facing = Math.sign(x);
       const running = this.keys.has("shift"), speedX = running ? PLAYER_SPEED.runX : PLAYER_SPEED.walkX, speedY = running ? PLAYER_SPEED.runY : PLAYER_SPEED.walkY;
       const nextX = this.player.x + x * speedX * dt, nextY = this.player.y + y * speedY * dt;
-      const activeColliders = this.questResolved ? COLLIDERS.filter(entity => entity.id !== "gate") : COLLIDERS;
+      const activeColliders = (this.questResolved ? COLLIDERS.filter(entity => entity.id !== "gate") : COLLIDERS).map(entity => this.worldEntity(entity));
       if (isPlayerWalkable(nextX, this.player.y, PLAYER_COLLISION_RADIUS, activeColliders)) this.player.x = nextX;
       if (isPlayerWalkable(this.player.x, nextY, PLAYER_COLLISION_RADIUS, activeColliders)) this.player.y = nextY;
     }
     if (!this.gateApproachTriggered && !this.questResolved && this.player.y < 480) { this.gateApproachTriggered = true; this.callbacks.onGateApproach?.(NPCS.find(npc => npc.id === "gatekeeper")); }
-    const interactionEntities = this.questResolved ? ENTITIES.filter(entity => entity.id !== "gate") : ENTITIES;
+    const interactionEntities = (this.questResolved ? ENTITIES.filter(entity => entity.id !== "gate") : ENTITIES).map(entity => this.worldEntity(entity));
     const nextNearby = selectInteractionTarget(this.player, interactionEntities);
     if (nextNearby !== this.nearby) { this.nearby = nextNearby; this.callbacks.onNearby?.(nextNearby); }
   }
@@ -79,10 +99,11 @@ export class MandalingoGame {
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "back-structure")) this.drawObject(ctx, item);
     const depth = [
       ...RENDER_OBJECTS.filter(object => object.layer === "depth" && object.type !== "npc").map(actor => ({ kind: "object", y: actor.y, actor })),
-      ...NPCS.map(actor => ({ kind: "npc", y: actor.y, actor })),
+      ...NPCS.map(actor => { const worldActor = this.worldEntity(actor); return { kind: "npc", y: worldActor.y, actor: worldActor }; }),
       { kind: "player", y: this.player.y, actor: this.player }
     ].sort((a, b) => a.y - b.y);
     for (const item of depth) item.kind === "player" ? this.drawPlayer(ctx) : item.kind === "npc" ? this.drawNpc(ctx, item.actor) : this.drawObject(ctx, item.actor);
+    this.drawResolutionDialogue(ctx);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "foreground")) this.drawObject(ctx, item);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "effects")) this.drawEffect(ctx, item);
     this.drawAtmosphere(ctx); if (this.questResolved) this.drawGateLight(ctx); if (this.debugCollisions) this.drawCollisionDebug(ctx);
@@ -108,7 +129,7 @@ export class MandalingoGame {
     const left = item.x - item.width * (item.anchorX ?? .5), top = item.y + (item.footOffset ?? 0) - item.height * (item.anchorY ?? 1);
     if (item.crop) ctx.drawImage(image, item.crop.x, item.crop.y, item.crop.width, item.crop.height, left, top, item.width, item.height);
     else ctx.drawImage(image, left, top, item.width, item.height);
-    if (item.id === "notice-board") this.drawRegisterMarks(ctx, item);
+    if (item.id === "notice-board") this.drawWaterNotice(ctx, item);
     if (this.nearby?.id === item.id) { ctx.save(); ctx.strokeStyle = "#e3c879"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(item.x, item.y - 4, Math.max(24, item.width * .24), 12, 0, 0, TAU); ctx.stroke(); ctx.restore(); }
   }
 
@@ -121,30 +142,32 @@ export class MandalingoGame {
     ctx.restore();
   }
 
-  drawRegisterMarks(ctx, item) {
-    const top = item.y - item.height, pulse = .62 + Math.sin(this.time * 2.4) * .06;
-    ctx.save(); ctx.translate(item.x, top + 112); ctx.strokeStyle = `rgba(67,46,25,${pulse + .2})`; ctx.fillStyle = "rgba(220,193,130,.58)"; ctx.lineWidth = 2;
-    for (let index = -1; index <= 1; index += 1) { const x = index * 25; ctx.beginPath(); ctx.arc(x, 0, 8, 0, TAU); ctx.fill(); ctx.stroke(); ctx.fillRect(x - 10, 12, 20, 17); ctx.strokeRect(x - 10, 12, 20, 17); ctx.strokeRect(x - 12, 36, 24, 4); }
-    ctx.restore();
+  drawWaterNotice(ctx, item) {
+    const top = item.y - item.height, jar = this.imageReady("assets/gate-room/props/water-jar.png");
+    ctx.save(); ctx.translate(item.x, top + 105); ctx.fillStyle = "rgba(230,213,166,.82)"; ctx.fillRect(-62, -35, 124, 91); ctx.strokeStyle = "rgba(62,45,28,.8)"; ctx.lineWidth = 2; ctx.strokeRect(-62, -35, 124, 91);
+    if (jar) ctx.drawImage(jar, -50, -26, 54, 54); ctx.fillStyle = "#34291f"; ctx.font = '700 45px "Noto Sans TC", "Microsoft JhengHei", sans-serif'; ctx.textAlign = "center"; ctx.fillText("水", 31, 23); ctx.restore();
   }
 
   drawNpc(ctx, npc) {
     const cue = this.actorCues[npc.id] ?? {};
     ctx.save(); ctx.fillStyle = "rgba(0,0,0,.23)"; ctx.beginPath(); ctx.ellipse(npc.x, npc.y - 5, 23, 8, 0, 0, TAU); ctx.fill(); ctx.restore();
     this.drawObject(ctx, npc); this.drawActorGesture(ctx, npc, cue);
-    if (cue.prop === "empty-bowl" || cue.prop === "water") { const bowl = this.imageReady("assets/gate-room/props/empty-bowl.png"); if (bowl) { ctx.save(); ctx.globalAlpha = cue.prop === "water" ? 1 : .88; ctx.drawImage(bowl, npc.x + 20, npc.y + (npc.footOffset ?? 0) - 65, 42, 42); ctx.restore(); } }
+    if (cue.prop === "empty-bowl" || cue.prop === "water") { const bowl = this.imageReady("assets/gate-room/props/empty-bowl.png"); if (bowl) { const visibleY = npc.y + (npc.footOffset ?? 0), drinking = cue.pose === "drink-water"; ctx.save(); ctx.globalAlpha = cue.prop === "water" ? 1 : .88; ctx.translate(npc.x + (drinking ? 4 : 41), visibleY - (drinking ? npc.height * .68 : 44)); if (drinking) ctx.rotate(-.24); ctx.drawImage(bowl, -21, -21, 42, 42); ctx.restore(); } }
     if (cue.prop === "empty-bowl" && cue.gestureTarget === "water-jar") this.drawWaterThought(ctx, npc);
   }
 
   drawActorGesture(ctx, npc, cue) {
     if (!["point-self", "point-player", "point-third", "question", "confused", "nod", "hold-empty-bowl", "drink-water"].includes(cue.pose)) return;
     if (cue.pose === "nod") { const glow = 12 + Math.sin(this.time * 6) * 4; ctx.save(); ctx.strokeStyle = "rgba(247,215,122,.8)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(npc.x, npc.y + (npc.footOffset ?? 0) - npc.height * .72, glow, 0, TAU); ctx.stroke(); ctx.restore(); return; }
-    let target = cue.gestureTarget === "player" ? this.player : RENDER_OBJECTS.find(item => item.id === cue.gestureTarget);
+    if (["hold-empty-bowl", "drink-water"].includes(cue.pose)) return;
+    let target = cue.gestureTarget === "player" ? this.player : this.worldEntity(RENDER_OBJECTS.find(item => item.id === cue.gestureTarget));
     if (cue.pose === "point-self") target = npc;
     if (cue.gestureTarget === "room-people" || cue.pose === "question" || cue.pose === "confused") { this.drawQuestionCue(ctx, npc); return; }
-    const visibleY = npc.y + (npc.footOffset ?? 0), start = { x: npc.x + 8, y: visibleY - npc.height * .57 }, end = target ? { x: target.x, y: target === npc ? visibleY - npc.height * .58 : target.y + (target.footOffset ?? 0) - (target.height ?? 40) * .42 } : { x: npc.x + 30, y: visibleY - npc.height * .7 }, glow = .55 + Math.sin(this.time * 7) * .25;
-    ctx.save(); ctx.strokeStyle = `rgba(239,206,124,${.72 + glow * .2})`; ctx.fillStyle = "rgba(255,224,133,.95)"; ctx.shadowColor = "rgba(255,215,112,.9)"; ctx.shadowBlur = 10; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke(); ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(end.x, end.y, target === npc ? 9 + glow * 3 : 20 + glow * 5, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.arc(end.x, end.y, 5, 0, TAU); ctx.fill();
+    const age = this.time - (cue.startedAt ?? this.time); if (age > 1.45 || !target) return;
+    const fade = 1 - age / 1.45, visibleY = npc.y + (npc.footOffset ?? 0), glow = .55 + Math.sin(this.time * 7) * .25;
+    ctx.save(); ctx.strokeStyle = `rgba(239,206,124,${fade * .72})`; ctx.fillStyle = `rgba(255,224,133,${fade * .85})`; ctx.shadowColor = "rgba(255,215,112,.75)"; ctx.shadowBlur = 8; ctx.lineWidth = 3;
+    if (target === npc) { const chestY = visibleY - npc.height * .58; ctx.beginPath(); ctx.arc(npc.x + 4, chestY, 8 + glow * 3, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.arc(npc.x + 4, chestY, 3, 0, TAU); ctx.fill(); }
+    else { const footY = target.y + (target.footOffset ?? 0) - 5; ctx.beginPath(); ctx.ellipse(target.x, footY, 23 + glow * 5, 9 + glow * 2, 0, 0, TAU); ctx.stroke(); }
     ctx.restore();
   }
 
@@ -158,8 +181,18 @@ export class MandalingoGame {
     ctx.save(); ctx.fillStyle = "rgba(15,27,31,.94)"; ctx.strokeStyle = "rgba(239,206,124,.94)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(bubbleX, bubbleY, 66, 38, 0, 0, TAU); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(npc.x + 21, visibleY - npc.height + 12, 8, 0, TAU); ctx.fill(); ctx.stroke();
     ctx.font = "bold 28px Georgia"; ctx.fillStyle = "#f4d788"; ctx.fillText("?", bubbleX - 8, bubbleY + 10);
     for (let index = -1; index <= 1; index += 1) { const x = bubbleX + index * 27; ctx.globalAlpha = .38; ctx.beginPath(); ctx.arc(x, bubbleY + 17, 5, 0, TAU); ctx.fill(); }
-    ctx.globalAlpha = 1; const people = [this.player, ...NPCS]; const active = people[scan]; if (active) { ctx.strokeStyle = "rgba(247,215,122,.72)"; ctx.beginPath(); ctx.ellipse(active.x, active.y + 1, 27, 12, 0, 0, TAU); ctx.stroke(); }
+    ctx.globalAlpha = 1; const people = [this.player, ...NPCS.map(npc => this.worldEntity(npc))]; const active = people[scan]; if (active) { ctx.strokeStyle = "rgba(247,215,122,.72)"; ctx.beginPath(); ctx.ellipse(active.x, active.y + 1, 27, 12, 0, 0, TAU); ctx.stroke(); }
     ctx.restore();
+  }
+
+  drawResolutionDialogue(ctx) {
+    if (!this.resolution || this.resolutionPhase !== "plead") return; const elapsed = this.resolution.elapsed, traveller = this.worldEntity(NPCS.find(npc => npc.id === "thirsty-traveller")), gatekeeper = this.worldEntity(NPCS.find(npc => npc.id === "gatekeeper"));
+    if (elapsed < 6.6) this.drawSceneSpeech(ctx, traveller, "我……水……"); else this.drawSceneSpeech(ctx, gatekeeper, "你……？");
+  }
+
+  drawSceneSpeech(ctx, actor, text) {
+    const x = actor.x, y = actor.y + (actor.footOffset ?? 0) - actor.height - 18; ctx.save(); ctx.font = '700 25px "Noto Sans TC", "Microsoft JhengHei", sans-serif'; const width = Math.max(94, ctx.measureText(text).width + 30);
+    ctx.fillStyle = "rgba(11,22,28,.94)"; ctx.strokeStyle = "rgba(227,200,121,.82)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(x - width / 2, y - 38, width, 50, 8); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#f2e6c8"; ctx.textAlign = "center"; ctx.fillText(text, x, y - 5); ctx.restore();
   }
 
   drawPlayer(ctx) {

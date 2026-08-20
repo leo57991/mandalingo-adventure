@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import {
   BROWSER_CURRICULUM, COLLIDERS, CONFIDENCE, ENTITIES, FURNITURE, NPCS, POSES, PORTRAIT_ASSETS,
-  RENDER_OBJECTS, ROOM, STAGE_HOSTS, STRUCTURES, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptUnderstandingChoice, attemptWaterTarget, buildFlashcards,
+  RENDER_OBJECTS, ROOM, STAGE_HOSTS, STRUCTURES, STRUCTURE_CROPS, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptUnderstandingChoice, attemptWaterTarget, buildFlashcards,
   createJournal, createTutorialSession, getConfirmationReadiness, getLearningState, getStageReadiness, getWaterTaskReadiness, grantItem,
   recordEvidence, recordEncounter, resolvePortraitAsset, setConfidence, setConfirmed, setGuess, verifyWords
 } from "../src/lessons.js";
@@ -69,8 +69,18 @@ test("all scene elements are independent modular sprites with one data record", 
   assert.doesNotMatch(sources, /gatehouse-room-v1|drawForegroundOcclusion|south-gate-detail|wuyin-town-map/);
   assert.ok(ROOM.groundTiles.length >= 3); for (const tile of ROOM.groundTiles) assert.ok(assetExists(tile), tile);
   assert.ok(assetExists(ROOM.playerSprite)); assert.ok(Math.abs(ROOM.playerVisual.height - NPCS[0].height) <= 10);
-  for (const id of ["corner-sw", "corner-se", "gate-endcap-left", "gate-endcap-right", "gate-pillar-left", "gate-pillar-right"]) assert.ok(STRUCTURES.some(item => item.id === id), id);
+  for (const id of ["corner-nw", "corner-ne", "corner-sw", "corner-se", "south-gatehouse"]) assert.ok(STRUCTURES.some(item => item.id === id), id);
+  for (const id of ["north-inner-gate", "gate-endcap-left", "gate-endcap-right", "gate-pillar-left", "gate-pillar-right", "south-eave"]) assert.equal(STRUCTURES.some(item => item.id === id), false, id);
+  assert.equal(FURNITURE.find(item => item.id === "gate").sprite, "assets/gate-room/structures/north-inner-gate.png");
   assert.ok(STRUCTURES.filter(item => item.id.includes("wall")).every(item => item.sprite !== "assets/gate-room/structures/wall-vertical.png"));
+});
+
+test("wall modules meet at deliberate edges without stacking duplicate architecture", () => {
+  const gate = FURNITURE.find(item => item.id === "gate"), top = [...STRUCTURES.filter(item => item.id.startsWith("north-wall")), gate].sort((a, b) => a.x - b.x);
+  for (let index = 1; index < top.length; index += 1) { const previousRight = top[index - 1].x + top[index - 1].width / 2, nextLeft = top[index].x - top[index].width / 2; assert.ok(Math.abs(previousRight - nextLeft) <= 1, `${top[index - 1].id} -> ${top[index].id}`); }
+  for (const side of ["left", "right"]) { const segments = STRUCTURES.filter(item => item.id.startsWith(`${side}-wall`)).sort((a, b) => a.y - b.y); assert.equal(segments.length, 2); assert.equal(segments[0].y, segments[1].y - segments[1].height); }
+  for (const structure of STRUCTURES) { assert.ok(structure.crop, structure.id); assert.ok(structure.crop.width > 0 && structure.crop.height > 0, structure.id); }
+  assert.equal(Object.keys(STRUCTURE_CROPS).length, 8);
 });
 
 test("fixed courtyard boundaries, colliders, and interaction radii share room data", () => {
@@ -94,6 +104,9 @@ test("visual language cues render during play and the player feet stay anchored"
   assert.match(source, /drawQuestionCue/); assert.match(source, /drawWaterThought/); assert.match(source, /drawRegisterMarks/);
   assert.doesNotMatch(source, /translate\(this\.player\.x, this\.player\.y \+ bob\)/); assert.match(source, /translate\(this\.player\.x, this\.player\.y\)/);
   assert.match(source, /COLLIDERS\.filter\(entity => entity\.id !== "gate"\)/);
+  assert.ok(ROOM.playerVisual.footOffset >= 0 && ROOM.playerVisual.footOffset <= 5); for (const npc of NPCS) assert.ok(npc.footOffset >= 25 && npc.footOffset <= 35, npc.id);
+  assert.match(source, /item\.y \+ \(item\.footOffset \?\? 0\)/); assert.match(source, /visual\.height \* visual\.anchorY \+ visual\.footOffset/);
+  assert.match(source, /if \(item\.crop\) ctx\.drawImage\(image, item\.crop\.x/);
 });
 
 test("target selection favours a nearby object in the direction the player faces", () => {
@@ -147,5 +160,5 @@ test("focus restoration rejects hidden ancestors and falls back to the game canv
 
 test("the browser module chain uses a single cache version", () => {
   const index = readFileSync(new URL("../index.html", import.meta.url), "utf8"), main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8"), game = readFileSync(new URL("../src/game.js", import.meta.url), "utf8"), version = index.match(/main\.js\?v=([\w-]+)/)?.[1];
-  assert.equal(version, "gatehouse-v3"); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js", "joystick.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
+  assert.equal(version, "gatehouse-v4"); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js", "joystick.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
 });

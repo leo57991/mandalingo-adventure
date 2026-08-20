@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=gatehouse-v3";
+import { GAME_STATE } from "./game-state.js?v=gatehouse-v4";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 

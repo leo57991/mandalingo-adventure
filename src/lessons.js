@@ -50,6 +50,13 @@ export const BROWSER_CURRICULUM = Object.freeze({
 
 const collider = (width, height, y = -height * .55) => ({ x: -width / 2, y, width, height });
 const visual = (sprite, width, height, layer = "depth", anchorX = .5, anchorY = 1) => ({ sprite, width, height, layer, anchorX, anchorY });
+export const STRUCTURE_CROPS = Object.freeze({
+  wallHorizontal: Object.freeze({ x: 56, y: 149, width: 306, height: 149 }),
+  wallVertical: Object.freeze({ x: 146, y: 58, width: 218, height: 392 }),
+  cornerNW: Object.freeze({ x: 57, y: 117, width: 196, height: 200 }), cornerNE: Object.freeze({ x: 56, y: 116, width: 197, height: 200 }),
+  cornerSW: Object.freeze({ x: 111, y: 55, width: 214, height: 307 }), cornerSE: Object.freeze({ x: 60, y: 54, width: 206, height: 211 }),
+  southGatehouse: Object.freeze({ x: 54, y: 0, width: 308, height: 228 }), northGate: Object.freeze({ x: 0, y: 17, width: 341, height: 211 })
+});
 const line = (id, speaker, text, tokens, portrait, pose, expression, gestureTarget, prop = null, sfx = null, context = "") => ({
   id, speaker, text, tokens, portrait, pose, expression, gestureTarget, prop, sfx, context
 });
@@ -59,52 +66,44 @@ export const ROOM = Object.freeze({
   english: "South Gate Courtyard",
   width: 1600,
   height: 900,
-  walkableBounds: Object.freeze([285, 220, 1030, 510]),
-  playerStart: Object.freeze({ x: 800, y: 500, facing: -1 }),
+  walkableBounds: Object.freeze([300, 285, 1000, 410]),
+  playerStart: Object.freeze({ x: 800, y: 505, facing: -1 }),
   playerSprite: "assets/gate-room/characters/player-v2.png",
-  playerVisual: Object.freeze({ width: 88, height: 176, anchorX: .5, anchorY: 1 }),
+  playerVisual: Object.freeze({ width: 88, height: 176, anchorX: .5, anchorY: 1, footOffset: 4 }),
   groundTiles: Object.freeze(["assets/gate-room/stone-ground-b.png", "assets/gate-room/stone-ground-c.png", "assets/gate-room/stone-ground-d.png"])
 });
 
 export const STRUCTURES = Object.freeze([
-  { id: "north-wall-1", type: "structure", x: 410, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 320, 218, "back-structure"), collider: collider(276, 42, -46) },
-  { id: "north-wall-2", type: "structure", x: 640, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 280, 191, "back-structure"), collider: collider(238, 42, -46) },
-  { id: "north-inner-gate", type: "structure", x: 800, y: 260, ...visual("assets/gate-room/structures/north-inner-gate.png", 255, 255, "back-structure"), collider: collider(175, 45, -40) },
-  { id: "north-wall-3", type: "structure", x: 960, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 280, 191, "back-structure"), collider: collider(238, 42, -46) },
-  { id: "north-wall-4", type: "structure", x: 1190, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 320, 218, "back-structure"), collider: collider(276, 42, -46) },
-  { id: "corner-nw", type: "structure", x: 270, y: 255, ...visual("assets/gate-room/structures/corner-nw.png", 225, 225, "back-structure"), collider: collider(78, 65, -53) },
-  { id: "corner-ne", type: "structure", x: 1330, y: 255, ...visual("assets/gate-room/structures/corner-ne.png", 225, 225, "back-structure"), collider: collider(78, 65, -53) },
-  { id: "left-wall-1", type: "structure", x: 270, y: 405, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
-  { id: "left-wall-2", type: "structure", x: 270, y: 555, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
-  { id: "left-wall-3", type: "structure", x: 270, y: 690, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
-  { id: "right-wall-1", type: "structure", x: 1330, y: 405, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
-  { id: "right-wall-2", type: "structure", x: 1330, y: 555, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
-  { id: "right-wall-3", type: "structure", x: 1330, y: 690, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
-  { id: "corner-sw", type: "structure", x: 270, y: 742, ...visual("assets/gate-room/structures/corner-sw.png", 225, 225, "back-structure"), collider: collider(82, 65, -53) },
-  { id: "corner-se", type: "structure", x: 1330, y: 742, ...visual("assets/gate-room/structures/corner-se.png", 225, 225, "back-structure"), collider: collider(82, 65, -53) },
-  { id: "south-wall-left", type: "structure", x: 470, y: 742, ...visual("assets/gate-room/structures/wall-horizontal.png", 360, 246, "back-structure"), collider: collider(330, 58, -48) },
-  { id: "south-wall-right", type: "structure", x: 1130, y: 742, ...visual("assets/gate-room/structures/wall-horizontal.png", 360, 246, "back-structure"), collider: collider(330, 58, -48) },
-  { id: "gate-endcap-left", type: "structure", x: 665, y: 745, ...visual("assets/gate-room/structures/wall-endcap.png", 112, 145, "back-structure"), collider: collider(58, 48, -42) },
-  { id: "gate-endcap-right", type: "structure", x: 935, y: 745, ...visual("assets/gate-room/structures/wall-endcap.png", 112, 145, "back-structure"), collider: collider(58, 48, -42) },
-  { id: "gate-pillar-left", type: "structure", x: 715, y: 778, ...visual("assets/gate-room/structures/wall-pillar.png", 108, 170, "back-structure"), collider: collider(52, 45, -40) },
-  { id: "gate-pillar-right", type: "structure", x: 885, y: 778, ...visual("assets/gate-room/structures/wall-pillar.png", 108, 170, "back-structure"), collider: collider(52, 45, -40) },
-  { id: "south-gatehouse", type: "structure", x: 800, y: 780, ...visual("assets/gate-room/structures/south-gatehouse.png", 255, 255, "back-structure"), collider: null },
-  { id: "south-eave", type: "structure", x: 800, y: 730, ...visual("assets/gate-room/structures/roof-eave.png", 230, 92, "foreground"), collider: null }
+  { id: "north-wall-1", type: "structure", x: 405, y: 285, ...visual("assets/gate-room/structures/wall-horizontal.png", 270, 165, "back-structure"), crop: STRUCTURE_CROPS.wallHorizontal, collider: collider(250, 38, -38) },
+  { id: "north-wall-2", type: "structure", x: 610, y: 285, ...visual("assets/gate-room/structures/wall-horizontal.png", 140, 165, "back-structure"), crop: STRUCTURE_CROPS.wallHorizontal, collider: collider(125, 38, -38) },
+  { id: "north-wall-3", type: "structure", x: 990, y: 285, ...visual("assets/gate-room/structures/wall-horizontal.png", 140, 165, "back-structure"), crop: STRUCTURE_CROPS.wallHorizontal, collider: collider(125, 38, -38) },
+  { id: "north-wall-4", type: "structure", x: 1195, y: 285, ...visual("assets/gate-room/structures/wall-horizontal.png", 270, 165, "back-structure"), crop: STRUCTURE_CROPS.wallHorizontal, collider: collider(250, 38, -38) },
+  { id: "corner-nw", type: "structure", x: 270, y: 300, ...visual("assets/gate-room/structures/corner-nw.png", 180, 180, "back-structure"), crop: STRUCTURE_CROPS.cornerNW, collider: collider(70, 55, -48) },
+  { id: "corner-ne", type: "structure", x: 1330, y: 300, ...visual("assets/gate-room/structures/corner-ne.png", 180, 180, "back-structure"), crop: STRUCTURE_CROPS.cornerNE, collider: collider(70, 55, -48) },
+  { id: "left-wall-1", type: "structure", x: 270, y: 510, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 120, 210, "back-structure"), crop: STRUCTURE_CROPS.wallVertical, collider: { x: -30, y: -210, width: 60, height: 210 } },
+  { id: "left-wall-2", type: "structure", x: 270, y: 720, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 120, 210, "back-structure"), crop: STRUCTURE_CROPS.wallVertical, collider: { x: -30, y: -210, width: 60, height: 210 } },
+  { id: "right-wall-1", type: "structure", x: 1330, y: 510, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 120, 210, "back-structure"), crop: STRUCTURE_CROPS.wallVertical, collider: { x: -30, y: -210, width: 60, height: 210 } },
+  { id: "right-wall-2", type: "structure", x: 1330, y: 720, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 120, 210, "back-structure"), crop: STRUCTURE_CROPS.wallVertical, collider: { x: -30, y: -210, width: 60, height: 210 } },
+  { id: "corner-sw", type: "structure", x: 270, y: 720, ...visual("assets/gate-room/structures/corner-sw.png", 180, 180, "back-structure"), crop: STRUCTURE_CROPS.cornerSW, collider: collider(75, 55, -48) },
+  { id: "corner-se", type: "structure", x: 1330, y: 720, ...visual("assets/gate-room/structures/corner-se.png", 180, 180, "back-structure"), crop: STRUCTURE_CROPS.cornerSE, collider: collider(75, 55, -48) },
+  { id: "south-wall-left", type: "structure", x: 475, y: 720, ...visual("assets/gate-room/structures/wall-horizontal.png", 410, 170, "back-structure"), crop: STRUCTURE_CROPS.wallHorizontal, collider: collider(380, 45, -40) },
+  { id: "south-wall-right", type: "structure", x: 1125, y: 720, ...visual("assets/gate-room/structures/wall-horizontal.png", 410, 170, "back-structure"), crop: STRUCTURE_CROPS.wallHorizontal, collider: collider(380, 45, -40) },
+  { id: "south-gatehouse", type: "structure", x: 800, y: 760, ...visual("assets/gate-room/structures/south-gatehouse.png", 250, 230, "back-structure"), crop: STRUCTURE_CROPS.southGatehouse, collider: null }
 ]);
 
 export const FURNITURE = Object.freeze([
   {
-    id: "gate", type: "object", kind: "gate", x: 800, y: 310, label: "Locked city gate", action: "Inspect",
-    ...visual("assets/gate-room/structures/wooden-doors.png", 122, 138, "back-structure"), interactionRadius: 120, collider: collider(116, 44, -29),
+    id: "gate", type: "object", kind: "gate", x: 800, y: 300, label: "Locked city gate", action: "Inspect",
+    ...visual("assets/gate-room/structures/north-inner-gate.png", 240, 230, "back-structure"), crop: STRUCTURE_CROPS.northGate, interactionRadius: 125, collider: collider(180, 42, -35),
     lines: [line("gate-closed", "Locked gate", "……", [], "object", "idle", "watchful", "gatekeeper", null, "wood-knock", "Knock. Knock.")]
   },
   {
-    id: "mirror", type: "object", kind: "mirror", x: 390, y: 285, label: "Bronze mirror", action: "Inspect",
-    ...visual("assets/gate-room/props/bronze-mirror.png", 122, 122), interactionRadius: 125, collider: collider(60, 25, -24),
+    id: "mirror", type: "object", kind: "mirror", x: 390, y: 300, label: "Bronze mirror", action: "Inspect",
+    ...visual("assets/gate-room/props/bronze-mirror.png", 112, 112, "back-structure"), interactionRadius: 125, collider: collider(60, 25, -24),
     lines: [line("mirror-self", "Your reflection", "我。", ["我"], "reflection", "point-self", "recognition", "player", null, "soft-chime", "A bronze chime.")]
   },
   {
-    id: "notice-board", type: "object", kind: "board", x: 1115, y: 285, label: "Gate register", action: "Inspect",
+    id: "notice-board", type: "object", kind: "board", x: 1085, y: 300, label: "Gate register", action: "Inspect",
     ...visual("assets/gate-room/props/notice-board.png", 200, 190, "back-structure"), interactionRadius: 145, collider: collider(150, 30, -24),
     lines: [
       line("board-people", "Gate register", "你　我　他", ["你", "我", "他"], "object", "point-third", "studious", "board-figures", null, "paper", "Paper rustles."),
@@ -112,7 +111,7 @@ export const FURNITURE = Object.freeze([
     ]
   },
   {
-    id: "water-jar", type: "object", kind: "water-jar", x: 1235, y: 515, label: "Water jar", action: "Inspect",
+    id: "water-jar", type: "object", kind: "water-jar", x: 1215, y: 515, label: "Water jar", action: "Inspect",
     ...visual("assets/gate-room/props/water-jar.png", 118, 118), interactionRadius: 125, collider: collider(72, 45, -37), grantsOnObservation: "water-bowl",
     lines: [
       line("jar-water", "Water jar", "水。", ["水"], "object", "hold-water", "clear", "water-jar", "water", "water-pour", "Water drips into ceramic."),
@@ -120,32 +119,30 @@ export const FURNITURE = Object.freeze([
     ]
   },
   {
-    id: "work-table", type: "furniture", kind: "table", x: 1085, y: 430, label: "Register desk", action: "Inspect",
+    id: "work-table", type: "furniture", kind: "table", x: 1085, y: 455, label: "Register desk", action: "Inspect",
     ...visual("assets/gate-room/props/guard-table.png", 210, 210), interactionRadius: 95, collider: collider(158, 52, -43), lines: []
   }
 ]);
 
 export const DECORATIONS = Object.freeze([
-  { id: "lantern-nw", type: "decoration", x: 455, y: 230, ...visual("assets/gate-room/props/lantern.png", 92, 92, "back-structure"), collider: collider(28, 24, -20) },
-  { id: "lantern-ne", type: "decoration", x: 1145, y: 230, ...visual("assets/gate-room/props/lantern.png", 92, 92, "back-structure"), collider: collider(28, 24, -20) },
-  { id: "lantern-sw", type: "decoration", x: 610, y: 690, ...visual("assets/gate-room/props/lantern.png", 98, 98), collider: collider(30, 24, -20) },
-  { id: "lantern-se", type: "decoration", x: 990, y: 690, ...visual("assets/gate-room/props/lantern.png", 98, 98), collider: collider(30, 24, -20) },
-  { id: "crate", type: "decoration", x: 360, y: 330, ...visual("assets/gate-room/props/wooden-crate.png", 105, 105), collider: collider(66, 48, -39) },
-  { id: "water-bucket", type: "decoration", x: 1265, y: 550, ...visual("assets/gate-room/props/water-bucket.png", 82, 82), collider: collider(48, 34, -28) },
-  { id: "stele", type: "decoration", x: 1260, y: 570, ...visual("assets/gate-room/props/stone-stele.png", 115, 115), collider: collider(65, 40, -33) },
-  { id: "bamboo-left", type: "decoration", x: 305, y: 290, ...visual("assets/gate-room/props/bamboo.png", 155, 155, "back-structure"), collider: collider(60, 32, -26) },
-  { id: "rock-right", type: "decoration", x: 1290, y: 350, ...visual("assets/gate-room/props/scholar-rock.png", 112, 112), collider: collider(62, 38, -32) },
-  { id: "weapon-rack", type: "decoration", x: 390, y: 610, ...visual("assets/gate-room/props/weapon-rack.png", 130, 130), collider: collider(90, 32, -26) },
-  { id: "chair", type: "decoration", x: 1160, y: 430, ...visual("assets/gate-room/props/wooden-chair.png", 92, 92), collider: collider(48, 32, -26) },
-  { id: "flag", type: "decoration", x: 1295, y: 650, ...visual("assets/gate-room/props/small-flag.png", 110, 110), collider: collider(26, 22, -18) },
-  { id: "leaves", type: "effect", x: 520, y: 520, ...visual("assets/gate-room/props/fallen-leaves.png", 125, 125, "effects"), collider: null },
-  { id: "mist", type: "effect", x: 1060, y: 270, ...visual("assets/gate-room/props/mist-wisp.png", 170, 170, "effects"), collider: null }
+  { id: "lantern-nw", type: "decoration", x: 500, y: 285, ...visual("assets/gate-room/props/lantern.png", 84, 84, "back-structure"), collider: collider(26, 22, -18) },
+  { id: "lantern-ne", type: "decoration", x: 1100, y: 285, ...visual("assets/gate-room/props/lantern.png", 84, 84, "back-structure"), collider: collider(26, 22, -18) },
+  { id: "lantern-sw", type: "decoration", x: 625, y: 710, ...visual("assets/gate-room/props/lantern.png", 90, 90), collider: collider(28, 22, -18) },
+  { id: "lantern-se", type: "decoration", x: 975, y: 710, ...visual("assets/gate-room/props/lantern.png", 90, 90), collider: collider(28, 22, -18) },
+  { id: "crate", type: "decoration", x: 350, y: 520, ...visual("assets/gate-room/props/wooden-crate.png", 94, 94), collider: collider(62, 44, -36) },
+  { id: "water-bucket", type: "decoration", x: 1250, y: 540, ...visual("assets/gate-room/props/water-bucket.png", 74, 74), collider: collider(44, 30, -25) },
+  { id: "bamboo-left", type: "decoration", x: 310, y: 300, ...visual("assets/gate-room/props/bamboo.png", 145, 145, "back-structure"), collider: collider(55, 30, -24) },
+  { id: "rock-right", type: "decoration", x: 1270, y: 385, ...visual("assets/gate-room/props/scholar-rock.png", 102, 102), collider: collider(56, 34, -28) },
+  { id: "weapon-rack", type: "decoration", x: 410, y: 625, ...visual("assets/gate-room/props/weapon-rack.png", 120, 120), collider: collider(84, 30, -24) },
+  { id: "chair", type: "decoration", x: 1165, y: 455, ...visual("assets/gate-room/props/wooden-chair.png", 84, 84), collider: collider(44, 28, -23) },
+  { id: "leaves", type: "effect", x: 500, y: 520, ...visual("assets/gate-room/props/fallen-leaves.png", 115, 115, "effects"), collider: null },
+  { id: "mist", type: "effect", x: 1030, y: 300, ...visual("assets/gate-room/props/mist-wisp.png", 160, 160, "effects"), collider: null }
 ]);
 
 export const NPCS = Object.freeze([
   {
-    id: "gatekeeper", type: "npc", kind: "gatekeeper", x: 800, y: 385, label: "Gatekeeper", action: "Talk",
-    portrait: "gatekeeper", ...visual("assets/gate-room/characters/gatekeeper.png", 92, 184), interactionRadius: 128, collider: collider(42, 38, -31),
+    id: "gatekeeper", type: "npc", kind: "gatekeeper", x: 800, y: 400, label: "Gatekeeper", action: "Talk",
+    portrait: "gatekeeper", ...visual("assets/gate-room/characters/gatekeeper.png", 92, 184), footOffset: 32, interactionRadius: 128, collider: collider(42, 38, -31),
     lines: [
       line("guard-you", "Gatekeeper", "你。", ["你"], "gatekeeper", "point-player", "firm", "player", null, "cloth", "Cloth rustles."),
       line("guard-self", "Gatekeeper", "我。", ["我"], "gatekeeper", "point-self", "calm", "gatekeeper", null, "cloth", "Tap."),
@@ -157,8 +154,8 @@ export const NPCS = Object.freeze([
     remediationLines: [line("guard-remedy-water", "Gatekeeper", "誰……水？", ["誰", "水"], "gatekeeper", "question", "concerned", "room-people", null, "water-drop", "…?")]
   },
   {
-    id: "clerk", type: "npc", kind: "clerk", x: 1080, y: 350, label: "Register clerk", action: "Talk",
-    portrait: "clerk", ...visual("assets/gate-room/characters/clerk.png", 88, 176), interactionRadius: 125, collider: collider(40, 36, -30),
+    id: "clerk", type: "npc", kind: "clerk", x: 1085, y: 385, label: "Register clerk", action: "Talk",
+    portrait: "clerk", ...visual("assets/gate-room/characters/clerk.png", 88, 176), footOffset: 29, interactionRadius: 125, collider: collider(40, 36, -30),
     lines: [
       line("clerk-self", "Register clerk", "我。", ["我"], "clerk", "point-self", "friendly", "clerk", null, "cloth", "Tap."),
       line("clerk-you", "Register clerk", "你。", ["你"], "clerk", "point-player", "friendly", "player", null, "cloth", "Paper rustles."),
@@ -167,8 +164,8 @@ export const NPCS = Object.freeze([
     ]
   },
   {
-    id: "thirsty-traveller", type: "npc", kind: "traveller", x: 470, y: 500, label: "Tired traveller", action: "Talk",
-    portrait: "traveller", ...visual("assets/gate-room/characters/thirsty-traveller.png", 92, 184), interactionRadius: 130, collider: collider(42, 38, -31), waterTarget: true,
+    id: "thirsty-traveller", type: "npc", kind: "traveller", x: 455, y: 505, label: "Tired traveller", action: "Talk",
+    portrait: "traveller", ...visual("assets/gate-room/characters/thirsty-traveller.png", 92, 184), footOffset: 32, interactionRadius: 130, collider: collider(42, 38, -31), waterTarget: true,
     lines: [
       line("traveller-self", "Tired traveller", "我……", ["我"], "traveller", "point-self", "tired", "thirsty-traveller", "empty-bowl", "cough", "Cough."),
       line("traveller-water", "Tired traveller", "水……", ["水"], "traveller", "hold-empty-bowl", "thirsty", "water-jar", "empty-bowl", "bowl", "A ceramic bowl rattles."),

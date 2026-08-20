@@ -24,10 +24,10 @@
         <div class="principles"><span>No translations</span><i></i><span>No instant grading</span><i></i><span>Your own notebook</span></div>
       </section>
 
-      <section id="how-screen" class="modal-card how-card" aria-hidden="true">
+      <section id="how-screen" class="modal-card how-card" role="dialog" aria-hidden="true" aria-labelledby="how-title">
         <button class="close-button" data-close="how-screen" aria-label="Close">×</button>
         <p class="panel-kicker">THE TRAVELLER'S METHOD</p>
-        <h2>Meaning lives in context</h2>
+        <h2 id="how-title">Meaning lives in context</h2>
         <div class="how-grid">
           <article><b>01</b><span>WASD</span><h3>Explore</h3><p>Begin at the South Gate. The close camera reveals only the streets you reach on foot.</p></article>
           <article><b>02</b><span>E</span><h3>Observe</h3><p>Actions and repeated words are your clues. The game never gives a translation.</p></article>
@@ -50,7 +50,7 @@
       </div>
       <div id="toast" class="toast" aria-live="polite"></div>
 
-      <section id="dialogue-panel" class="dialogue-panel" aria-hidden="true">
+      <section id="dialogue-panel" class="dialogue-panel" role="dialog" aria-hidden="true" aria-labelledby="speaker-name" tabindex="-1" data-focus-self>
         <div class="context-strip"><span class="eye-icon">◉</span><p id="context-text"></p></div>
         <div class="speaker-row"><span id="speaker-type">PERSON</span><strong id="speaker-name"></strong><small id="line-count"></small></div>
         <p id="dialogue-text" class="dialogue-text" lang="zh-Hant"></p>
@@ -60,7 +60,7 @@
         </div>
       </section>
 
-      <section id="notebook-panel" class="notebook-panel" aria-hidden="true" aria-labelledby="notebook-title">
+      <section id="notebook-panel" class="notebook-panel" role="dialog" aria-hidden="true" aria-labelledby="notebook-title">
         <aside class="notebook-sidebar">
           <div class="book-emblem">▤</div><p>TRAVELLER'S</p><h2 id="notebook-title">Notebook</h2>
           <nav><button class="tab-button is-active" data-tab="journal">Observed words <b id="journal-count">0</b></button><button class="tab-button" data-tab="cards">Flashcards <b id="card-count">0</b></button></nav>
@@ -68,16 +68,16 @@
         </aside>
         <div class="notebook-content">
           <div class="notebook-top"><div><p id="notebook-kicker">FIELD NOTES</p><h3 id="notebook-heading">Words encountered</h3></div><button id="close-notebook" class="close-button" aria-label="Close notebook">×</button></div>
-          <p id="notebook-intro" class="notebook-intro">These are hypotheses, not answers. New contexts may change what you think a word means.</p>
+          <p id="notebook-intro" class="notebook-intro">Compare at least two contexts, revise your hypothesis, then decide when your confidence is earned.</p>
           <div id="journal-view" class="journal-view"></div>
           <div id="cards-view" class="cards-view" hidden></div>
         </div>
       </section>
 
-      <section id="invocation-panel" class="modal-card invocation-card" aria-hidden="true">
+      <section id="invocation-panel" class="modal-card invocation-card" role="dialog" aria-hidden="true" aria-labelledby="invocation-title">
         <button id="close-invocation" class="close-button" aria-label="Close">×</button>
         <p class="panel-kicker">言靈 · WORD INVOCATION</p>
-        <h2>Speak with the words you know</h2>
+        <h2 id="invocation-title">Speak with the words you know</h2>
         <p class="invocation-context">The disciple watches your hands and the flask at your belt. Choose words from your notebook to express an intention.</p>
         <div id="selected-words" class="selected-words"><span>Select up to three words</span></div>
         <div id="word-bank" class="word-bank"></div>
@@ -85,8 +85,8 @@
         <p id="invocation-reaction" class="invocation-reaction" aria-live="polite"></p>
       </section>
 
-      <section id="chapter-banner" class="chapter-banner" aria-hidden="true">
-        <p>THREAD RESOLVED</p><h2>A Bowl of Water</h2><span>The way to the High Terrace now glows through the mist.</span>
+      <section id="chapter-banner" class="chapter-banner" role="dialog" aria-hidden="true" aria-labelledby="chapter-title">
+        <p>THREAD RESOLVED</p><h2 id="chapter-title">A Bowl of Water</h2><span>The way to the High Terrace now glows through the mist.</span>
         <button id="continue-town" class="primary-small">Continue exploring</button>
       </section>
 
@@ -95,6 +95,6 @@
         <button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button>
       </div>
     </main>
-    <script type="module" src="src/main.js?v=20260820-4"></script>
+    <script type="module" src="src/main.js?v=20260820-5"></script>
   </body>
 </html>

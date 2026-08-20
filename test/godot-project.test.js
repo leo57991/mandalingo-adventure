@@ -93,7 +93,9 @@ test("opening the character menu locks movement while guesses are typed", () => 
 
   assert.match(game, /enum UiState \{ EXPLORING, DIALOGUE, CHARACTER \}/);
   assert.match(game, /player\.set_movement_enabled\(ui_state == UiState\.EXPLORING\)/);
-  assert.match(game, /_set_ui_state\(UiState\.DIALOGUE\)/);
+  assert.match(game, /_push_ui_state\(UiState\.DIALOGUE\)/);
+  assert.match(game, /ui_state_stack\.push_back\(next_state\)/);
+  assert.match(game, /ui_state_stack\.pop_back\(\)/);
   assert.match(player, /var movement_enabled := true/);
   assert.match(player, /if not movement_enabled:[\s\S]*velocity = Vector2\.ZERO[\s\S]*return/);
   assert.match(player, /if movement_enabled and event\.is_action_pressed\("interact"\)/);
@@ -107,6 +109,15 @@ test("Godot interaction Areas own range while NPC body collision stays separate"
   assert.match(gatekeeper, /name="Interactable" type="Area2D"/);
   assert.match(gatekeeper, /name="Body" type="StaticBody2D"/);
   assert.match(gatekeeper, /name="CollisionShape2D" type="CollisionShape2D" parent="Body"/);
+});
+
+test("Godot spell insight counts distinct occurrences rather than repeated interactions", () => {
+  const game = read("godot/scripts/main.gd");
+  const interactable = read("godot/scripts/interactable.gd");
+  assert.match(interactable, /"occurrence_id": str\(get_path\(\)\)/);
+  assert.match(game, /notebook\[word\]\["contexts"\]\[occurrence_id\]/);
+  assert.match(game, /distinct_contexts: int = entry\.get\("contexts", \{\}\)\.size\(\)/);
+  assert.match(game, /word == "水" and distinct_contexts >= 2/);
 });
 
 test("the widened town has seamless walls, open exploration, and overlap-based occlusion", () => {

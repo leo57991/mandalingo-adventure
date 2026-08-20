@@ -19,8 +19,22 @@ export const INVOCATION_RESULT = Object.freeze({
 export const BROWSER_CURRICULUM = Object.freeze({
   firstTarget: "水",
   minimumDistinctContextsBeforeInvocation: 2,
+  minimumDistinctContextsForUnderstanding: 2,
   waterGiftIntent: ["give", "me", "water"]
 });
+
+export const INVOCATION_ROLE = Object.freeze({
+  give: "TRANSFER_PREDICATE",
+  me: "SELF_PARTICIPANT",
+  water: "WATER_THEME"
+});
+
+const WATER_GIFT_CONSTRUCTIONS = Object.freeze([
+  { id: "DIRECT_REQUEST", roles: ["TRANSFER_PREDICATE", "SELF_PARTICIPANT", "WATER_THEME"], result: INVOCATION_RESULT.SUCCESS, reaction: "He follows your gesture from himself to the flask and accepts the offered water." },
+  { id: "TOPICALIZED_REQUEST", roles: ["WATER_THEME", "TRANSFER_PREDICATE", "SELF_PARTICIPANT"], result: INVOCATION_RESULT.SUCCESS, reaction: "He recognises water as the topic, then reaches for the flask you indicate." },
+  { id: "MARKED_REQUEST", roles: ["TRANSFER_PREDICATE", "WATER_THEME", "SELF_PARTICIPANT"], result: INVOCATION_RESULT.AMBIGUOUS_INTENT, reaction: "He recognises the transfer, but points between you and himself to confirm the recipient." },
+  { id: "SPEAKER_AS_AGENT", roles: ["SELF_PARTICIPANT", "TRANSFER_PREDICATE", "WATER_THEME"], result: INVOCATION_RESULT.INCOMPLETE_INTENT, reaction: "He understands that you will give water, then looks around for the missing recipient." }
+]);
 
 export const WORLD = Object.freeze({ width: 2400, height: 1600 });
 
@@ -36,10 +50,10 @@ const npcBody = (radius = 22) => ({ x: -radius, y: -radius * .45, width: radius 
 const objectBody = (width, height, offsetY = 0) => ({ x: -width / 2, y: -height / 2 + offsetY, width, height });
 
 export const ENTITIES = [
-  { id: "gate-sign", type: "object", x: 1180, y: 1450, label: "門邊石碑", action: "Inspect", interactionRadius: 112, context: "A single mark is cut above a basin darkened by rain.", lines: [{ id: "gate-inscription", speaker: "石碑", text: "水", tokens: ["水"] }] },
+  { id: "gate-sign", type: "object", x: 1180, y: 1450, label: "門邊石碑", action: "Inspect", interactionRadius: 112, bodyCollider: objectBody(66, 38, 1), context: "A single mark is cut above a basin darkened by rain.", lines: [{ id: "gate-inscription", speaker: "石碑", text: "水", tokens: ["水"] }] },
   { id: "gatekeeper", type: "npc", x: 1035, y: 1320, label: "守門人", action: "Talk", interactionRadius: 118, bodyCollider: npcBody(20), context: "The guard lowers his spear and greets you with a closed-fist salute.", lines: [{ id: "guard-greeting", speaker: "守門人", text: "你好，旅人。", tokens: ["你好"] }, { id: "guard-town", speaker: "守門人", text: "霧隱鎮。", tokens: ["霧", "鎮"] }, { id: "guard-repeat", speaker: "守門人", text: "你好。", tokens: ["你好"] }] },
   { id: "tea-pot", type: "object", x: 1930, y: 760, label: "冒煙的茶壺", action: "Inspect", interactionRadius: 98, bodyCollider: objectBody(42, 28, 2), context: "Steam rises while matching marks repeat across pot, cups, and banner.", lines: [{ id: "pot-mark", speaker: "茶壺", text: "茶", tokens: ["茶"] }] },
-  { id: "tea-keeper", type: "npc", x: 2050, y: 825, label: "茶攤老闆", action: "Talk", interactionRadius: 124, bodyCollider: npcBody(), context: "The vendor fills two cups, keeps one, and places the other before you.", lines: [{ id: "vendor-tea", speaker: "茶攤老闆", text: "茶。", tokens: ["茶"] }, { id: "vendor-drink", speaker: "茶攤老闆", text: "喝茶。", tokens: ["喝", "茶"] }, { id: "vendor-give", speaker: "茶攤老闆", text: "給你茶。", tokens: ["給", "茶"] }, { id: "vendor-offer", speaker: "茶攤老闆", text: "請，喝茶。", tokens: ["請", "喝", "茶"] }] },
+  { id: "tea-keeper", type: "npc", x: 2050, y: 825, label: "茶攤老闆", action: "Talk", interactionRadius: 124, bodyCollider: npcBody(), context: "The vendor fills two cups, keeps one, and places the other before you.", lines: [{ id: "vendor-tea", speaker: "茶攤老闆", text: "茶。", tokens: ["茶"] }, { id: "vendor-self", speaker: "茶攤老闆", text: "我喝茶。", tokens: ["我", "喝", "茶"] }, { id: "vendor-give", speaker: "茶攤老闆", text: "給你茶。", tokens: ["給", "茶"] }, { id: "vendor-offer", speaker: "茶攤老闆", text: "請，喝茶。", tokens: ["請", "喝", "茶"] }] },
   { id: "well", type: "object", x: 455, y: 920, label: "青石井", action: "Inspect", interactionRadius: 126, bodyCollider: objectBody(74, 54, 2), context: "A bucket rises from the well. Your empty flask hangs beside the rope.", grantsOnObservation: "water-flask", lines: [{ id: "well-water", speaker: "井沿刻字", text: "水", tokens: ["水"] }] },
   { id: "water-carrier", type: "npc", x: 585, y: 970, label: "挑水人", action: "Talk", interactionRadius: 128, bodyCollider: npcBody(23), context: "The worker fills two buckets and passes one to a waiting villager.", lines: [{ id: "carrier-water", speaker: "挑水人", text: "水。", tokens: ["水"] }, { id: "carrier-give", speaker: "挑水人", text: "給你水。", tokens: ["給", "水"] }, { id: "carrier-thanks", speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
   { id: "thirsty-disciple", type: "npc", x: 1210, y: 930, label: "年輕弟子", action: "Talk", interactionRadius: 130, bodyCollider: npcBody(), context: "The disciple holds out an empty bowl, touches his chest, and coughs.", quest: true, lines: [{ id: "disciple-water", speaker: "年輕弟子", text: "水……", tokens: ["水"] }, { id: "disciple-self", speaker: "年輕弟子", text: "我……水……", tokens: ["我", "水"] }], resolvedLines: [{ id: "disciple-resolved", speaker: "年輕弟子", text: "水！謝謝你。", tokens: ["水", "謝謝"] }, { id: "disciple-path", speaker: "年輕弟子", text: "問仙臺，請。", tokens: ["請"] }] },
@@ -51,7 +65,7 @@ export const ENTITIES = [
 function migrateEvidence(entry = {}) {
   const source = Array.isArray(entry.evidence) ? entry.evidence : (entry.history ?? []);
   const migrated = source.map(item => ({
-    occurrenceId: item.occurrenceId ?? `${item.entityId ?? "legacy"}:${item.location ?? "unknown"}:${item.chineseLine ?? entry.text ?? "word"}`,
+    occurrenceId: canonicalOccurrenceId(item.occurrenceId ?? `${item.entityId ?? "legacy"}:${item.location ?? "unknown"}:${item.chineseLine ?? entry.text ?? "word"}`),
     entityId: item.entityId ?? "legacy",
     location: item.location ?? entry.lastLocation ?? "Unknown",
     chineseLine: item.chineseLine ?? entry.text ?? "",
@@ -61,11 +75,19 @@ function migrateEvidence(entry = {}) {
   return migrated.filter((item, index) => migrated.findIndex(other => other.occurrenceId === item.occurrenceId) === index);
 }
 
+function canonicalOccurrenceId(occurrenceId) {
+  const parts = String(occurrenceId).split(":");
+  if (parts.length >= 4 && /^\d+$/.test(parts.at(-1))) parts.pop();
+  return parts.join(":");
+}
+
 export function createJournal(saved = {}) {
   const entries = Object.fromEntries(Object.entries(saved.entries ?? {}).map(([id, raw]) => {
     const evidence = migrateEvidence(raw);
     const encounters = raw.encounters ?? raw.count ?? evidence.length;
-    return [id, { ...raw, id, guess: raw.guess ?? "", confirmed: Boolean(raw.confirmed), confidence: raw.confidence ?? CONFIDENCE.UNSURE, revisions: raw.revisions ?? [], evidence, encounters, count: encounters, distinctContexts: evidence.length, locations: raw.locations ?? [...new Set(evidence.map(item => item.location))] }];
+    const entry = { ...raw, id, guess: raw.guess ?? "", confirmed: Boolean(raw.confirmed), confidence: raw.confidence ?? CONFIDENCE.UNSURE, revisions: raw.revisions ?? [], evidence, encounters, count: encounters, distinctContexts: evidence.length, locations: raw.locations ?? [...new Set(evidence.map(item => item.location))] };
+    if (!getConfirmationReadiness(entry).ready) entry.confirmed = false;
+    return [id, entry];
   }));
   return { entries, inventory: saved.inventory ?? [], quest: saved.quest ?? "unmet" };
 }
@@ -74,9 +96,10 @@ export function recordEvidence(journal, observation) {
   const { tokenText, location, entityId, occurrenceId, chineseLine = "", context = "", timestamp = Date.now() } = observation;
   const vocab = VOCABULARY[tokenText];
   if (!vocab || !occurrenceId) return journal;
+  const evidenceId = canonicalOccurrenceId(occurrenceId);
   const existing = journal.entries[vocab.id] ?? { id: vocab.id, text: vocab.text, guess: "", confirmed: false, confidence: CONFIDENCE.UNSURE, revisions: [], encounters: 0, count: 0, locations: [], evidence: [], distinctContexts: 0 };
-  const duplicate = existing.evidence.some(item => item.occurrenceId === occurrenceId);
-  const evidence = duplicate ? existing.evidence : [...existing.evidence, { occurrenceId, entityId, location, chineseLine, context, timestamp }];
+  const duplicate = existing.evidence.some(item => item.occurrenceId === evidenceId);
+  const evidence = duplicate ? existing.evidence : [...existing.evidence, { occurrenceId: evidenceId, entityId, location, chineseLine, context, timestamp }];
   const encounters = existing.encounters + 1;
   const locations = existing.locations.includes(location) ? existing.locations : [...existing.locations, location];
   const entry = { ...existing, encounters, count: encounters, distinctContexts: evidence.length, lastLocation: location, lastEntity: entityId, lastSeenAt: timestamp, locations, evidence };
@@ -91,40 +114,52 @@ export function setGuess(journal, entryId, guess, timestamp = Date.now()) {
   const entry = journal.entries[entryId]; if (!entry) return journal;
   const nextGuess = guess.trim().slice(0, 80);
   const revisions = entry.guess && nextGuess && entry.guess !== nextGuess ? [...entry.revisions, { from: entry.guess, to: nextGuess, timestamp }].slice(-12) : entry.revisions;
-  return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, guess: nextGuess, revisions } } };
+  const updated = { ...entry, guess: nextGuess, revisions };
+  if (!getConfirmationReadiness(updated).ready) updated.confirmed = false;
+  return { ...journal, entries: { ...journal.entries, [entryId]: updated } };
 }
 
 export function setConfidence(journal, entryId, confidence) {
   const entry = journal.entries[entryId]; if (!entry || !Object.values(CONFIDENCE).includes(confidence)) return journal;
-  return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confidence } } };
+  const updated = { ...entry, confidence };
+  if (!getConfirmationReadiness(updated).ready) updated.confirmed = false;
+  return { ...journal, entries: { ...journal.entries, [entryId]: updated } };
 }
 
 export function setConfirmed(journal, entryId, confirmed) {
   const entry = journal.entries[entryId]; if (!entry) return journal;
+  if (confirmed && !getConfirmationReadiness(entry).ready) return journal;
   return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confirmed: Boolean(confirmed) } } };
 }
 
 export function grantItem(journal, item) { return journal.inventory.includes(item) ? journal : { ...journal, inventory: [...journal.inventory, item] }; }
 export function getEncounteredEntries(journal) { return Object.values(journal.entries).sort((a, b) => b.lastSeenAt - a.lastSeenAt); }
-export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.confirmed && entry.guess); }
+export function getConfirmationReadiness(entry) {
+  if (!entry?.guess?.trim()) return { ready: false, reason: "Write a hypothesis first." };
+  if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Compare at least two distinct contexts." };
+  if (entry.confidence === CONFIDENCE.UNSURE) return { ready: false, reason: "Raise confidence to probable or confident when you are ready." };
+  return { ready: true, reason: "Ready for your own confirmation." };
+}
+export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.confirmed && getConfirmationReadiness(entry).ready); }
+
+export function analyseInvocationConstruction(selectedIds) {
+  const roles = selectedIds.map(id => INVOCATION_ROLE[id] ?? "UNKNOWN");
+  if (new Set(selectedIds).size !== selectedIds.length || roles.includes("UNKNOWN")) return { construction: null, roles, result: INVOCATION_RESULT.SEMANTIC_MISMATCH };
+  const match = WATER_GIFT_CONSTRUCTIONS.find(candidate => candidate.roles.every((role, index) => roles[index] === role));
+  return match ? { construction: match.id, roles, result: match.result, reaction: match.reaction } : { construction: null, roles, result: INVOCATION_RESULT.SYNTACTIC_MISMATCH };
+}
 
 export function interpretWaterGift(journal, selectedIds) {
-  const unique = [...new Set(selectedIds)];
-  const entries = unique.map(id => journal.entries[id]).filter(Boolean);
-  if (entries.length !== unique.length || !unique.length) return { result: INVOCATION_RESULT.SEMANTIC_MISMATCH, reaction: "The signs do not yet form a recognisable intention." };
+  const entries = selectedIds.map(id => journal.entries[id]).filter(Boolean);
+  if (entries.length !== selectedIds.length || !selectedIds.length) return { result: INVOCATION_RESULT.SEMANTIC_MISMATCH, reaction: "The signs do not yet form a recognisable intention." };
   if (entries.some(entry => !entry.guess.trim())) return { result: INVOCATION_RESULT.INCOMPLETE_INTENT, reaction: "One sign still has no hypothesis in your notes." };
-  if (!journal.inventory.includes("water-flask")) return { result: INVOCATION_RESULT.PRAGMATIC_MISMATCH, reaction: "The disciple looks from your empty hands toward the lower street." };
-  for (const id of ["give", "water"]) {
-    if ((journal.entries[id]?.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsBeforeInvocation) {
-      return { result: INVOCATION_RESULT.INSUFFICIENT_EVIDENCE, reaction: "The expression feels fragile. You have only seen part of it in one situation." };
-    }
-  }
-  if (unique.length !== 3 || !BROWSER_CURRICULUM.waterGiftIntent.every(id => unique.includes(id))) return { result: INVOCATION_RESULT.SEMANTIC_MISMATCH, reaction: "The disciple follows the signs, but their meanings pull toward different intentions." };
-  const order = unique.join("+");
-  if (order === "give+me+water") return { result: INVOCATION_RESULT.SUCCESS, reaction: "He understands the request and reaches for the offered flask." };
-  if (order === "water+give+me") return { result: INVOCATION_RESULT.AMBIGUOUS_INTENT, reaction: "He points between the flask and you, checking who should receive it." };
-  if (order === "me+give+water") return { result: INVOCATION_RESULT.INCOMPLETE_INTENT, reaction: "He looks beyond you, waiting to learn who receives the water." };
-  return { result: INVOCATION_RESULT.SYNTACTIC_MISMATCH, reaction: "The signs are familiar, but their relationship remains unclear." };
+  if (entries.some(entry => !entry.confirmed || !getConfirmationReadiness(entry).ready)) return { result: INVOCATION_RESULT.INSUFFICIENT_EVIDENCE, reaction: "Your notes still mark part of this expression as uncertain or insufficiently observed." };
+  const construction = analyseInvocationConstruction(selectedIds);
+  if (construction.result === INVOCATION_RESULT.SEMANTIC_MISMATCH) return { ...construction, reaction: "The disciple follows the signs, but their meanings pull toward different intentions." };
+  if (construction.result === INVOCATION_RESULT.SYNTACTIC_MISMATCH) return { ...construction, reaction: "The signs are familiar, but their roles do not yet form a construction he can follow." };
+  if (construction.result !== INVOCATION_RESULT.SUCCESS) return construction;
+  if (!journal.inventory.includes("water-flask")) return { ...construction, result: INVOCATION_RESULT.PRAGMATIC_MISMATCH, reaction: "He understands the request, then looks from your empty hands toward the lower street." };
+  return { ...construction, worldAction: "TRANSFER_WATER_TO_DISCIPLE" };
 }
 
 export function canInvokeWaterGift(journal, selectedIds) { return interpretWaterGift(journal, selectedIds).result === INVOCATION_RESULT.SUCCESS; }

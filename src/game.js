@@ -1,4 +1,4 @@
-import { ENTITIES, LOCATIONS, WORLD } from "./lessons.js?v=20260820-4";
+import { ENTITIES, LOCATIONS, WORLD } from "./lessons.js?v=20260820-5";
 
 const WIDTH = 1600, HEIGHT = 900, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -49,17 +49,17 @@ const segmentIntersectsRect = (a, b, rect) => {
   for (let i = 1; i < steps; i += 1) if (isInArea(lerp(a.x, b.x, i / steps), lerp(a.y, b.y, i / steps), rect)) return true;
   return false;
 };
-export const selectInteractionTarget = (player, entities = ENTITIES) => entities
+export const selectInteractionTarget = (player, entities = ENTITIES, solids = WORLD_GEOMETRY.solids) => entities
   .map(entity => {
     const distance = dist(player, entity);
     const dx = entity.x - player.x, dy = entity.y - player.y;
     const lookLength = Math.hypot(player.lookX ?? player.facing ?? 1, player.lookY ?? 0) || 1;
     const targetLength = Math.hypot(dx, dy) || 1;
     const facingScore = ((player.lookX ?? player.facing ?? 1) * dx + (player.lookY ?? 0) * dy) / (lookLength * targetLength);
-    const occluded = WORLD_GEOMETRY.solids.some(rect => segmentIntersectsRect(player, entity, rect));
-    return { entity, distance, score: distance - facingScore * 24, occluded };
+    const occluded = solids.some(rect => segmentIntersectsRect(player, entity, rect));
+    return { entity, distance, facingScore, score: distance - facingScore * 24, occluded };
   })
-  .filter(candidate => !candidate.occluded && candidate.distance <= (candidate.entity.interactionRadius ?? 105) && candidate.score < (candidate.entity.interactionRadius ?? 105))
+  .filter(candidate => !candidate.occluded && candidate.facingScore >= (candidate.entity.minimumFacingDot ?? -.1) && candidate.distance <= (candidate.entity.interactionRadius ?? 105) && candidate.score < (candidate.entity.interactionRadius ?? 105))
   .sort((a, b) => a.score - b.score)[0]?.entity ?? null;
 export const projectWorldPoint = (x, y, camera) => {
   return {
@@ -98,7 +98,7 @@ export class MandalingoGame {
   }
 
   reset() {
-    this.player = { x: 1200, y: 1480, vx: 0, vy: 0, facing: 1, lookX: 0, lookY: -1 };
+    this.player = { x: 1245, y: 1515, vx: 0, vy: 0, facing: 1, lookX: 0, lookY: -1 };
     this.camera = { focusX: this.player.x, focusY: WORLD.height - (HEIGHT - CAMERA_ANCHOR_Y) / FIXED_ZOOM, zoom: FIXED_ZOOM };
     this.cinematicTarget = null;
     this.nearby = null; this.location = LOCATIONS[0];
@@ -167,9 +167,7 @@ export class MandalingoGame {
     else drawFallbackLandscape(ctx);
     if (this.southGateDetailLoaded && this.southGateDetailLayer) drawLocalDetail(ctx, this.southGateDetailLayer, SOUTH_GATE_DETAIL, this.camera);
 
-    const depthWash = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    depthWash.addColorStop(0, "rgba(4,12,22,.38)"); depthWash.addColorStop(.46, "rgba(9,19,27,.02)"); depthWash.addColorStop(1, "rgba(4,9,15,.28)");
-    ctx.fillStyle = depthWash; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    drawDepthWash(ctx);
 
     for (const [x, y, text] of [[615, 700, "藥"], [1930, 650, "茶"], [2090, 845, "客"], [310, 1010, "雜"]]) {
       const point = projectWorldPoint(x, y, this.camera); if (!isOnScreen(point, 100)) continue;
@@ -228,16 +226,26 @@ export class MandalingoGame {
     if (!this.southGateDetailLoaded || !this.southGateDetailLayer || this.player.y < 1040 || this.player.y > 1390) return;
     const topLeft = projectWorldPoint(SOUTH_GATE_DETAIL.x, SOUTH_GATE_DETAIL.y, this.camera);
     const scale = this.camera.zoom;
+    const sourceScaleX = this.southGateDetailLayer.width / SOUTH_GATE_DETAIL.width;
+    const sourceScaleY = this.southGateDetailLayer.height / SOUTH_GATE_DETAIL.height;
     const pieces = [
       [0, 110, 425, 330],
       [775, 110, 340, 330],
       [410, 0, 365, 225]
     ];
-    ctx.save(); ctx.imageSmoothingQuality = "high";
     for (const [sx, sy, sw, sh] of pieces) {
-      ctx.drawImage(this.southGateDetailLayer, sx, sy, sw, sh, topLeft.x + sx * scale, topLeft.y + sy * scale, sw * scale, sh * scale);
+      const dx = topLeft.x + sx * scale, dy = topLeft.y + sy * scale;
+      const dw = sw * scale, dh = sh * scale;
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.beginPath(); ctx.rect(dx, dy, dw, dh); ctx.clip();
+      ctx.drawImage(
+        this.southGateDetailLayer,
+        sx * sourceScaleX, sy * sourceScaleY, sw * sourceScaleX, sh * sourceScaleY,
+        dx, dy, dw, dh
+      );
+      drawDepthWash(ctx);
+      ctx.restore();
     }
-    ctx.restore();
   }
 
   drawCollisionDebug(ctx) {
@@ -277,6 +285,15 @@ function drawStableMap(ctx, image, camera) {
   ctx.save(); ctx.imageSmoothingEnabled = true;
   ctx.drawImage(image, topLeft.x, topLeft.y, WORLD.width * camera.zoom, WORLD.height * camera.zoom);
   ctx.restore();
+}
+
+function drawDepthWash(ctx) {
+  const depthWash = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  depthWash.addColorStop(0, "rgba(4,12,22,.38)");
+  depthWash.addColorStop(.46, "rgba(9,19,27,.02)");
+  depthWash.addColorStop(1, "rgba(4,9,15,.28)");
+  ctx.fillStyle = depthWash;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 }
 
 function drawLocalDetail(ctx, image, area, camera) {

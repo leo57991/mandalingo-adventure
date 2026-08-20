@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=20260820-4";
+import { GAME_STATE } from "./game-state.js?v=20260820-5";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 

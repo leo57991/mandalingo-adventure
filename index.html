@@ -3,24 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#10172f" />
-    <meta name="description" content="Mandalingo is a contextual Mandarin discovery game set in the cultivation town of Wuyin." />
-    <title>Mandalingo — 霧隱鎮</title>
+    <meta name="theme-color" content="#111c24" />
+    <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a modular wuxia courtyard." />
+    <title>Mandalingo — Gatehouse Tutorial</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=gatehouse-v1" />
   </head>
   <body>
     <main id="app">
-      <canvas id="game" width="1600" height="900" aria-label="Stable follow-camera view of Wuyin Town"></canvas>
+      <canvas id="game" width="1600" height="900" tabindex="0" aria-label="Fixed orthographic view of the South Gate courtyard"></canvas>
 
       <section id="title-screen" class="screen title-screen is-visible" aria-labelledby="game-title">
-        <div class="seal">言</div>
+        <div class="seal" aria-hidden="true">◇</div>
         <p class="eyebrow">A CONTEXTUAL LANGUAGE MYSTERY</p>
         <h1 id="game-title">MANDA<span>LINGO</span></h1>
-        <p class="chinese-title">霧隱鎮</p>
-        <p class="intro">You arrive unable to understand a single word.<br />Watch closely. Listen. Make your own meaning.</p>
-        <button id="start-btn" class="primary-button"><span>Enter the town</span><kbd>Enter</kbd></button>
-        <button id="how-btn" class="text-button">How this prototype works</button>
+        <p class="chapter-name">THE GATEHOUSE</p>
+        <p class="intro">Six unfamiliar signs. Three people. One bowl of water.<br />Watch gestures, compare contexts, and form your own meaning.</p>
+        <button id="start-btn" class="primary-button"><span>Enter the courtyard</span><kbd>Enter</kbd></button>
+        <button id="how-btn" class="text-button">How this playtest works</button>
         <div class="principles"><span>No translations</span><i></i><span>No instant grading</span><i></i><span>Your own notebook</span></div>
       </section>
 
@@ -29,34 +29,38 @@
         <p class="panel-kicker">THE TRAVELLER'S METHOD</p>
         <h2 id="how-title">Meaning lives in context</h2>
         <div class="how-grid">
-          <article><b>01</b><span>WASD</span><h3>Explore</h3><p>Begin at the South Gate. The close camera reveals only the streets you reach on foot.</p></article>
-          <article><b>02</b><span>E</span><h3>Observe</h3><p>Actions and repeated words are your clues. The game never gives a translation.</p></article>
-          <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Write an English guess in your notebook. Revise it whenever new context appears.</p></article>
+          <article><b>01</b><span>WASD · SHIFT</span><h3>Explore</h3><p>Walk or run around this fixed-screen courtyard. Every wall, prop, and character is a separate game object.</p></article>
+          <article><b>02</b><span>E</span><h3>Observe</h3><p>Talk to people and inspect objects. Click unfamiliar signs yourself to preserve their context.</p></article>
+          <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Write an English guess. The room tests your interpretation through reactions, never a translation.</p></article>
         </div>
-        <p class="tip">When you feel confident, mark a note as understood. Only your confirmed guesses become flashcards.</p>
+        <p class="tip">A note needs two distinct contexts before you can mark it understood.</p>
       </section>
 
       <header id="hud" class="hud" aria-hidden="true">
-        <div class="location"><small>CURRENT AREA</small><strong id="location-english">South Gate</strong></div>
-        <div class="objective"><small>CURRENT THREAD</small><strong id="objective-text">Learn how this town speaks</strong></div>
-        <div class="hud-actions">
-          <button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button>
-          <button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button>
-        </div>
+        <div class="location"><small>CURRENT AREA</small><strong id="location-english">South Gate Courtyard</strong></div>
+        <div class="objective"><small>CURRENT THREAD</small><strong id="objective-text">Observe how the people identify one another</strong></div>
+        <div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
       </header>
 
-      <div id="interaction-prompt" class="interaction-prompt" aria-live="polite">
-        <kbd>E</kbd><div><small id="interaction-action">Talk</small><strong id="interaction-label">守門人</strong></div>
-      </div>
+      <div id="interaction-prompt" class="interaction-prompt" aria-live="polite"><kbd>E</kbd><div><small id="interaction-action">Talk</small><strong id="interaction-label">Gatekeeper</strong></div></div>
       <div id="toast" class="toast" aria-live="polite"></div>
 
       <section id="dialogue-panel" class="dialogue-panel" role="dialog" aria-hidden="true" aria-labelledby="speaker-name" tabindex="-1" data-focus-self>
-        <div class="context-strip"><span class="eye-icon">◉</span><p id="context-text"></p></div>
-        <div class="speaker-row"><span id="speaker-type">PERSON</span><strong id="speaker-name"></strong><small id="line-count"></small></div>
-        <p id="dialogue-text" class="dialogue-text" lang="zh-Hant"></p>
-        <div class="dialogue-footer">
-          <button id="dialogue-notes" class="secondary-button">Open notes <kbd>N</kbd></button>
-          <button id="dialogue-next" class="primary-small">Continue <kbd>E</kbd></button>
+        <div id="portrait-stage" class="portrait-stage" aria-hidden="true">
+          <img id="dialogue-portrait" alt="" />
+          <span id="portrait-gesture" class="portrait-gesture"></span>
+          <span id="portrait-prop" class="portrait-prop"></span>
+        </div>
+        <div class="dialogue-copy">
+          <div class="context-strip"><span class="eye-icon">◉</span><p id="context-text"></p></div>
+          <div class="speaker-row"><span id="speaker-type">PERSON</span><strong id="speaker-name"></strong><small id="line-count"></small></div>
+          <p id="dialogue-text" class="dialogue-text" lang="zh-Hant"></p>
+          <p id="dialogue-reaction" class="dialogue-reaction" aria-live="polite"></p>
+          <div class="dialogue-footer">
+            <button id="dialogue-notes" class="secondary-button">Open notes <kbd>N</kbd></button>
+            <button id="use-water" class="water-button" hidden>Use the water bowl</button>
+            <button id="dialogue-next" class="primary-small">Continue <kbd>E</kbd></button>
+          </div>
         </div>
       </section>
 
@@ -69,32 +73,18 @@
         <div class="notebook-content">
           <div class="notebook-top"><div><p id="notebook-kicker">FIELD NOTES</p><h3 id="notebook-heading">Words encountered</h3></div><button id="close-notebook" class="close-button" aria-label="Close notebook">×</button></div>
           <p id="notebook-intro" class="notebook-intro">Compare at least two contexts, revise your hypothesis, then decide when your confidence is earned.</p>
-          <div id="journal-view" class="journal-view"></div>
-          <div id="cards-view" class="cards-view" hidden></div>
+          <div id="journal-view" class="journal-view"></div><div id="cards-view" class="cards-view" hidden></div>
         </div>
       </section>
 
-      <section id="invocation-panel" class="modal-card invocation-card" role="dialog" aria-hidden="true" aria-labelledby="invocation-title">
-        <button id="close-invocation" class="close-button" aria-label="Close">×</button>
-        <p class="panel-kicker">言靈 · WORD INVOCATION</p>
-        <h2 id="invocation-title">Speak with the words you know</h2>
-        <p class="invocation-context">The disciple watches your hands and the flask at your belt. Choose words from your notebook to express an intention.</p>
-        <div id="selected-words" class="selected-words"><span>Select up to three words</span></div>
-        <div id="word-bank" class="word-bank"></div>
-        <button id="invoke-btn" class="primary-button"><span>Whisper the invocation</span><kbd>E</kbd></button>
-        <p id="invocation-reaction" class="invocation-reaction" aria-live="polite"></p>
-      </section>
-
       <section id="chapter-banner" class="chapter-banner" role="dialog" aria-hidden="true" aria-labelledby="chapter-title">
-        <p>THREAD RESOLVED</p><h2 id="chapter-title">A Bowl of Water</h2><span>The way to the High Terrace now glows through the mist.</span>
-        <button id="continue-town" class="primary-small">Continue exploring</button>
+        <p>ROOM CLEARED</p><h2 id="chapter-title">The Thirsty Traveller</h2><span>You used your own hypotheses to read the people in the courtyard.</span>
+        <button id="continue-town" class="primary-small">Review the courtyard</button>
       </section>
 
-      <div id="mobile-controls" class="mobile-controls" aria-hidden="true">
-        <div id="joystick" class="joystick"><div id="joystick-knob"></div></div>
-        <button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button>
-      </div>
+      <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
+      <div id="mobile-controls" class="mobile-controls" aria-hidden="true"><div id="joystick" class="joystick"><div id="joystick-knob"></div></div><button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button></div>
     </main>
-    <script type="module" src="src/main.js?v=20260820-5"></script>
+    <script type="module" src="src/main.js?v=gatehouse-v1"></script>
   </body>
 </html>

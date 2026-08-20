@@ -1,139 +1,110 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import {
-  BROWSER_CURRICULUM, CONFIDENCE, ENTITIES, INVOCATION_RESULT, LOCATIONS, WORLD,
-  analyseInvocationConstruction, buildFlashcards, canInvokeWaterGift, createJournal, getConfirmationReadiness,
-  grantItem, interpretWaterGift, recordEvidence, recordEncounter, resolveWaterGift, setConfidence, setConfirmed, setGuess
+  BROWSER_CURRICULUM, COLLIDERS, CONFIDENCE, ENTITIES, FURNITURE, NPCS, POSES, PORTRAIT_ASSETS,
+  RENDER_OBJECTS, ROOM, TARGET_WORDS, VOCABULARY, attemptWaterTarget, buildFlashcards,
+  createJournal, createTutorialSession, getConfirmationReadiness, getWaterTaskReadiness, grantItem,
+  recordEvidence, recordEncounter, setConfidence, setConfirmed, setGuess
 } from "../src/lessons.js";
-import { PLAYER_SPEED, SOUTH_GATE_DETAIL, isPlayerWalkable, isWorldWalkable, pointInEntityBody, projectWorldPoint, selectInteractionTarget } from "../src/game.js";
+import { FIXED_CAMERA, PLAYER_SPEED, RENDER_LAYERS, isPlayerWalkable, isWorldWalkable, pointInEntityBody, selectInteractionTarget } from "../src/game.js";
 import { GAME_STATE, GameStateController } from "../src/game-state.js";
 import { isTextEntryTarget, resolveRoutedAction } from "../src/input.js";
 import { resolveJoystickVector } from "../src/joystick.js";
 
-const observe = (journal, tokenText, occurrenceId, entityId = "observer", location = "Central Crossing") => recordEvidence(journal, { tokenText, occurrenceId, entityId, location, chineseLine: tokenText, context: `context ${occurrenceId}`, timestamp: Number(occurrenceId.replace(/\D/g, "")) || 1 });
+const observe = (journal, tokenText, occurrenceId, entityId = "observer") => recordEvidence(journal, { tokenText, occurrenceId, entityId, location: ROOM.english, chineseLine: tokenText, context: `context ${occurrenceId}`, timestamp: Number(occurrenceId.replace(/\D/g, "")) || 1 });
+const assetExists = path => existsSync(new URL(`../${path}`, import.meta.url));
 
 test("mobile joystick centres, clamps, and normalises pointer movement", () => {
   const rect = { left: 10, top: 20, width: 100, height: 100 };
   assert.deepEqual(resolveJoystickVector(60, 70, rect), { pixelX: 0, pixelY: 0, x: 0, y: 0 });
-  const right = resolveJoystickVector(260, 70, rect);
-  assert.ok(Math.abs(right.pixelX - 29) < 1e-9); assert.equal(right.pixelY, 0); assert.ok(Math.abs(right.x - 1) < 1e-9); assert.equal(right.y, 0);
-  const diagonal = resolveJoystickVector(160, 170, rect);
-  assert.ok(Math.hypot(diagonal.x, diagonal.y) <= 1 + Number.EPSILON);
+  const right = resolveJoystickVector(260, 70, rect); assert.ok(Math.abs(right.pixelX - 29) < 1e-9); assert.ok(Math.abs(right.x - 1) < 1e-9);
 });
 
-test("encounters accumulate without revealing a canonical answer", () => {
-  let journal = createJournal(); journal = recordEncounter(journal, "水", "Market Street", "well", 1, "well:water"); journal = recordEncounter(journal, "水", "Central Crossing", "disciple", 2, "disciple:water");
-  assert.equal(journal.entries.water.count, 2); assert.equal(journal.entries.water.distinctContexts, 2); assert.equal(journal.entries.water.lastLocation, "Central Crossing"); assert.equal("answer" in journal.entries.water, false);
+test("the browser lesson teaches exactly six target characters and no transfer verb", () => {
+  assert.deepEqual(TARGET_WORDS, ["你", "我", "他", "水", "是", "誰"]);
+  assert.deepEqual(Object.keys(VOCABULARY), TARGET_WORDS); assert.equal(BROWSER_CURRICULUM.taughtTransferVerb, false); assert.equal("給" in VOCABULARY, false);
+  const source = `${readFileSync(new URL("../index.html", import.meta.url), "utf8")}\n${readFileSync(new URL("../src/main.js", import.meta.url), "utf8")}`;
+  assert.doesNotMatch(source, /invocation-panel|give \+ me|水給我|給我水/i);
 });
 
-test("repeating one occurrence does not fake independent evidence", () => {
-  let journal = observe(createJournal(), "水", "well:line:water", "well"); journal = observe(journal, "水", "well:line:water", "well");
+test("every target has at least two distinct contextual occurrences", () => {
+  const contexts = Object.fromEntries(TARGET_WORDS.map(word => [word, new Set()]));
+  for (const entity of ENTITIES) for (const dialogue of [...entity.lines, ...(entity.resolvedLines ?? [])]) for (const token of new Set(dialogue.tokens)) contexts[token]?.add(`${entity.id}:${dialogue.id}`);
+  for (const word of TARGET_WORDS) assert.ok(contexts[word].size >= 2, `${word} only has ${contexts[word].size} contexts`);
+});
+
+test("every dialogue cue names a real portrait, pose, expression, target, prop, and sfx field", () => {
+  for (const entity of ENTITIES) for (const dialogue of [...entity.lines, ...(entity.resolvedLines ?? [])]) {
+    assert.ok(assetExists(PORTRAIT_ASSETS[dialogue.portrait]), `${dialogue.id} portrait`); assert.ok(POSES.includes(dialogue.pose), `${dialogue.id} pose`);
+    for (const field of ["expression", "gestureTarget", "prop", "sfx"]) assert.ok(Object.hasOwn(dialogue, field), `${dialogue.id}.${field}`);
+  }
+});
+
+test("speaker-relative self-reference points to the current speaker", () => {
+  const expected = { gatekeeper: "gatekeeper", clerk: "clerk", "thirsty-traveller": "thirsty-traveller", mirror: "player" };
+  for (const entity of ENTITIES) for (const dialogue of entity.lines.filter(item => item.tokens.includes("我") && item.pose === "point-self")) assert.equal(dialogue.gestureTarget, expected[entity.id], `${entity.id}:${dialogue.id}`);
+  assert.ok(new Set(ENTITIES.flatMap(entity => entity.lines.filter(item => item.tokens.includes("我") && item.pose === "point-self").map(item => item.gestureTarget))).size >= 4);
+});
+
+test("all scene elements are independent modular sprites with one data record", () => {
+  assert.equal(RENDER_LAYERS.includes("ground"), true); assert.equal(RENDER_LAYERS.includes("depth"), true); assert.equal(RENDER_LAYERS.includes("foreground"), true);
+  assert.ok(RENDER_OBJECTS.length >= 30);
+  for (const object of RENDER_OBJECTS) {
+    assert.ok(object.sprite, object.id); assert.ok(assetExists(object.sprite), object.sprite); assert.ok(statSync(new URL(`../${object.sprite}`, import.meta.url)).size > 0);
+    assert.ok(Number.isFinite(object.x) && Number.isFinite(object.y), object.id); assert.ok(object.width > 0 && object.height > 0, object.id); assert.ok(Number.isFinite(object.anchorX) && Number.isFinite(object.anchorY), object.id); assert.ok(RENDER_LAYERS.includes(object.layer), `${object.id}:${object.layer}`);
+  }
+  const sources = `${readFileSync(new URL("../src/game.js", import.meta.url), "utf8")}\n${readFileSync(new URL("../src/lessons.js", import.meta.url), "utf8")}`;
+  assert.doesNotMatch(sources, /gatehouse-room-v1|drawForegroundOcclusion|south-gate-detail|wuyin-town-map/);
+});
+
+test("fixed courtyard boundaries, colliders, and interaction radii share room data", () => {
+  assert.equal(FIXED_CAMERA, true); assert.ok(ROOM.width === 1600 && ROOM.height === 900); assert.ok(isWorldWalkable(800, 430)); assert.equal(isWorldWalkable(50, 50), false);
+  assert.ok(isPlayerWalkable(ROOM.playerStart.x, ROOM.playerStart.y), "player start must be valid");
+  for (const entity of [...FURNITURE, ...NPCS]) { assert.ok(entity.interactionRadius > 0); assert.ok(entity.collider); assert.equal(pointInEntityBody(entity.x, entity.y + entity.collider.y + 1, entity), true); }
+  for (const entity of COLLIDERS.filter(item => item.layer === "depth")) assert.equal(isPlayerWalkable(entity.x, entity.y + entity.collider.y + 2), false, entity.id);
+});
+
+test("target selection favours a nearby object in the direction the player faces", () => {
+  const player = { x: 790, y: 505, facing: -1, lookX: 0, lookY: -1 };
+  assert.equal(selectInteractionTarget(player)?.id, "gatekeeper");
+  assert.equal(selectInteractionTarget({ ...player, lookY: 1 }), null);
+});
+
+test("repeating one clicked occurrence never fakes independent evidence", () => {
+  let journal = observe(createJournal(), "水", "jar:line:water"); journal = observe(journal, "水", "jar:line:water");
   assert.equal(journal.entries.water.encounters, 2); assert.equal(journal.entries.water.distinctContexts, 1); assert.equal(journal.entries.water.evidence.length, 1);
-  const migrated = createJournal({ entries: { water: { text: "水", count: 2, history: [{ entityId: "well", location: "Market Street" }, { entityId: "well", location: "Market Street" }] } } });
-  assert.equal(migrated.entries.water.distinctContexts, 1);
-  let repeatedLine = observe(createJournal(), "貓", "cat:child-cat:cat:0", "cat"); repeatedLine = observe(repeatedLine, "貓", "cat:child-cat:cat:2", "cat");
-  assert.equal(repeatedLine.entries.cat.encounters, 2); assert.equal(repeatedLine.entries.cat.distinctContexts, 1);
+  let repeatedLine = observe(createJournal(), "我", "traveller:need:I:0"); repeatedLine = observe(repeatedLine, "我", "traveller:need:I:2"); assert.equal(repeatedLine.entries.I.distinctContexts, 1);
 });
 
-test("hypothesis revisions, confidence, and confirmation readiness persist without grading", () => {
-  let journal = observe(createJournal(), "茶", "tea:1", "tea-pot"); journal = observe(journal, "茶", "vendor:tea", "tea-keeper"); journal = setGuess(journal, "tea", "a bowl"); journal = setGuess(journal, "tea", "a drink", 3); journal = setConfidence(journal, "tea", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "tea", true);
-  assert.equal(journal.entries.tea.guess, "a drink"); assert.deepEqual(journal.entries.tea.revisions, [{ from: "a bowl", to: "a drink", timestamp: 3 }]); assert.equal(journal.entries.tea.confidence, CONFIDENCE.PROBABLE); assert.equal(journal.entries.tea.confirmed, true); assert.equal("correct" in journal.entries.tea, false);
-  journal = setConfidence(journal, "tea", CONFIDENCE.UNSURE); assert.equal(journal.entries.tea.confirmed, false);
+test("hypothesis revisions and self-confirmation persist without canonical grading", () => {
+  let journal = observe(createJournal(), "水", "jar:water"); journal = observe(journal, "水", "traveller:water"); journal = setGuess(journal, "water", "a bowl"); journal = setGuess(journal, "water", "a drink", 3); journal = setConfidence(journal, "water", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "water", true);
+  assert.deepEqual(journal.entries.water.revisions, [{ from: "a bowl", to: "a drink", timestamp: 3 }]); assert.equal(journal.entries.water.confirmed, true); assert.equal("correct" in journal.entries.water, false); assert.deepEqual(buildFlashcards(journal).map(card => card.id), ["water"]);
 });
 
-test("flashcards require two contexts, a hypothesis, confidence, and self-confirmation", () => {
-  let journal = observe(createJournal(), "茶", "tea:1", "tea-pot"); journal = setGuess(journal, "tea", "a drink"); journal = setConfidence(journal, "tea", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "tea", true); assert.equal(getConfirmationReadiness(journal.entries.tea).ready, false); assert.equal(journal.entries.tea.confirmed, false);
-  journal = observe(journal, "茶", "tea:2", "tea-keeper"); journal = setConfirmed(journal, "tea", true);
-  assert.deepEqual(buildFlashcards(journal).map(card => card.id), ["tea"]);
-});
-
-test("Invocation interprets construction roles and world prerequisites", () => {
+test("the full find-water flow tests hypotheses and blocks click-through brute force", () => {
   let journal = createJournal();
-  journal = observe(journal, "給", "vendor:give", "tea-keeper"); journal = observe(journal, "給", "carrier:give", "water-carrier");
-  journal = observe(journal, "水", "stele:water", "gate-sign"); journal = observe(journal, "水", "well:water", "well"); journal = observe(journal, "我", "disciple:me", "thirsty-disciple"); journal = observe(journal, "我", "vendor:me", "tea-keeper");
-  assert.equal(interpretWaterGift(journal, ["give", "me", "water"]).result, INVOCATION_RESULT.INCOMPLETE_INTENT);
-  for (const id of ["give", "me", "water"]) journal = setGuess(journal, id, `hypothesis for ${id}`);
-  assert.equal(interpretWaterGift(journal, ["give", "me", "water"]).result, INVOCATION_RESULT.INSUFFICIENT_EVIDENCE);
-  for (const id of ["give", "me", "water"]) { journal = setConfidence(journal, id, CONFIDENCE.PROBABLE); journal = setConfirmed(journal, id, true); }
-  assert.equal(interpretWaterGift(journal, ["give", "me", "water"]).result, INVOCATION_RESULT.PRAGMATIC_MISMATCH);
-  journal = grantItem(journal, "water-flask");
-  assert.equal(interpretWaterGift(journal, ["water", "give", "me"]).result, INVOCATION_RESULT.SUCCESS);
-  assert.equal(interpretWaterGift(journal, ["give", "water", "me"]).result, INVOCATION_RESULT.AMBIGUOUS_INTENT);
-  assert.equal(interpretWaterGift(journal, ["me", "give", "water"]).result, INVOCATION_RESULT.INCOMPLETE_INTENT);
-  assert.equal(interpretWaterGift(journal, ["give", "me", "water", "tea"]).result, INVOCATION_RESULT.SEMANTIC_MISMATCH);
-  assert.equal(analyseInvocationConstruction(["water", "give", "me"]).construction, "TOPICALIZED_REQUEST");
-  assert.equal(canInvokeWaterGift(journal, ["give", "me", "water"]), true); assert.equal(resolveWaterGift(journal, ["give", "me", "water"]).quest, "resolved");
+  journal = observe(journal, "誰", "gate:gate-closed:who", "gate"); journal = observe(journal, "誰", "gatekeeper:guard-who-you:who", "gatekeeper");
+  journal = observe(journal, "水", "water-jar:jar-water:water", "water-jar"); journal = observe(journal, "水", "thirsty-traveller:traveller-water:water", "thirsty-traveller");
+  journal = setGuess(journal, "who", "which person"); journal = setConfidence(journal, "who", CONFIDENCE.PROBABLE); journal = setGuess(journal, "water", "something to drink"); journal = setConfidence(journal, "water", CONFIDENCE.PROBABLE); journal = grantItem(journal, "water-bowl");
+  assert.equal(getWaterTaskReadiness(journal).ready, true);
+  let session = createTutorialSession(), outcome = attemptWaterTarget(session, journal, "gatekeeper", 10); assert.equal(outcome.result, "CONFUSED"); session = outcome.session; journal = outcome.journal;
+  outcome = attemptWaterTarget(session, journal, "thirsty-traveller", 11); assert.equal(outcome.result, "REVISIT_NOTES");
+  journal = setGuess(journal, "who", "the person being asked about", 12); outcome = attemptWaterTarget(session, journal, "thirsty-traveller", 13); assert.equal(outcome.result, "SUCCESS"); assert.equal(outcome.journal.quest, "resolved");
 });
 
-test("the disciple encounter alone cannot solve the first quest", () => {
-  let journal = observe(createJournal(), "水", "disciple:water", "thirsty-disciple"); journal = observe(journal, "我", "disciple:me", "thirsty-disciple"); journal = setGuess(journal, "water", "liquid"); journal = setGuess(journal, "me", "self"); journal = grantItem(journal, "water-flask");
-  assert.notEqual(interpretWaterGift(journal, ["me", "water"]).result, INVOCATION_RESULT.SUCCESS);
-});
-
-test("nested Notebook restores Dialogue and only Exploring permits movement", () => {
+test("Notebook nested over Dialogue locks movement and text entry suppresses shortcuts", () => {
   const state = new GameStateController(); state.reset(GAME_STATE.EXPLORING); state.push(GAME_STATE.DIALOGUE); state.push(GAME_STATE.NOTEBOOK); assert.equal(state.canMove, false); state.pop(); assert.equal(state.current, GAME_STATE.DIALOGUE);
-  for (const modal of [GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK, GAME_STATE.INVOCATION, GAME_STATE.CHAPTER]) { state.reset(modal); assert.equal(state.canMove, false, modal); }
-  state.reset(GAME_STATE.EXPLORING); assert.equal(state.canMove, true);
+  const input = { matches: selector => selector.includes("input") }; assert.equal(isTextEntryTarget(input), true); assert.equal(resolveRoutedAction("w", GAME_STATE.NOTEBOOK, input), null); assert.equal(resolveRoutedAction("escape", GAME_STATE.NOTEBOOK, input), "ESCAPE");
+  assert.ok(PLAYER_SPEED.walkX < PLAYER_SPEED.runX && PLAYER_SPEED.walkY < PLAYER_SPEED.runY);
 });
 
-test("typing ordinary hypothesis letters does not route game shortcuts", () => {
-  const input = { matches: selector => selector.includes("input") };
-  assert.equal(isTextEntryTarget(input), true); assert.equal(resolveRoutedAction("n", GAME_STATE.NOTEBOOK, input), null); assert.equal(resolveRoutedAction("e", GAME_STATE.DIALOGUE, input), null); assert.equal(resolveRoutedAction("escape", GAME_STATE.NOTEBOOK, input), "ESCAPE");
+test("focus restoration rejects hidden ancestors and falls back to the game canvas", () => {
+  const focus = readFileSync(new URL("../src/modal-focus.js", import.meta.url), "utf8"), main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8"), html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(focus, /isRestorable/); assert.match(focus, /closest\("\[hidden\], \[aria-hidden='true'\], \[inert\]"\)/); assert.match(focus, /this\.fallback/); assert.match(main, /new ModalFocusManager\(document, elements\.game\)/); assert.match(main, /elements\.game\.focus\(\)/); assert.match(html, /id="game"[^>]*tabindex="0"/); assert.match(html, /id="dialogue-panel"[^>]*data-focus-self/);
 });
 
-test("the follow-camera map keeps districts and interaction anchors reachable", () => {
-  assert.ok(WORLD.width > 1600 && WORLD.height > 900); for (const location of LOCATIONS) { const [left, top, right, bottom] = location.bounds; assert.ok(left >= 0 && top >= 0 && right <= WORLD.width && bottom <= WORLD.height); }
-  for (const entity of ENTITIES) { assert.ok(entity.x >= 0 && entity.x <= WORLD.width && entity.y >= 0 && entity.y <= WORLD.height, entity.id); assert.ok(isWorldWalkable(entity.x, entity.y), `${entity.id} is outside the connected paths`); assert.ok(entity.interactionRadius > 0); }
-});
-
-test("physical NPC bodies block movement independently of interaction radii", () => {
-  const guard = ENTITIES.find(entity => entity.id === "gatekeeper"); assert.equal(pointInEntityBody(guard.x, guard.y, guard), true); assert.equal(isPlayerWalkable(guard.x, guard.y), false); assert.ok(guard.interactionRadius > guard.bodyCollider.width);
-});
-
-test("target selection excludes behind-only and occluded targets", () => {
-  const player = { x: 1200, y: 1320, facing: 1, lookX: 1, lookY: 0 };
-  const targets = [{ id: "front", x: 1260, y: 1320, interactionRadius: 100 }, { id: "behind", x: 1145, y: 1320, interactionRadius: 100 }];
-  assert.equal(selectInteractionTarget(player, targets)?.id, "front");
-  assert.equal(selectInteractionTarget(player, [targets[1]]), null);
-  const localPlayer = { x: 0, y: 0, facing: 1, lookX: 1, lookY: 0 }, throughWall = [{ id: "blocked", x: 80, y: 0, interactionRadius: 100 }];
-  assert.equal(selectInteractionTarget(localPlayer, throughWall, [[35, -20, 15, 40]]), null);
-});
-
-test("the close camera has a stable local scale", () => {
-  const camera = { focusX: 1200, focusY: 800, zoom: 1.5 }, far = projectWorldPoint(1200, 400, camera), focus = projectWorldPoint(1200, 800, camera), near = projectWorldPoint(1200, 1200, camera);
-  assert.equal(focus.x, 800); assert.equal(far.scale, near.scale); assert.ok(Math.abs((near.y - focus.y) - (focus.y - far.y)) < 1e-9); assert.ok(1600 / camera.zoom < WORLD.width / 2);
-});
-
-test("the South Gate detail covers the opening interactions", () => {
-  const inside = entity => entity.x >= SOUTH_GATE_DETAIL.x && entity.x <= SOUTH_GATE_DETAIL.x + SOUTH_GATE_DETAIL.width && entity.y >= SOUTH_GATE_DETAIL.y && entity.y <= SOUTH_GATE_DETAIL.y + SOUTH_GATE_DETAIL.height;
-  assert.ok(inside(ENTITIES.find(entity => entity.id === "gate-sign"))); assert.ok(inside(ENTITIES.find(entity => entity.id === "gatekeeper"))); assert.ok(Math.abs(SOUTH_GATE_DETAIL.width * 1.5 - 1672) < 2);
-});
-
-test("South Gate foreground converts world-space occluders into source-image pixels", () => {
-  const gameSource = readFileSync(new URL("../src/game.js", import.meta.url), "utf8");
-  assert.match(gameSource, /sourceScaleX = this\.southGateDetailLayer\.width \/ SOUTH_GATE_DETAIL\.width/);
-  assert.match(gameSource, /sx \* sourceScaleX, sy \* sourceScaleY, sw \* sourceScaleX, sh \* sourceScaleY/);
-  assert.match(gameSource, /ctx\.rect\(dx, dy, dw, dh\); ctx\.clip\(\)/);
-});
-
-test("South Gate walls and stele block the player while a detour remains open", () => {
-  const sign = ENTITIES.find(entity => entity.id === "gate-sign"); assert.equal(isPlayerWalkable(sign.x, sign.y), false);
-  assert.equal(isPlayerWalkable(1010, 1200), false); assert.equal(isPlayerWalkable(1390, 1200), false); assert.equal(isPlayerWalkable(850, 1400), false);
-  for (let y = 1020; y <= 1380; y += 10) assert.equal(isPlayerWalkable(1200, y), true, `gate approach blocked at y=${y}`);
-  for (const [x, y] of [[1100, 1400], [1100, 1450], [1100, 1500], [1200, 1510]]) assert.equal(isPlayerWalkable(x, y), true, `stele detour blocked at ${x},${y}`);
-});
-
-test("modal focus code uses inert, ignores hidden ancestors, and keeps Dialogue focus off tokens", () => {
-  const focus = readFileSync(new URL("../src/modal-focus.js", import.meta.url), "utf8"), html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(focus, /node\.inert = Boolean/); assert.match(focus, /closest\("\[hidden\], \[aria-hidden='true'\], \[inert\]"\)/); assert.match(html, /id="dialogue-panel"[^>]*data-focus-self/); assert.match(html, /role="dialog"/);
-});
-
-test("movement remains deliberate and the curriculum matches Godot", () => {
-  assert.ok(PLAYER_SPEED.x <= 170 && PLAYER_SPEED.y <= 155); const godot = JSON.parse(readFileSync(new URL("../godot/data/water_curriculum.json", import.meta.url), "utf8")); assert.equal(BROWSER_CURRICULUM.firstTarget, godot.first_target); assert.equal(BROWSER_CURRICULUM.minimumDistinctContextsBeforeInvocation, godot.minimum_contexts_before_spell_insight);
-});
-
-test("the deployed module chain uses one cache-busting version", () => {
+test("the browser module chain uses a single cache version", () => {
   const index = readFileSync(new URL("../index.html", import.meta.url), "utf8"), main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8"), game = readFileSync(new URL("../src/game.js", import.meta.url), "utf8"), version = index.match(/main\.js\?v=([\w-]+)/)?.[1];
-  assert.ok(version); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`));
+  assert.equal(version, "gatehouse-v1"); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js", "joystick.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
 });

@@ -1,16 +1,16 @@
-import { Soundscape } from "./audio.js?v=gatehouse-v3";
-import { MandalingoGame } from "./game.js?v=gatehouse-v3";
+import { Soundscape } from "./audio.js?v=gatehouse-v4";
+import { MandalingoGame } from "./game.js?v=gatehouse-v4";
 import {
   CONFIDENCE, STAGE_HOSTS, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptUnderstandingChoice, attemptWaterTarget, buildFlashcards,
   createJournal, createTutorialSession, getConfirmationReadiness, getCurrentChallenge, getEncounteredEntries, getLearningState, getStageReadiness,
   getWaterTaskReadiness, grantItem, recordEvidence, resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=gatehouse-v3";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v3";
-import { InputRouter } from "./input.js?v=gatehouse-v3";
-import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v3";
-import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v3";
+} from "./lessons.js?v=gatehouse-v4";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v4";
+import { InputRouter } from "./input.js?v=gatehouse-v4";
+import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v4";
+import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v4";
 
-const STORAGE_KEY = "mandalingo-gatehouse-playtest-v3";
+const STORAGE_KEY = "mandalingo-gatehouse-playtest-v4";
 const $ = selector => document.querySelector(selector);
 const elements = {
   game: $("#game"), title: $("#title-screen"), help: $("#how-screen"), hud: $("#hud"), objective: $("#objective-text"),

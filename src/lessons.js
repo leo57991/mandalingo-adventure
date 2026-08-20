@@ -44,7 +44,7 @@ export function resolvePortraitAsset(actor, pose = "idle") {
 export const BROWSER_CURRICULUM = Object.freeze({
   targetWords: TARGET_WORDS,
   minimumDistinctContextsForUnderstanding: 2,
-  firstTask: "FIND_THIRSTY_PERSON",
+  firstTask: "OPEN_CITY_GATE",
   taughtTransferVerb: false
 });
 
@@ -59,8 +59,8 @@ export const ROOM = Object.freeze({
   english: "South Gate Courtyard",
   width: 1600,
   height: 900,
-  walkableBounds: Object.freeze([285, 220, 1030, 465]),
-  playerStart: Object.freeze({ x: 800, y: 555, facing: -1 }),
+  walkableBounds: Object.freeze([285, 220, 1030, 510]),
+  playerStart: Object.freeze({ x: 800, y: 500, facing: -1 }),
   playerSprite: "assets/gate-room/characters/player-v2.png",
   playerVisual: Object.freeze({ width: 88, height: 176, anchorX: .5, anchorY: 1 }),
   groundTiles: Object.freeze(["assets/gate-room/stone-ground-b.png", "assets/gate-room/stone-ground-c.png", "assets/gate-room/stone-ground-d.png"])
@@ -94,33 +94,33 @@ export const STRUCTURES = Object.freeze([
 
 export const FURNITURE = Object.freeze([
   {
-    id: "gate", type: "object", kind: "gate", x: 800, y: 650, label: "Closed South Gate", action: "Inspect",
-    ...visual("assets/gate-room/structures/wooden-doors.png", 105, 120, "back-structure"), interactionRadius: 125, collider: collider(100, 42, -27),
-    lines: [line("gate-closed", "Voice beyond the gate", "誰？", ["誰"], "object", "question", "watchful", "player", null, "wood-knock", "A voice beyond the closed gate asks a single question.")]
+    id: "gate", type: "object", kind: "gate", x: 800, y: 310, label: "Locked city gate", action: "Inspect",
+    ...visual("assets/gate-room/structures/wooden-doors.png", 122, 138, "back-structure"), interactionRadius: 120, collider: collider(116, 44, -29),
+    lines: [line("gate-closed", "Locked gate", "……", [], "object", "idle", "watchful", "gatekeeper", null, "wood-knock", "Knock. Knock.")]
   },
   {
-    id: "mirror", type: "object", kind: "mirror", x: 465, y: 270, label: "Bronze mirror", action: "Inspect",
+    id: "mirror", type: "object", kind: "mirror", x: 390, y: 285, label: "Bronze mirror", action: "Inspect",
     ...visual("assets/gate-room/props/bronze-mirror.png", 122, 122), interactionRadius: 125, collider: collider(60, 25, -24),
-    lines: [line("mirror-self", "Your reflection", "我。", ["我"], "reflection", "point-self", "recognition", "player", null, "soft-chime", "You touch your chest. The figure in the bronze mirror copies you.")]
+    lines: [line("mirror-self", "Your reflection", "我。", ["我"], "reflection", "point-self", "recognition", "player", null, "soft-chime", "A bronze chime.")]
   },
   {
-    id: "notice-board", type: "object", kind: "board", x: 1215, y: 285, label: "Picture board", action: "Inspect",
-    ...visual("assets/gate-room/props/notice-board.png", 180, 180), interactionRadius: 130, collider: collider(135, 35, -28),
+    id: "notice-board", type: "object", kind: "board", x: 1115, y: 285, label: "Gate register", action: "Inspect",
+    ...visual("assets/gate-room/props/notice-board.png", 200, 190, "back-structure"), interactionRadius: 145, collider: collider(150, 30, -24),
     lines: [
-      line("board-people", "Picture board", "你　我　他", ["你", "我", "他"], "object", "point-third", "studious", "board-figures", null, "paper", "Three painted figures point toward the viewer, themselves, and another person."),
-      line("board-question", "Picture board", "他是誰？", ["他", "是", "誰"], "object", "question", "curious", "board-third", null, "paper", "A painted hand circles the third figure, then the blank name space beneath him.")
+      line("board-people", "Gate register", "你　我　他", ["你", "我", "他"], "object", "point-third", "studious", "board-figures", null, "paper", "Paper rustles."),
+      line("board-question", "Gate register", "他是誰？", ["他", "是", "誰"], "object", "question", "curious", "room-people", null, "paper", "Tap. Tap.")
     ]
   },
   {
-    id: "water-jar", type: "object", kind: "water-jar", x: 345, y: 555, label: "Water jar", action: "Inspect",
+    id: "water-jar", type: "object", kind: "water-jar", x: 1235, y: 515, label: "Water jar", action: "Inspect",
     ...visual("assets/gate-room/props/water-jar.png", 118, 118), interactionRadius: 125, collider: collider(72, 45, -37), grantsOnObservation: "water-bowl",
     lines: [
-      line("jar-water", "Water jar", "水。", ["水"], "object", "hold-water", "clear", "water-jar", "water", "water-pour", "You lift the lid. Water reflects the window light and fills a small bowl."),
-      line("jar-question", "A mark on the ladle", "誰……水？", ["誰", "水"], "object", "question", "curious", "room-people", "water", "water-drop", "The ladle hangs between the water and the three people in the courtyard.")
+      line("jar-water", "Water jar", "水。", ["水"], "object", "hold-water", "clear", "water-jar", "water", "water-pour", "Water drips into ceramic."),
+      line("jar-question", "Wooden ladle", "誰……水？", ["誰", "水"], "object", "question", "curious", "room-people", "water", "water-drop", "Drip… drip…")
     ]
   },
   {
-    id: "work-table", type: "furniture", kind: "table", x: 1190, y: 545, label: "Guard table", action: "Inspect",
+    id: "work-table", type: "furniture", kind: "table", x: 1085, y: 430, label: "Register desk", action: "Inspect",
     ...visual("assets/gate-room/props/guard-table.png", 210, 210), interactionRadius: 95, collider: collider(158, 52, -43), lines: []
   }
 ]);
@@ -131,12 +131,12 @@ export const DECORATIONS = Object.freeze([
   { id: "lantern-sw", type: "decoration", x: 610, y: 690, ...visual("assets/gate-room/props/lantern.png", 98, 98), collider: collider(30, 24, -20) },
   { id: "lantern-se", type: "decoration", x: 990, y: 690, ...visual("assets/gate-room/props/lantern.png", 98, 98), collider: collider(30, 24, -20) },
   { id: "crate", type: "decoration", x: 360, y: 330, ...visual("assets/gate-room/props/wooden-crate.png", 105, 105), collider: collider(66, 48, -39) },
-  { id: "water-bucket", type: "decoration", x: 390, y: 535, ...visual("assets/gate-room/props/water-bucket.png", 82, 82), collider: collider(48, 34, -28) },
+  { id: "water-bucket", type: "decoration", x: 1265, y: 550, ...visual("assets/gate-room/props/water-bucket.png", 82, 82), collider: collider(48, 34, -28) },
   { id: "stele", type: "decoration", x: 1260, y: 570, ...visual("assets/gate-room/props/stone-stele.png", 115, 115), collider: collider(65, 40, -33) },
   { id: "bamboo-left", type: "decoration", x: 305, y: 290, ...visual("assets/gate-room/props/bamboo.png", 155, 155, "back-structure"), collider: collider(60, 32, -26) },
   { id: "rock-right", type: "decoration", x: 1290, y: 350, ...visual("assets/gate-room/props/scholar-rock.png", 112, 112), collider: collider(62, 38, -32) },
-  { id: "weapon-rack", type: "decoration", x: 415, y: 610, ...visual("assets/gate-room/props/weapon-rack.png", 130, 130), collider: collider(90, 32, -26) },
-  { id: "chair", type: "decoration", x: 1110, y: 575, ...visual("assets/gate-room/props/wooden-chair.png", 92, 92), collider: collider(48, 32, -26) },
+  { id: "weapon-rack", type: "decoration", x: 390, y: 610, ...visual("assets/gate-room/props/weapon-rack.png", 130, 130), collider: collider(90, 32, -26) },
+  { id: "chair", type: "decoration", x: 1160, y: 430, ...visual("assets/gate-room/props/wooden-chair.png", 92, 92), collider: collider(48, 32, -26) },
   { id: "flag", type: "decoration", x: 1295, y: 650, ...visual("assets/gate-room/props/small-flag.png", 110, 110), collider: collider(26, 22, -18) },
   { id: "leaves", type: "effect", x: 520, y: 520, ...visual("assets/gate-room/props/fallen-leaves.png", 125, 125, "effects"), collider: null },
   { id: "mist", type: "effect", x: 1060, y: 270, ...visual("assets/gate-room/props/mist-wisp.png", 170, 170, "effects"), collider: null }
@@ -144,37 +144,37 @@ export const DECORATIONS = Object.freeze([
 
 export const NPCS = Object.freeze([
   {
-    id: "gatekeeper", type: "npc", kind: "gatekeeper", x: 790, y: 425, label: "Gatekeeper", action: "Talk",
+    id: "gatekeeper", type: "npc", kind: "gatekeeper", x: 800, y: 385, label: "Gatekeeper", action: "Talk",
     portrait: "gatekeeper", ...visual("assets/gate-room/characters/gatekeeper.png", 92, 184), interactionRadius: 128, collider: collider(42, 38, -31),
     lines: [
-      line("guard-you", "Gatekeeper", "你。", ["你"], "gatekeeper", "point-player", "firm", "player", null, "cloth", "The gatekeeper extends one hand directly toward you."),
-      line("guard-self", "Gatekeeper", "我。", ["我"], "gatekeeper", "point-self", "calm", "gatekeeper", null, "cloth", "He presses the same hand against his own chest."),
-      line("guard-who-you", "Gatekeeper", "你是誰？", ["你", "是", "誰"], "gatekeeper", "question", "curious", "player", null, "wood-tap", "He points at you again, then opens his palm in a question."),
-      line("guard-third", "Gatekeeper", "他。", ["他"], "gatekeeper", "point-third", "firm", "clerk", null, "cloth", "He turns and points toward the clerk by the picture board."),
-      line("guard-who-third", "Gatekeeper", "他是誰？", ["他", "是", "誰"], "gatekeeper", "question", "curious", "clerk", null, "wood-tap", "He keeps pointing at the clerk while asking the same kind of question."),
-      line("guard-who-water", "Gatekeeper", "誰……水？", ["誰", "水"], "gatekeeper", "point-third", "concerned", "room-people", "water", "water-drop", "He looks from the water bowl to each person, waiting for you to notice who needs it.")
+      line("guard-you", "Gatekeeper", "你。", ["你"], "gatekeeper", "point-player", "firm", "player", null, "cloth", "Cloth rustles."),
+      line("guard-self", "Gatekeeper", "我。", ["我"], "gatekeeper", "point-self", "calm", "gatekeeper", null, "cloth", "Tap."),
+      line("guard-who-you", "Gatekeeper", "你是誰？", ["你", "是", "誰"], "gatekeeper", "question", "curious", "room-people", null, "wood-tap", "Knock. Knock."),
+      line("guard-third", "Gatekeeper", "他。", ["他"], "gatekeeper", "point-third", "firm", "clerk", null, "cloth", "Cloth rustles."),
+      line("guard-who-third", "Gatekeeper", "他是誰？", ["他", "是", "誰"], "gatekeeper", "question", "curious", "room-people", null, "wood-tap", "Tap. Tap."),
+      line("guard-who-water", "Gatekeeper", "誰……水？", ["誰", "水"], "gatekeeper", "question", "concerned", "room-people", null, "water-drop", "Drip… drip…")
     ],
-    remediationLines: [line("guard-remedy-water", "Gatekeeper", "他……水？", ["他", "水"], "gatekeeper", "point-third", "concerned", "thirsty-traveller", "water", "water-drop", "He compares the full bowl with the traveller's empty bowl, then points to the traveller again.")]
+    remediationLines: [line("guard-remedy-water", "Gatekeeper", "誰……水？", ["誰", "水"], "gatekeeper", "question", "concerned", "room-people", null, "water-drop", "…?")]
   },
   {
-    id: "clerk", type: "npc", kind: "clerk", x: 520, y: 420, label: "Clerk", action: "Talk",
+    id: "clerk", type: "npc", kind: "clerk", x: 1080, y: 350, label: "Register clerk", action: "Talk",
     portrait: "clerk", ...visual("assets/gate-room/characters/clerk.png", 88, 176), interactionRadius: 125, collider: collider(40, 36, -30),
     lines: [
-      line("clerk-self", "Clerk", "我。", ["我"], "clerk", "point-self", "friendly", "clerk", null, "cloth", "The clerk smiles and taps his own chest—not the gatekeeper's."),
-      line("clerk-you", "Clerk", "你。", ["你"], "clerk", "point-player", "friendly", "player", null, "cloth", "He points across the courtyard toward you."),
-      line("clerk-third", "Clerk", "他。", ["他"], "clerk", "point-third", "concerned", "thirsty-traveller", null, "cloth", "He glances toward the traveller with the empty bowl."),
-      line("clerk-question", "Clerk", "他是誰？", ["他", "是", "誰"], "clerk", "question", "curious", "thirsty-traveller", null, "paper", "The clerk points to the traveller, then to a blank line on his register.")
+      line("clerk-self", "Register clerk", "我。", ["我"], "clerk", "point-self", "friendly", "clerk", null, "cloth", "Tap."),
+      line("clerk-you", "Register clerk", "你。", ["你"], "clerk", "point-player", "friendly", "player", null, "cloth", "Paper rustles."),
+      line("clerk-third", "Register clerk", "他。", ["他"], "clerk", "point-third", "concerned", "thirsty-traveller", null, "cloth", "Cloth rustles."),
+      line("clerk-question", "Register clerk", "他是誰？", ["他", "是", "誰"], "clerk", "question", "curious", "room-people", null, "paper", "Tap. Tap.")
     ]
   },
   {
-    id: "thirsty-traveller", type: "npc", kind: "traveller", x: 1045, y: 465, label: "Tired traveller", action: "Talk",
+    id: "thirsty-traveller", type: "npc", kind: "traveller", x: 470, y: 500, label: "Tired traveller", action: "Talk",
     portrait: "traveller", ...visual("assets/gate-room/characters/thirsty-traveller.png", 92, 184), interactionRadius: 130, collider: collider(42, 38, -31), waterTarget: true,
     lines: [
-      line("traveller-self", "Tired traveller", "我……", ["我"], "traveller", "point-self", "tired", "thirsty-traveller", "empty-bowl", "cough", "The traveller touches his own chest and raises an empty bowl."),
-      line("traveller-water", "Tired traveller", "水……", ["水"], "traveller", "hold-empty-bowl", "thirsty", "water-jar", "empty-bowl", "bowl", "He looks into the empty bowl, then toward the full water jar."),
-      line("traveller-need", "Tired traveller", "我……水……", ["我", "水"], "traveller", "hold-empty-bowl", "thirsty", "thirsty-traveller", "empty-bowl", "cough", "He points to himself, tilts the empty bowl, and swallows with difficulty.")
+      line("traveller-self", "Tired traveller", "我……", ["我"], "traveller", "point-self", "tired", "thirsty-traveller", "empty-bowl", "cough", "Cough."),
+      line("traveller-water", "Tired traveller", "水……", ["水"], "traveller", "hold-empty-bowl", "thirsty", "water-jar", "empty-bowl", "bowl", "A ceramic bowl rattles."),
+      line("traveller-need", "Tired traveller", "我……水……", ["我", "水"], "traveller", "hold-empty-bowl", "thirsty", "water-jar", "empty-bowl", "cough", "Cough… cough.")
     ],
-    resolvedLines: [line("traveller-drinks", "Tired traveller", "水。", ["水"], "traveller", "drink-water", "relieved", "thirsty-traveller", "water", "drink", "He accepts the bowl, drinks slowly, and nods with relief.")]
+    resolvedLines: [line("traveller-drinks", "Tired traveller", "水。", ["水"], "traveller", "drink-water", "relieved", "thirsty-traveller", "water", "drink", "Gulp… sigh.")]
   }
 ]);
 
@@ -192,8 +192,8 @@ function migrateEvidence(entry = {}) {
 export function createJournal(saved = {}) {
   const entries = Object.fromEntries(Object.entries(saved.entries ?? {}).map(([id, raw]) => {
     const evidence = migrateEvidence(raw), encounters = raw.encounters ?? raw.count ?? evidence.length;
-    const entry = { ...raw, id, guess: raw.guess ?? "", confirmed: Boolean(raw.confirmed), confidence: raw.confidence ?? CONFIDENCE.UNSURE, revisions: raw.revisions ?? [], evidence, encounters, count: encounters, distinctContexts: evidence.length, locations: raw.locations ?? [...new Set(evidence.map(item => item.location))] };
-    if (!getConfirmationReadiness(entry).ready) entry.confirmed = false;
+    const worldVerified = Boolean(raw.worldVerified ?? raw.confirmed);
+    const entry = { ...raw, id, guess: raw.guess ?? "", confirmed: worldVerified, worldVerified, confidence: worldVerified ? CONFIDENCE.CONFIDENT : (raw.confidence ?? CONFIDENCE.UNSURE), verificationEvents: raw.verificationEvents ?? [], revisions: raw.revisions ?? [], evidence, encounters, count: encounters, distinctContexts: evidence.length, locations: raw.locations ?? [...new Set(evidence.map(item => item.location))] };
     return [id, entry];
   }));
   return { entries, inventory: saved.inventory ?? [], quest: saved.quest ?? "observing", analytics: { startedAt: saved.analytics?.startedAt ?? Date.now(), tokenFirstSeen: saved.analytics?.tokenFirstSeen ?? {}, clickSequence: saved.analytics?.clickSequence ?? [], wrongSelections: saved.analytics?.wrongSelections ?? [], hintUses: saved.analytics?.hintUses ?? 0 } };
@@ -203,7 +203,7 @@ export function recordEvidence(journal, observation) {
   const { tokenText, location, entityId, occurrenceId, chineseLine = "", context = "", timestamp = Date.now() } = observation;
   const vocab = VOCABULARY[tokenText]; if (!vocab || !occurrenceId) return journal;
   const evidenceId = canonicalOccurrenceId(occurrenceId);
-  const existing = journal.entries[vocab.id] ?? { id: vocab.id, text: vocab.text, guess: "", confirmed: false, confidence: CONFIDENCE.UNSURE, revisions: [], encounters: 0, count: 0, locations: [], evidence: [], distinctContexts: 0 };
+  const existing = journal.entries[vocab.id] ?? { id: vocab.id, text: vocab.text, guess: "", confirmed: false, worldVerified: false, confidence: CONFIDENCE.UNSURE, verificationEvents: [], revisions: [], encounters: 0, count: 0, locations: [], evidence: [], distinctContexts: 0 };
   const duplicate = existing.evidence.some(item => item.occurrenceId === evidenceId);
   const evidence = duplicate ? existing.evidence : [...existing.evidence, { occurrenceId: evidenceId, entityId, location, chineseLine, context, timestamp }];
   const encounters = existing.encounters + 1, locations = existing.locations.includes(location) ? existing.locations : [...existing.locations, location];
@@ -213,25 +213,37 @@ export function recordEvidence(journal, observation) {
 }
 
 export function recordEncounter(journal, tokenText, location, entityId, timestamp = Date.now(), occurrenceId = `${entityId}:${location}`) { return recordEvidence(journal, { tokenText, location, entityId, occurrenceId, chineseLine: tokenText, timestamp }); }
-export function setGuess(journal, entryId, guess, timestamp = Date.now()) { const entry = journal.entries[entryId]; if (!entry) return journal; const nextGuess = guess.trim().slice(0, 80); const revisions = entry.guess && nextGuess && entry.guess !== nextGuess ? [...entry.revisions, { from: entry.guess, to: nextGuess, timestamp }].slice(-12) : entry.revisions; const updated = { ...entry, guess: nextGuess, revisions }; if (!getConfirmationReadiness(updated).ready) updated.confirmed = false; return { ...journal, entries: { ...journal.entries, [entryId]: updated } }; }
-export function setConfidence(journal, entryId, confidence) { const entry = journal.entries[entryId]; if (!entry || !Object.values(CONFIDENCE).includes(confidence)) return journal; const updated = { ...entry, confidence }; if (!getConfirmationReadiness(updated).ready) updated.confirmed = false; return { ...journal, entries: { ...journal.entries, [entryId]: updated } }; }
-export function setConfirmed(journal, entryId, confirmed) { const entry = journal.entries[entryId]; if (!entry || (confirmed && !getConfirmationReadiness(entry).ready)) return journal; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confirmed: Boolean(confirmed) } } }; }
+export function setGuess(journal, entryId, guess, timestamp = Date.now()) { const entry = journal.entries[entryId]; if (!entry) return journal; const nextGuess = guess.trim().slice(0, 80); const revisions = entry.guess && nextGuess && entry.guess !== nextGuess ? [...entry.revisions, { from: entry.guess, to: nextGuess, timestamp }].slice(-12) : entry.revisions; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, guess: nextGuess, revisions } } }; }
+export function setConfidence(journal, entryId, confidence) { const entry = journal.entries[entryId]; if (!entry || !Object.values(CONFIDENCE).includes(confidence) || entry.worldVerified) return journal; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confidence } } }; }
+export function setConfirmed(journal, entryId, confirmed) { const entry = journal.entries[entryId]; if (!entry || confirmed || entry.worldVerified) return journal; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confirmed: false } } }; }
 export function grantItem(journal, item) { return journal.inventory.includes(item) ? journal : { ...journal, inventory: [...journal.inventory, item], quest: item === "water-bowl" ? "find-thirsty-person" : journal.quest }; }
 export function getEncounteredEntries(journal) { return Object.values(journal.entries).sort((a, b) => b.lastSeenAt - a.lastSeenAt); }
-export function getConfirmationReadiness(entry) { if (!entry?.guess?.trim()) return { ready: false, reason: "Write an English hypothesis first." }; if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Compare at least two distinct contexts." }; if (entry.confidence === CONFIDENCE.UNSURE) return { ready: false, reason: "Choose probable or confident when the evidence feels strong enough." }; return { ready: true, reason: "Ready for your own confirmation." }; }
-export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.confirmed && getConfirmationReadiness(entry).ready); }
+export function getConfirmationReadiness(entry) { if (!entry?.guess?.trim()) return { ready: false, reason: "Form a hypothesis first." }; if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Observe this sign in another context." }; return { ready: true, reason: "Ready to test through an action in the world." }; }
+export function getLearningState(entry) { if (!entry?.encounters) return "unobserved"; if (entry.worldVerified) return "world-verified"; if ((entry.distinctContexts ?? 0) >= BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding && entry.guess?.trim()) return "context-ready"; if (entry.guess?.trim()) return "hypothesis"; return "observed"; }
+export function verifyWords(journal, entryIds, actionId, actionLabel, timestamp = Date.now()) {
+  const entries = { ...journal.entries };
+  for (const id of entryIds) {
+    const entry = entries[id]; if (!entry || !getConfirmationReadiness(entry).ready) continue;
+    const verificationEvents = entry.verificationEvents.some(event => event.actionId === actionId) ? entry.verificationEvents : [...entry.verificationEvents, { actionId, actionLabel, timestamp }].slice(-12);
+    entries[id] = { ...entry, worldVerified: true, confirmed: true, confidence: CONFIDENCE.CONFIDENT, verificationEvents };
+  }
+  return { ...journal, entries };
+}
+export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.worldVerified && getConfirmationReadiness(entry).ready); }
 
 export const TUTORIAL_STAGE = Object.freeze({ PRONOUNS: "pronouns", IDENTITY: "identity", WATER: "water", COMPLETE: "complete" });
 export const STAGE_CHALLENGES = Object.freeze({
   [TUTORIAL_STAGE.PRONOUNS]: Object.freeze([
-    Object.freeze({ id: "check-you", text: "你。", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-player", expression: "firm", gestureTarget: "player", expected: "player", candidates: Object.freeze(["player", "gatekeeper", "clerk"]) }),
-    Object.freeze({ id: "check-I", text: "我。", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-self", expression: "calm", gestureTarget: "gatekeeper", expected: "gatekeeper", candidates: Object.freeze(["player", "gatekeeper", "clerk"]) }),
-    Object.freeze({ id: "check-he", text: "他。", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-third", expression: "firm", gestureTarget: "clerk", expected: "clerk", candidates: Object.freeze(["player", "gatekeeper", "clerk"]) })
+    Object.freeze({ id: "check-you", text: "你。", speaker: "Gatekeeper", speakerId: "gatekeeper", portrait: "gatekeeper", pose: "point-player", expression: "firm", gestureTarget: "player", expected: "player", verifiedWords: Object.freeze(["you"]), candidates: Object.freeze(["player", "gatekeeper", "clerk"]) }),
+    Object.freeze({ id: "check-I", text: "我。", speaker: "Register clerk", speakerId: "clerk", portrait: "clerk", pose: "point-self", expression: "calm", gestureTarget: "clerk", expected: "clerk", verifiedWords: Object.freeze(["I"]), candidates: Object.freeze(["player", "gatekeeper", "clerk"]) }),
+    Object.freeze({ id: "check-he", text: "他。", speaker: "Register clerk", speakerId: "clerk", portrait: "clerk", pose: "point-third", expression: "firm", gestureTarget: "thirsty-traveller", expected: "thirsty-traveller", verifiedWords: Object.freeze(["he"]), candidates: Object.freeze(["gatekeeper", "clerk", "thirsty-traveller"]) })
   ]),
   [TUTORIAL_STAGE.IDENTITY]: Object.freeze([
-    Object.freeze({ id: "check-identity", text: "他是誰？", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-third", expression: "curious", gestureTarget: "clerk", expected: "clerk", candidates: Object.freeze(["gatekeeper", "clerk", "thirsty-traveller"]) })
+    Object.freeze({ id: "check-identity", text: "他是誰？", speaker: "Register clerk", speakerId: "clerk", portrait: "clerk", pose: "question", expression: "curious", gestureTarget: "room-people", expected: "thirsty-traveller", verifiedWords: Object.freeze(["be", "who"]), candidates: Object.freeze(["gatekeeper", "clerk", "thirsty-traveller"]) })
   ])
 });
+
+export const STAGE_HOSTS = Object.freeze({ [TUTORIAL_STAGE.PRONOUNS]: "gatekeeper", [TUTORIAL_STAGE.IDENTITY]: "notice-board" });
 
 const STAGE_WORDS = Object.freeze({ [TUTORIAL_STAGE.PRONOUNS]: Object.freeze(["you", "I", "he"]), [TUTORIAL_STAGE.IDENTITY]: Object.freeze(["be", "who"]), [TUTORIAL_STAGE.WATER]: Object.freeze(["water"]) });
 const nextStage = stage => stage === TUTORIAL_STAGE.PRONOUNS ? TUTORIAL_STAGE.IDENTITY : stage === TUTORIAL_STAGE.IDENTITY ? TUTORIAL_STAGE.WATER : TUTORIAL_STAGE.COMPLETE;
@@ -244,10 +256,10 @@ export function getStageReadiness(session, journal) {
   if ([TUTORIAL_STAGE.WATER, TUTORIAL_STAGE.COMPLETE].includes(session.stage)) return { ready: false, reason: "The courtyard check is complete." };
   for (const id of STAGE_WORDS[session.stage]) {
     const entry = journal.entries[id], readiness = getConfirmationReadiness(entry);
-    if (!readiness.ready || !entry?.confirmed) return { ready: false, reason: "Gather two contexts, write a hypothesis, and mark each required note understood." };
+    if (!readiness.ready) return { ready: false, reason: "Gather another context and form a hypothesis for each sign in this scene." };
   }
   if (session.challengeBlockedAtEvidence !== null && totalDistinctEvidence(journal) <= session.challengeBlockedAtEvidence) return { ready: false, reason: "Observe a different world context before trying this check again." };
-  return { ready: true, reason: "The gatekeeper is ready to test this interpretation in the world." };
+  return { ready: true, reason: "Ready for a world action." };
 }
 export function getCurrentChallenge(session) { return STAGE_CHALLENGES[session.stage]?.[session.challengeRound] ?? null; }
 export function attemptUnderstandingChoice(session, journal, targetId, timestamp = Date.now()) {
@@ -255,24 +267,26 @@ export function attemptUnderstandingChoice(session, journal, targetId, timestamp
   const challenge = getCurrentChallenge(session); if (!challenge) return { result: "NO_CHALLENGE", session, journal };
   if (targetId !== challenge.expected) {
     const analytics = { ...journal.analytics, wrongSelections: [...journal.analytics.wrongSelections, { targetId, challengeId: challenge.id, timestamp }].slice(-50) };
-    return { result: "CONFUSED", reason: "The gatekeeper looks puzzled and repeats the gesture. Find another context before trying again.", session: { ...session, challengeBlockedAtEvidence: totalDistinctEvidence(journal) }, journal: { ...journal, analytics } };
+    return { result: "CONFUSED", reason: "…?", session: { ...session, challengeBlockedAtEvidence: totalDistinctEvidence(journal) }, journal: { ...journal, analytics } };
   }
+  const verifiedJournal = verifyWords(journal, challenge.verifiedWords, challenge.id, challenge.id === "check-identity" ? "Matched a person to the gate register" : "Followed a speaker's gesture", timestamp);
   const rounds = STAGE_CHALLENGES[session.stage], finalRound = session.challengeRound >= rounds.length - 1;
-  if (!finalRound) return { result: "NEXT", session: { ...session, challengeRound: session.challengeRound + 1, challengeBlockedAtEvidence: null }, journal };
-  return { result: "STAGE_COMPLETE", completedStage: session.stage, session: { ...session, stage: nextStage(session.stage), challengeRound: 0, challengeBlockedAtEvidence: null }, journal };
+  if (!finalRound) return { result: "NEXT", session: { ...session, challengeRound: session.challengeRound + 1, challengeBlockedAtEvidence: null }, journal: verifiedJournal };
+  return { result: "STAGE_COMPLETE", completedStage: session.stage, session: { ...session, stage: nextStage(session.stage), challengeRound: 0, challengeBlockedAtEvidence: null }, journal: verifiedJournal };
 }
 export function getWaterTaskReadiness(journal, session = createTutorialSession()) {
   if (!journal.inventory.includes("water-bowl")) return { ready: false, reason: "You are not carrying water." };
-  if (session.stage !== TUTORIAL_STAGE.WATER) return { ready: false, reason: "First complete the people and identity checks with the gatekeeper." };
-  for (const id of Object.values(VOCABULARY).map(word => word.id)) { const entry = journal.entries[id], readiness = getConfirmationReadiness(entry); if (!readiness.ready || !entry?.confirmed) return { ready: false, reason: "All six signs must be supported and marked understood before the final task." }; }
-  return { ready: true, reason: "Your current hypotheses can now be tested in the courtyard." };
+  if (session.stage !== TUTORIAL_STAGE.WATER) return { ready: false, reason: "The gate register has not yet supported the people signs." };
+  for (const id of ["you", "I", "he", "be", "who"]) if (!journal.entries[id]?.worldVerified) return { ready: false, reason: "A people sign is still waiting for a world action." };
+  if (!getConfirmationReadiness(journal.entries.water).ready) return { ready: false, reason: "Observe 水 in another context and form a hypothesis." };
+  return { ready: true, reason: "Ready to test the bowl in the courtyard." };
 }
 export function attemptWaterTarget(session, journal, targetId, timestamp = Date.now()) {
   if (session.resolved) return { result: "ALREADY_RESOLVED", session, journal };
   const readiness = getWaterTaskReadiness(journal, session); if (!readiness.ready) return { result: "NOT_READY", reason: readiness.reason, session, journal };
   if (session.lastFailedEvidenceCount !== null && totalDistinctEvidence(journal) <= session.lastFailedEvidenceCount) return { result: "REVISIT_WORLD", reason: "Their reaction suggests observing a new world context before choosing again.", session, journal };
-  if (targetId === "thirsty-traveller") return { result: "SUCCESS", session: { ...session, resolved: true, stage: TUTORIAL_STAGE.COMPLETE }, journal: { ...journal, quest: "resolved" } };
+  if (targetId === "thirsty-traveller") { const verified = verifyWords(journal, ["water"], "traveller-drank-water", "The traveller drank from the bowl", timestamp); return { result: "SUCCESS", session: { ...session, resolved: true, stage: TUTORIAL_STAGE.COMPLETE }, journal: { ...verified, quest: "resolved" } }; }
   const wrongTargets = session.wrongTargets.includes(targetId) ? session.wrongTargets : [...session.wrongTargets, targetId];
   const analytics = { ...journal.analytics, wrongSelections: [...journal.analytics.wrongSelections, { targetId, timestamp }].slice(-50) };
-  return { result: "CONFUSED", reason: "They recoil from the bowl and gesture uncertainly toward the others.", session: { ...session, wrongTargets, lastFailedEvidenceCount: totalDistinctEvidence(journal) }, journal: { ...journal, analytics } };
+  return { result: "CONFUSED", reason: "…", session: { ...session, wrongTargets, lastFailedEvidenceCount: totalDistinctEvidence(journal) }, journal: { ...journal, analytics } };
 }

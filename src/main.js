@@ -1,22 +1,22 @@
-import { Soundscape } from "./audio.js?v=gatehouse-v1";
-import { MandalingoGame } from "./game.js?v=gatehouse-v1";
+import { Soundscape } from "./audio.js?v=gatehouse-v2";
+import { MandalingoGame } from "./game.js?v=gatehouse-v2";
 import {
-  CONFIDENCE, PORTRAIT_ASSETS, TARGET_WORDS, VOCABULARY, attemptWaterTarget, buildFlashcards,
-  createJournal, createTutorialSession, getConfirmationReadiness, getEncounteredEntries,
-  getWaterTaskReadiness, grantItem, recordEvidence, setConfidence, setConfirmed, setGuess
-} from "./lessons.js?v=gatehouse-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v1";
-import { InputRouter } from "./input.js?v=gatehouse-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v1";
-import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v1";
+  CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptUnderstandingChoice, attemptWaterTarget, buildFlashcards,
+  createJournal, createTutorialSession, getConfirmationReadiness, getCurrentChallenge, getEncounteredEntries, getStageReadiness,
+  getWaterTaskReadiness, grantItem, recordEvidence, resolvePortraitAsset, setConfidence, setConfirmed, setGuess
+} from "./lessons.js?v=gatehouse-v2";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v2";
+import { InputRouter } from "./input.js?v=gatehouse-v2";
+import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v2";
+import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v2";
 
-const STORAGE_KEY = "mandalingo-gatehouse-playtest-v1";
+const STORAGE_KEY = "mandalingo-gatehouse-playtest-v2";
 const $ = selector => document.querySelector(selector);
 const elements = {
   game: $("#game"), title: $("#title-screen"), help: $("#how-screen"), hud: $("#hud"), objective: $("#objective-text"),
   prompt: $("#interaction-prompt"), promptAction: $("#interaction-action"), promptLabel: $("#interaction-label"), toast: $("#toast"),
   dialogue: $("#dialogue-panel"), context: $("#context-text"), speaker: $("#speaker-name"), speakerType: $("#speaker-type"), lineCount: $("#line-count"), text: $("#dialogue-text"), reaction: $("#dialogue-reaction"),
-  portraitStage: $("#portrait-stage"), portrait: $("#dialogue-portrait"), portraitGesture: $("#portrait-gesture"), portraitProp: $("#portrait-prop"), useWater: $("#use-water"),
+  portraitStage: $("#portrait-stage"), portrait: $("#dialogue-portrait"), useWater: $("#use-water"), challengeStart: $("#challenge-start"), challenge: $("#understanding-check"), challengeOptions: $("#understanding-options"),
   notebook: $("#notebook-panel"), journalView: $("#journal-view"), cardsView: $("#cards-view"), journalCount: $("#journal-count"), cardCount: $("#card-count"),
   notebookKicker: $("#notebook-kicker"), notebookHeading: $("#notebook-heading"), notebookIntro: $("#notebook-intro"), chapter: $("#chapter-banner"), fade: $("#scene-fade"),
   mobile: $("#mobile-controls"), sound: $("#sound-btn")
@@ -25,7 +25,8 @@ const elements = {
 function loadProgress() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; } }
 const saved = loadProgress();
 let journal = createJournal(saved.journal), tutorialSession = createTutorialSession(saved.session);
-let activeEntity = null, activeLines = [], lineIndex = 0, toastTimer = null, resetJoystick = () => {};
+let activeEntity = null, activeLines = [], lineIndex = 0, challengeMode = false, toastTimer = null, resetJoystick = () => {};
+const CHALLENGE_SPRITES = Object.freeze({ player: "assets/gate-room/characters/player-v2.png", gatekeeper: "assets/gate-room/characters/gatekeeper.png", clerk: "assets/gate-room/characters/clerk.png", "thirsty-traveller": "assets/gate-room/characters/thirsty-traveller.png" });
 const sound = new Soundscape();
 const focusManager = new ModalFocusManager(document, elements.game);
 const state = new GameStateController(GAME_STATE.TITLE, syncUiState);
@@ -70,7 +71,10 @@ function updateInteractionPrompt(entity) {
 
 function openDialogue(entity) {
   if (state.current !== GAME_STATE.EXPLORING || !entity?.lines?.length) return;
-  activeEntity = entity; activeLines = entity.waterTarget && journal.quest === "resolved" ? entity.resolvedLines : entity.lines; lineIndex = 0; elements.reaction.textContent = "";
+  activeEntity = entity; challengeMode = false;
+  activeLines = entity.waterTarget && journal.quest === "resolved" ? entity.resolvedLines : entity.lines;
+  if (entity.id === "gatekeeper" && tutorialSession.stage === TUTORIAL_STAGE.WATER && tutorialSession.lastFailedEvidenceCount !== null && entity.remediationLines?.length) activeLines = [...activeLines, ...entity.remediationLines];
+  lineIndex = 0; elements.reaction.textContent = "";
   state.push(GAME_STATE.DIALOGUE); renderLine();
 }
 
@@ -79,7 +83,9 @@ function renderLine() {
   elements.context.textContent = line.context; elements.speaker.textContent = line.speaker; elements.speakerType.textContent = activeEntity.type === "npc" ? "PERSON" : "OBJECT"; elements.lineCount.textContent = `${lineIndex + 1} / ${activeLines.length}`; elements.reaction.textContent = "";
   renderChineseLine(line); renderPortrait(line); game.resetActorCues(); if (activeEntity.type === "npc") game.setActorCue(activeEntity.id, { pose: line.pose, expression: line.expression, gestureTarget: line.gestureTarget, prop: line.prop });
   const hasWater = journal.inventory.includes("water-bowl"), canTarget = activeEntity.type === "npc" && journal.quest !== "resolved";
-  elements.useWater.hidden = !(hasWater && canTarget); elements.useWater.disabled = false; elements.useWater.title = getWaterTaskReadiness(journal).reason;
+  elements.challenge.hidden = true; elements.challengeStart.hidden = !(activeEntity.id === "gatekeeper" && lineIndex === activeLines.length - 1 && getStageReadiness(tutorialSession, journal).ready); elements.challengeStart.disabled = false;
+  elements.useWater.hidden = !(hasWater && canTarget); elements.useWater.disabled = false; elements.useWater.title = getWaterTaskReadiness(journal, tutorialSession).reason;
+  $("#dialogue-next").hidden = false;
   sound.page();
 }
 
@@ -94,9 +100,7 @@ function renderChineseLine(line) {
 }
 
 function renderPortrait(line) {
-  const source = PORTRAIT_ASSETS[line.portrait] ?? PORTRAIT_ASSETS.object; elements.portrait.src = source; elements.portraitStage.dataset.pose = line.pose; elements.portraitStage.dataset.expression = line.expression;
-  elements.portraitGesture.textContent = ["question", "confused"].includes(line.pose) ? "?" : "";
-  elements.portraitProp.textContent = line.prop === "empty-bowl" ? "🥣" : line.prop === "water" ? "💧" : "";
+  elements.portrait.src = resolvePortraitAsset(line.portrait, line.pose); elements.portraitStage.dataset.pose = line.pose; elements.portraitStage.dataset.expression = line.expression;
 }
 
 function recordToken(tokenText, occurrenceId, line, button) {
@@ -109,14 +113,37 @@ function recordToken(tokenText, occurrenceId, line, button) {
   if (activeEntity.type === "npc") elements.useWater.hidden = !journal.inventory.includes("water-bowl");
 }
 
-function advanceDialogue() { if (state.current !== GAME_STATE.DIALOGUE) return; if (lineIndex < activeLines.length - 1) { lineIndex += 1; renderLine(); } else closeDialogue(); }
-function closeDialogue() { if (state.current !== GAME_STATE.DIALOGUE) return; activeEntity = null; activeLines = []; lineIndex = 0; game.resetActorCues(); state.pop(); }
+function advanceDialogue() { if (state.current !== GAME_STATE.DIALOGUE || challengeMode) return; if (lineIndex < activeLines.length - 1) { lineIndex += 1; renderLine(); } else closeDialogue(); }
+function closeDialogue() { if (state.current !== GAME_STATE.DIALOGUE) return; activeEntity = null; activeLines = []; lineIndex = 0; challengeMode = false; elements.challenge.hidden = true; game.resetActorCues(); state.pop(); }
+
+function startUnderstandingCheck() {
+  if (state.current !== GAME_STATE.DIALOGUE || activeEntity?.id !== "gatekeeper") return;
+  const readiness = getStageReadiness(tutorialSession, journal); if (!readiness.ready) { elements.reaction.textContent = readiness.reason; return; }
+  challengeMode = true; elements.challengeStart.hidden = true; elements.useWater.hidden = true; $("#dialogue-next").hidden = true; renderChallenge();
+}
+
+function renderChallenge() {
+  const challenge = getCurrentChallenge(tutorialSession); if (!challenge) { challengeMode = false; renderLine(); return; }
+  elements.context.textContent = "Watch the body, hand and gaze. No translation is given."; elements.speaker.textContent = challenge.speaker; elements.speakerType.textContent = "WORLD CHECK"; elements.lineCount.textContent = `${tutorialSession.challengeRound + 1}`; elements.reaction.textContent = "";
+  elements.text.textContent = challenge.text; renderPortrait(challenge); game.resetActorCues(); game.setActorCue("gatekeeper", { pose: challenge.pose, expression: challenge.expression, gestureTarget: challenge.gestureTarget });
+  elements.challenge.hidden = false; elements.challengeOptions.replaceChildren(...challenge.candidates.map((candidateId, index) => {
+    const button = document.createElement("button"); button.type = "button"; button.className = "understanding-option"; button.setAttribute("aria-label", `Figure ${index + 1}`);
+    const image = document.createElement("img"); image.src = CHALLENGE_SPRITES[candidateId]; image.alt = ""; const label = document.createElement("span"); label.textContent = `Figure ${index + 1}`; button.append(image, label); button.addEventListener("click", () => chooseUnderstandingTarget(candidateId)); return button;
+  }));
+}
+
+function chooseUnderstandingTarget(targetId) {
+  const outcome = attemptUnderstandingChoice(tutorialSession, journal, targetId); tutorialSession = outcome.session; journal = outcome.journal; saveProgress();
+  if (outcome.result === "CONFUSED") { challengeMode = false; elements.challenge.hidden = true; elements.reaction.textContent = outcome.reason; renderPortrait({ portrait: "gatekeeper", pose: "confused", expression: "puzzled" }); $("#dialogue-next").hidden = false; return; }
+  if (outcome.result === "NEXT") { renderChallenge(); return; }
+  if (outcome.result === "STAGE_COMPLETE") { challengeMode = false; elements.challenge.hidden = true; elements.text.textContent = outcome.completedStage === TUTORIAL_STAGE.PRONOUNS ? "你　我　他。" : "他是誰？"; elements.reaction.textContent = "The gatekeeper nods. The next part of the courtyard lesson is now open."; renderPortrait({ portrait: "gatekeeper", pose: "nod", expression: "approving" }); $("#dialogue-next").hidden = false; updateInterface(); }
+}
 
 function useWaterOnActive() {
   if (state.current !== GAME_STATE.DIALOGUE || activeEntity?.type !== "npc") return;
   const outcome = attemptWaterTarget(tutorialSession, journal, activeEntity.id); tutorialSession = outcome.session; journal = outcome.journal; saveProgress();
-  if (outcome.result === "NOT_READY" || outcome.result === "REVISIT_NOTES") { elements.reaction.textContent = outcome.reason; game.setActorCue(activeEntity.id, { pose: "confused", expression: "puzzled", gestureTarget: "room-people" }); elements.portraitStage.dataset.pose = "confused"; return; }
-  if (outcome.result === "CONFUSED") { elements.reaction.textContent = outcome.reason; game.setActorCue(activeEntity.id, { pose: "confused", expression: "puzzled", gestureTarget: "room-people" }); elements.portraitStage.dataset.pose = "confused"; elements.useWater.disabled = true; return; }
+  if (outcome.result === "NOT_READY" || outcome.result === "REVISIT_WORLD") { elements.reaction.textContent = outcome.reason; game.setActorCue(activeEntity.id, { pose: "confused", expression: "puzzled", gestureTarget: "room-people" }); renderPortrait({ portrait: activeEntity.portrait, pose: "confused", expression: "puzzled" }); return; }
+  if (outcome.result === "CONFUSED") { elements.reaction.textContent = outcome.reason; game.setActorCue(activeEntity.id, { pose: "confused", expression: "puzzled", gestureTarget: "room-people" }); renderPortrait({ portrait: activeEntity.portrait, pose: "confused", expression: "puzzled" }); elements.useWater.disabled = true; return; }
   if (outcome.result !== "SUCCESS") return;
   game.setActorCue(activeEntity.id, { pose: "drink-water", expression: "relieved", gestureTarget: activeEntity.id, prop: "water" }); game.setQuestResolved(true); sound.invoke();
   const finalLine = activeEntity.resolvedLines[0]; activeLines = [finalLine]; lineIndex = 0; renderLine(); elements.reaction.textContent = "The traveller accepts the bowl and the South Gate begins to open."; elements.useWater.hidden = true;
@@ -154,15 +181,16 @@ function closeCurrentOverlay() { if (state.current === GAME_STATE.HELP) state.po
 function updateInterface() {
   const entries = getEncounteredEntries(journal), cards = buildFlashcards(journal); elements.journalCount.textContent = entries.length; elements.cardCount.textContent = cards.length;
   if (journal.quest === "resolved") elements.objective.textContent = "Room complete — review your evidence";
-  else if (journal.inventory.includes("water-bowl")) elements.objective.textContent = getWaterTaskReadiness(journal).ready ? "Choose who needs the water" : "Compare the question and water clues in your notebook";
-  else if (entries.length >= 3) elements.objective.textContent = "Inspect the water jar and watch the empty bowl";
-  else elements.objective.textContent = "Observe how the people identify one another";
+  else if (tutorialSession.stage === TUTORIAL_STAGE.PRONOUNS) elements.objective.textContent = getStageReadiness(tutorialSession, journal).ready ? "Return to the gatekeeper: test 你／我／他" : "Compare how different people use 你／我／他";
+  else if (tutorialSession.stage === TUTORIAL_STAGE.IDENTITY) elements.objective.textContent = getStageReadiness(tutorialSession, journal).ready ? "Return to the gatekeeper: test 他是誰？" : "Compare 是 and 誰 in different questions";
+  else if (tutorialSession.stage === TUTORIAL_STAGE.WATER && journal.inventory.includes("water-bowl")) elements.objective.textContent = getWaterTaskReadiness(journal, tutorialSession).ready ? "Choose who needs the water" : "Support and confirm all six notes";
+  else elements.objective.textContent = "Inspect the water jar and watch the empty bowl";
 }
 function showToast(message) { clearTimeout(toastTimer); elements.toast.textContent = message; elements.toast.classList.add("is-visible"); toastTimer = setTimeout(() => elements.toast.classList.remove("is-visible"), 2500); }
 function escapeHtml(value = "") { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
 $("#start-btn").addEventListener("click", startGame); $("#how-btn").addEventListener("click", () => state.push(GAME_STATE.HELP)); $("[data-close='how-screen']").addEventListener("click", () => state.pop());
-$("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
+$("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.challengeStart.addEventListener("click", startUnderstandingCheck); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
 document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; });
 
 setupJoystick();

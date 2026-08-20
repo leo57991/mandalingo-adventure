@@ -16,12 +16,30 @@ export const POSES = Object.freeze([
 ]);
 
 export const PORTRAIT_ASSETS = Object.freeze({
-  gatekeeper: "assets/portraits/gatekeeper.svg",
-  clerk: "assets/portraits/clerk.svg",
-  traveller: "assets/portraits/thirsty-traveller.svg",
-  reflection: "assets/portraits/player-reflection.svg",
-  object: "assets/portraits/object-study.svg"
+  gatekeeper: Object.freeze({
+    idle: "assets/portraits/gatekeeper/idle.png", "point-self": "assets/portraits/gatekeeper/point-self.png",
+    "point-player": "assets/portraits/gatekeeper/point-player.png", "point-third": "assets/portraits/gatekeeper/point-third.png",
+    question: "assets/portraits/gatekeeper/question.png", confused: "assets/portraits/gatekeeper/confused.png", nod: "assets/portraits/gatekeeper/nod.png"
+  }),
+  clerk: Object.freeze({
+    idle: "assets/portraits/clerk/idle.png", "point-self": "assets/portraits/clerk/point-self.png",
+    "point-player": "assets/portraits/clerk/point-player.png", "point-third": "assets/portraits/clerk/point-third.png",
+    question: "assets/portraits/clerk/question.png", confused: "assets/portraits/clerk/question.png", nod: "assets/portraits/clerk/idle.png"
+  }),
+  traveller: Object.freeze({
+    idle: "assets/portraits/traveller/idle.png", "point-self": "assets/portraits/traveller/point-self.png",
+    "hold-empty-bowl": "assets/portraits/traveller/idle.png", "hold-water": "assets/portraits/traveller/hold-water.png",
+    "drink-water": "assets/portraits/traveller/drink-water.png", nod: "assets/portraits/traveller/nod.png",
+    confused: "assets/portraits/traveller/idle.png"
+  }),
+  reflection: Object.freeze({ idle: "assets/gate-room/characters/player-v2.png", "point-self": "assets/gate-room/characters/player-v2.png" }),
+  object: Object.freeze({ idle: "assets/portraits/object-study.svg", question: "assets/portraits/object-study.svg", "point-third": "assets/portraits/object-study.svg", "hold-water": "assets/portraits/object-study.svg" })
 });
+
+export function resolvePortraitAsset(actor, pose = "idle") {
+  const set = PORTRAIT_ASSETS[actor] ?? PORTRAIT_ASSETS.object;
+  return set[pose] ?? set.idle ?? PORTRAIT_ASSETS.object.idle;
+}
 
 export const BROWSER_CURRICULUM = Object.freeze({
   targetWords: TARGET_WORDS,
@@ -41,27 +59,35 @@ export const ROOM = Object.freeze({
   english: "South Gate Courtyard",
   width: 1600,
   height: 900,
-  walkableBounds: Object.freeze([275, 175, 1050, 505]),
-  playerStart: Object.freeze({ x: 800, y: 505, facing: -1 }),
-  ground: "assets/gate-room/stone-ground.png"
+  walkableBounds: Object.freeze([285, 220, 1030, 465]),
+  playerStart: Object.freeze({ x: 800, y: 555, facing: -1 }),
+  playerSprite: "assets/gate-room/characters/player-v2.png",
+  playerVisual: Object.freeze({ width: 88, height: 176, anchorX: .5, anchorY: 1 }),
+  groundTiles: Object.freeze(["assets/gate-room/stone-ground-b.png", "assets/gate-room/stone-ground-c.png", "assets/gate-room/stone-ground-d.png"])
 });
 
 export const STRUCTURES = Object.freeze([
-  { id: "north-wall-1", type: "structure", x: 390, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
-  { id: "north-wall-2", type: "structure", x: 625, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
-  { id: "north-inner-gate", type: "structure", x: 800, y: 230, ...visual("assets/gate-room/structures/north-inner-gate.png", 270, 270, "back-structure"), collider: collider(185, 45, -40) },
-  { id: "north-wall-3", type: "structure", x: 980, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
-  { id: "north-wall-4", type: "structure", x: 1215, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
-  { id: "corner-nw", type: "structure", x: 255, y: 210, ...visual("assets/gate-room/structures/corner-nw.png", 235, 235, "back-structure"), collider: collider(80, 68, -55) },
-  { id: "corner-ne", type: "structure", x: 1345, y: 210, ...visual("assets/gate-room/structures/corner-ne.png", 235, 235, "back-structure"), collider: collider(80, 68, -55) },
-  { id: "left-wall-1", type: "structure", x: 250, y: 360, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
-  { id: "left-wall-2", type: "structure", x: 250, y: 540, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
-  { id: "left-wall-3", type: "structure", x: 250, y: 700, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
-  { id: "right-wall-1", type: "structure", x: 1350, y: 360, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
-  { id: "right-wall-2", type: "structure", x: 1350, y: 540, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
-  { id: "right-wall-3", type: "structure", x: 1350, y: 700, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
-  { id: "south-wall-left", type: "structure", x: 455, y: 735, ...visual("assets/gate-room/structures/wall-horizontal.png", 380, 260, "back-structure"), collider: collider(350, 58, -48) },
-  { id: "south-wall-right", type: "structure", x: 1145, y: 735, ...visual("assets/gate-room/structures/wall-horizontal.png", 380, 260, "back-structure"), collider: collider(350, 58, -48) },
+  { id: "north-wall-1", type: "structure", x: 410, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 320, 218, "back-structure"), collider: collider(276, 42, -46) },
+  { id: "north-wall-2", type: "structure", x: 640, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 280, 191, "back-structure"), collider: collider(238, 42, -46) },
+  { id: "north-inner-gate", type: "structure", x: 800, y: 260, ...visual("assets/gate-room/structures/north-inner-gate.png", 255, 255, "back-structure"), collider: collider(175, 45, -40) },
+  { id: "north-wall-3", type: "structure", x: 960, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 280, 191, "back-structure"), collider: collider(238, 42, -46) },
+  { id: "north-wall-4", type: "structure", x: 1190, y: 245, ...visual("assets/gate-room/structures/wall-horizontal.png", 320, 218, "back-structure"), collider: collider(276, 42, -46) },
+  { id: "corner-nw", type: "structure", x: 270, y: 255, ...visual("assets/gate-room/structures/corner-nw.png", 225, 225, "back-structure"), collider: collider(78, 65, -53) },
+  { id: "corner-ne", type: "structure", x: 1330, y: 255, ...visual("assets/gate-room/structures/corner-ne.png", 225, 225, "back-structure"), collider: collider(78, 65, -53) },
+  { id: "left-wall-1", type: "structure", x: 270, y: 405, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
+  { id: "left-wall-2", type: "structure", x: 270, y: 555, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
+  { id: "left-wall-3", type: "structure", x: 270, y: 690, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
+  { id: "right-wall-1", type: "structure", x: 1330, y: 405, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
+  { id: "right-wall-2", type: "structure", x: 1330, y: 555, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
+  { id: "right-wall-3", type: "structure", x: 1330, y: 690, ...visual("assets/gate-room/structures/wall-vertical-v2.png", 150, 220, "back-structure"), collider: { x: -34, y: -165, width: 68, height: 165 } },
+  { id: "corner-sw", type: "structure", x: 270, y: 742, ...visual("assets/gate-room/structures/corner-sw.png", 225, 225, "back-structure"), collider: collider(82, 65, -53) },
+  { id: "corner-se", type: "structure", x: 1330, y: 742, ...visual("assets/gate-room/structures/corner-se.png", 225, 225, "back-structure"), collider: collider(82, 65, -53) },
+  { id: "south-wall-left", type: "structure", x: 470, y: 742, ...visual("assets/gate-room/structures/wall-horizontal.png", 360, 246, "back-structure"), collider: collider(330, 58, -48) },
+  { id: "south-wall-right", type: "structure", x: 1130, y: 742, ...visual("assets/gate-room/structures/wall-horizontal.png", 360, 246, "back-structure"), collider: collider(330, 58, -48) },
+  { id: "gate-endcap-left", type: "structure", x: 665, y: 745, ...visual("assets/gate-room/structures/wall-endcap.png", 112, 145, "back-structure"), collider: collider(58, 48, -42) },
+  { id: "gate-endcap-right", type: "structure", x: 935, y: 745, ...visual("assets/gate-room/structures/wall-endcap.png", 112, 145, "back-structure"), collider: collider(58, 48, -42) },
+  { id: "gate-pillar-left", type: "structure", x: 715, y: 778, ...visual("assets/gate-room/structures/wall-pillar.png", 108, 170, "back-structure"), collider: collider(52, 45, -40) },
+  { id: "gate-pillar-right", type: "structure", x: 885, y: 778, ...visual("assets/gate-room/structures/wall-pillar.png", 108, 170, "back-structure"), collider: collider(52, 45, -40) },
   { id: "south-gatehouse", type: "structure", x: 800, y: 780, ...visual("assets/gate-room/structures/south-gatehouse.png", 255, 255, "back-structure"), collider: null },
   { id: "south-eave", type: "structure", x: 800, y: 730, ...visual("assets/gate-room/structures/roof-eave.png", 230, 92, "foreground"), collider: null }
 ]);
@@ -127,7 +153,8 @@ export const NPCS = Object.freeze([
       line("guard-third", "Gatekeeper", "他。", ["他"], "gatekeeper", "point-third", "firm", "clerk", null, "cloth", "He turns and points toward the clerk by the picture board."),
       line("guard-who-third", "Gatekeeper", "他是誰？", ["他", "是", "誰"], "gatekeeper", "question", "curious", "clerk", null, "wood-tap", "He keeps pointing at the clerk while asking the same kind of question."),
       line("guard-who-water", "Gatekeeper", "誰……水？", ["誰", "水"], "gatekeeper", "point-third", "concerned", "room-people", "water", "water-drop", "He looks from the water bowl to each person, waiting for you to notice who needs it.")
-    ]
+    ],
+    remediationLines: [line("guard-remedy-water", "Gatekeeper", "他……水？", ["他", "水"], "gatekeeper", "point-third", "concerned", "thirsty-traveller", "water", "water-drop", "He compares the full bowl with the traveller's empty bowl, then points to the traveller again.")]
   },
   {
     id: "clerk", type: "npc", kind: "clerk", x: 520, y: 420, label: "Clerk", action: "Talk",
@@ -194,19 +221,58 @@ export function getEncounteredEntries(journal) { return Object.values(journal.en
 export function getConfirmationReadiness(entry) { if (!entry?.guess?.trim()) return { ready: false, reason: "Write an English hypothesis first." }; if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Compare at least two distinct contexts." }; if (entry.confidence === CONFIDENCE.UNSURE) return { ready: false, reason: "Choose probable or confident when the evidence feels strong enough." }; return { ready: true, reason: "Ready for your own confirmation." }; }
 export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.confirmed && getConfirmationReadiness(entry).ready); }
 
-export function createTutorialSession(saved = {}) { return { resolved: Boolean(saved.resolved), wrongTargets: saved.wrongTargets ?? [], lastFailedSignature: saved.lastFailedSignature ?? null }; }
-export function semanticHypothesisSignature(journal) { return ["who", "water"].map(id => { const entry = journal.entries[id]; return entry ? `${id}:${entry.guess.trim().toLowerCase()}:${entry.confidence}:${entry.distinctContexts}:${entry.revisions.length}` : `${id}:missing`; }).join("|"); }
-export function getWaterTaskReadiness(journal) {
+export const TUTORIAL_STAGE = Object.freeze({ PRONOUNS: "pronouns", IDENTITY: "identity", WATER: "water", COMPLETE: "complete" });
+export const STAGE_CHALLENGES = Object.freeze({
+  [TUTORIAL_STAGE.PRONOUNS]: Object.freeze([
+    Object.freeze({ id: "check-you", text: "你。", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-player", expression: "firm", gestureTarget: "player", expected: "player", candidates: Object.freeze(["player", "gatekeeper", "clerk"]) }),
+    Object.freeze({ id: "check-I", text: "我。", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-self", expression: "calm", gestureTarget: "gatekeeper", expected: "gatekeeper", candidates: Object.freeze(["player", "gatekeeper", "clerk"]) }),
+    Object.freeze({ id: "check-he", text: "他。", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-third", expression: "firm", gestureTarget: "clerk", expected: "clerk", candidates: Object.freeze(["player", "gatekeeper", "clerk"]) })
+  ]),
+  [TUTORIAL_STAGE.IDENTITY]: Object.freeze([
+    Object.freeze({ id: "check-identity", text: "他是誰？", speaker: "Gatekeeper", portrait: "gatekeeper", pose: "point-third", expression: "curious", gestureTarget: "clerk", expected: "clerk", candidates: Object.freeze(["gatekeeper", "clerk", "thirsty-traveller"]) })
+  ])
+});
+
+const STAGE_WORDS = Object.freeze({ [TUTORIAL_STAGE.PRONOUNS]: Object.freeze(["you", "I", "he"]), [TUTORIAL_STAGE.IDENTITY]: Object.freeze(["be", "who"]), [TUTORIAL_STAGE.WATER]: Object.freeze(["water"]) });
+const nextStage = stage => stage === TUTORIAL_STAGE.PRONOUNS ? TUTORIAL_STAGE.IDENTITY : stage === TUTORIAL_STAGE.IDENTITY ? TUTORIAL_STAGE.WATER : TUTORIAL_STAGE.COMPLETE;
+export function totalDistinctEvidence(journal) { return Object.values(journal.entries).reduce((total, entry) => total + (entry.distinctContexts ?? 0), 0); }
+export function createTutorialSession(saved = {}) {
+  const stage = Object.values(TUTORIAL_STAGE).includes(saved.stage) ? saved.stage : (saved.resolved ? TUTORIAL_STAGE.COMPLETE : TUTORIAL_STAGE.PRONOUNS);
+  return { resolved: Boolean(saved.resolved), stage, challengeRound: saved.challengeRound ?? 0, challengeBlockedAtEvidence: saved.challengeBlockedAtEvidence ?? null, wrongTargets: saved.wrongTargets ?? [], lastFailedEvidenceCount: saved.lastFailedEvidenceCount ?? null };
+}
+export function getStageReadiness(session, journal) {
+  if ([TUTORIAL_STAGE.WATER, TUTORIAL_STAGE.COMPLETE].includes(session.stage)) return { ready: false, reason: "The courtyard check is complete." };
+  for (const id of STAGE_WORDS[session.stage]) {
+    const entry = journal.entries[id], readiness = getConfirmationReadiness(entry);
+    if (!readiness.ready || !entry?.confirmed) return { ready: false, reason: "Gather two contexts, write a hypothesis, and mark each required note understood." };
+  }
+  if (session.challengeBlockedAtEvidence !== null && totalDistinctEvidence(journal) <= session.challengeBlockedAtEvidence) return { ready: false, reason: "Observe a different world context before trying this check again." };
+  return { ready: true, reason: "The gatekeeper is ready to test this interpretation in the world." };
+}
+export function getCurrentChallenge(session) { return STAGE_CHALLENGES[session.stage]?.[session.challengeRound] ?? null; }
+export function attemptUnderstandingChoice(session, journal, targetId, timestamp = Date.now()) {
+  const readiness = getStageReadiness(session, journal); if (!readiness.ready) return { result: "NOT_READY", reason: readiness.reason, session, journal };
+  const challenge = getCurrentChallenge(session); if (!challenge) return { result: "NO_CHALLENGE", session, journal };
+  if (targetId !== challenge.expected) {
+    const analytics = { ...journal.analytics, wrongSelections: [...journal.analytics.wrongSelections, { targetId, challengeId: challenge.id, timestamp }].slice(-50) };
+    return { result: "CONFUSED", reason: "The gatekeeper looks puzzled and repeats the gesture. Find another context before trying again.", session: { ...session, challengeBlockedAtEvidence: totalDistinctEvidence(journal) }, journal: { ...journal, analytics } };
+  }
+  const rounds = STAGE_CHALLENGES[session.stage], finalRound = session.challengeRound >= rounds.length - 1;
+  if (!finalRound) return { result: "NEXT", session: { ...session, challengeRound: session.challengeRound + 1, challengeBlockedAtEvidence: null }, journal };
+  return { result: "STAGE_COMPLETE", completedStage: session.stage, session: { ...session, stage: nextStage(session.stage), challengeRound: 0, challengeBlockedAtEvidence: null }, journal };
+}
+export function getWaterTaskReadiness(journal, session = createTutorialSession()) {
   if (!journal.inventory.includes("water-bowl")) return { ready: false, reason: "You are not carrying water." };
-  for (const id of ["who", "water"]) { const readiness = getConfirmationReadiness(journal.entries[id]); if (!readiness.ready) return { ready: false, reason: "Your notes about the question and the water still need more evidence." }; }
+  if (session.stage !== TUTORIAL_STAGE.WATER) return { ready: false, reason: "First complete the people and identity checks with the gatekeeper." };
+  for (const id of Object.values(VOCABULARY).map(word => word.id)) { const entry = journal.entries[id], readiness = getConfirmationReadiness(entry); if (!readiness.ready || !entry?.confirmed) return { ready: false, reason: "All six signs must be supported and marked understood before the final task." }; }
   return { ready: true, reason: "Your current hypotheses can now be tested in the courtyard." };
 }
 export function attemptWaterTarget(session, journal, targetId, timestamp = Date.now()) {
   if (session.resolved) return { result: "ALREADY_RESOLVED", session, journal };
-  const readiness = getWaterTaskReadiness(journal); if (!readiness.ready) return { result: "NOT_READY", reason: readiness.reason, session, journal };
-  const signature = semanticHypothesisSignature(journal); if (session.lastFailedSignature === signature) return { result: "REVISIT_NOTES", reason: "Their reaction suggests revising one of your hypotheses before trying another person.", session, journal };
-  if (targetId === "thirsty-traveller") return { result: "SUCCESS", session: { ...session, resolved: true }, journal: { ...journal, quest: "resolved" } };
+  const readiness = getWaterTaskReadiness(journal, session); if (!readiness.ready) return { result: "NOT_READY", reason: readiness.reason, session, journal };
+  if (session.lastFailedEvidenceCount !== null && totalDistinctEvidence(journal) <= session.lastFailedEvidenceCount) return { result: "REVISIT_WORLD", reason: "Their reaction suggests observing a new world context before choosing again.", session, journal };
+  if (targetId === "thirsty-traveller") return { result: "SUCCESS", session: { ...session, resolved: true, stage: TUTORIAL_STAGE.COMPLETE }, journal: { ...journal, quest: "resolved" } };
   const wrongTargets = session.wrongTargets.includes(targetId) ? session.wrongTargets : [...session.wrongTargets, targetId];
   const analytics = { ...journal.analytics, wrongSelections: [...journal.analytics.wrongSelections, { targetId, timestamp }].slice(-50) };
-  return { result: "CONFUSED", reason: "They recoil from the bowl and gesture uncertainly toward the others.", session: { ...session, wrongTargets, lastFailedSignature: signature }, journal: { ...journal, analytics } };
+  return { result: "CONFUSED", reason: "They recoil from the bowl and gesture uncertainly toward the others.", session: { ...session, wrongTargets, lastFailedEvidenceCount: totalDistinctEvidence(journal) }, journal: { ...journal, analytics } };
 }

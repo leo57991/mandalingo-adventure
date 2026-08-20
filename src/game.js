@@ -1,4 +1,4 @@
-import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v1";
+import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v2";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -36,7 +36,7 @@ export class MandalingoGame {
     this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 };
     this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: null }]));
     this.images = new Map();
-    for (const source of new Set([ROOM.ground, "assets/wuxia-traveller.png", ...RENDER_OBJECTS.map(item => item.sprite).filter(Boolean), "assets/gate-room/props/empty-bowl.png"])) this.loadImage(source);
+    for (const source of new Set([...ROOM.groundTiles, ROOM.playerSprite, ...RENDER_OBJECTS.map(item => item.sprite).filter(Boolean), "assets/gate-room/props/empty-bowl.png"])) this.loadImage(source);
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
 
@@ -86,8 +86,15 @@ export class MandalingoGame {
 
   drawGround(ctx) {
     ctx.fillStyle = "#26343a"; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    const ground = this.imageReady(ROOM.ground);
-    if (ground) { const pattern = ctx.createPattern(ground, "repeat"); if (pattern?.setTransform && typeof DOMMatrix !== "undefined") pattern.setTransform(new DOMMatrix().scale(.34)); ctx.save(); ctx.globalAlpha = .76; ctx.fillStyle = pattern; ctx.fillRect(205, 95, 1190, 690); ctx.restore(); }
+    ctx.save(); ctx.beginPath(); ctx.rect(205, 105, 1190, 670); ctx.clip();
+    const [base, damp, worn] = ROOM.groundTiles.map(source => this.imageReady(source));
+    const fillTexture = (image, alpha, operation, scale, offsetX = 0, offsetY = 0) => {
+      if (!image) return; const pattern = ctx.createPattern(image, "repeat"); if (!pattern) return;
+      if (pattern.setTransform && typeof DOMMatrix !== "undefined") pattern.setTransform(new DOMMatrix().translate(offsetX, offsetY).scale(scale));
+      ctx.globalAlpha = alpha; ctx.globalCompositeOperation = operation; ctx.fillStyle = pattern; ctx.fillRect(205, 105, 1190, 670);
+    };
+    fillTexture(base, .75, "source-over", .5); fillTexture(damp, .09, "multiply", .54, 117, 63); fillTexture(worn, .07, "soft-light", .47, 241, 129);
+    ctx.restore();
     const shade = ctx.createRadialGradient(800, 430, 180, 800, 430, 780); shade.addColorStop(0, "rgba(213,201,166,.08)"); shade.addColorStop(1, "rgba(4,12,19,.72)"); ctx.fillStyle = shade; ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
 
@@ -101,7 +108,8 @@ export class MandalingoGame {
 
   drawNpc(ctx, npc) {
     const cue = this.actorCues[npc.id] ?? {}, bob = Math.sin(this.time * 2 + npc.x) * 1.2;
-    ctx.save(); ctx.translate(0, bob); this.drawObject(ctx, npc); ctx.restore(); this.drawActorGesture(ctx, npc, cue);
+    ctx.save(); ctx.translate(0, bob); this.drawObject(ctx, npc); ctx.restore();
+    if (this.debugCollisions) this.drawActorGesture(ctx, npc, cue);
     if (cue.prop === "empty-bowl" || cue.prop === "water") { const bowl = this.imageReady("assets/gate-room/props/empty-bowl.png"); if (bowl) { ctx.save(); ctx.globalAlpha = cue.prop === "water" ? 1 : .88; ctx.drawImage(bowl, npc.x + 20, npc.y - 65, 42, 42); ctx.restore(); } }
   }
 
@@ -116,9 +124,9 @@ export class MandalingoGame {
   }
 
   drawPlayer(ctx) {
-    const image = this.imageReady("assets/wuxia-traveller.png"), moving = this.keys.size > 0 || Math.hypot(this.mobileVector.x, this.mobileVector.y) > .1, bob = moving ? Math.sin(this.time * 11) * 2 : Math.sin(this.time * 2) * .7;
+    const image = this.imageReady(ROOM.playerSprite), moving = this.keys.size > 0 || Math.hypot(this.mobileVector.x, this.mobileVector.y) > .1, bob = moving ? Math.sin(this.time * 11) * 2 : Math.sin(this.time * 2) * .7;
     ctx.save(); ctx.translate(this.player.x, this.player.y + bob); ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(0, 5, 24, 8, 0, 0, TAU); ctx.fill();
-    if (image) { ctx.scale(this.player.facing || 1, 1); ctx.drawImage(image, -31, -88, 62, 94); }
+    if (image) { const visual = ROOM.playerVisual; ctx.scale(this.player.facing || 1, 1); ctx.drawImage(image, -visual.width * visual.anchorX, -visual.height * visual.anchorY, visual.width, visual.height); }
     else { ctx.fillStyle = "#31535f"; ctx.fillRect(-18, -65, 36, 68); }
     ctx.restore();
   }

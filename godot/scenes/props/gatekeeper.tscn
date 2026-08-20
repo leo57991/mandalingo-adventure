@@ -1,10 +1,14 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/interactable.gd" id="1_interact"]
 [ext_resource type="Texture2D" path="res://assets/characters/gatekeeper.png" id="2_texture"]
 
 [sub_resource type="CircleShape2D" id="Talk_area"]
 radius = 145.0
+
+[sub_resource type="CapsuleShape2D" id="Body_shape"]
+radius = 16.0
+height = 32.0
 
 [node name="Gatekeeper" type="Node2D"]
 
@@ -31,3 +35,11 @@ sequence_lines = PackedStringArray("你是誰", "這裡是水鎮")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]
 shape = SubResource("Talk_area")
+
+[node name="Body" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Body"]
+position = Vector2(0, -15)
+shape = SubResource("Body_shape")

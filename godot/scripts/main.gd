@@ -1,6 +1,6 @@
 extends Node2D
 
-const INTERACT_DISTANCE := 175.0
+enum UiState { EXPLORING, DIALOGUE, CHARACTER }
 
 @onready var player: MandalingoPlayer = $World/Objects/Player
 @onready var dialogue_panel: PanelContainer = $UI/DialoguePanel
@@ -14,21 +14,20 @@ const INTERACT_DISTANCE := 175.0
 
 var notebook: Dictionary = {}
 var last_word := ""
+var ui_state := UiState.EXPLORING
 
 func _ready() -> void:
 	player.interact_requested.connect(_on_interact_requested)
 	save_guess_button.pressed.connect(_save_guess)
 	guess_input.text_submitted.connect(_save_guess)
 	character_button.pressed.connect(_toggle_character_menu)
-	dialogue_panel.hide()
-	character_panel.hide()
+	_set_ui_state(UiState.EXPLORING)
 	hint.text = "WASD Move　Shift Run　E Observe / Talk　I Character　Esc Close"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if dialogue_panel.visible or character_panel.visible:
-			dialogue_panel.hide()
-			_set_character_menu_open(false)
+		if ui_state != UiState.EXPLORING:
+			_set_ui_state(UiState.EXPLORING)
 			get_viewport().set_input_as_handled()
 			return
 	if event.is_action_pressed("inventory") or event.is_action_pressed("notebook"):
@@ -37,20 +36,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().debug_collisions_hint = not get_tree().debug_collisions_hint
 
 func _on_interact_requested(from_position: Vector2) -> void:
-	_set_character_menu_open(false)
+	if ui_state != UiState.EXPLORING:
+		return
 	var nearest: MandalingoInteractable
 	var nearest_distance := INF
 	for candidate in get_tree().get_nodes_in_group("interactable"):
-		if candidate is MandalingoInteractable:
+		if candidate is MandalingoInteractable and candidate.overlaps_body(player):
 			var distance := from_position.distance_to(candidate.global_position)
-			if distance < INTERACT_DISTANCE and distance < nearest_distance:
+			if distance < nearest_distance:
 				nearest = candidate
 				nearest_distance = distance
 	if nearest == null:
 		dialogue_text.text = "[center][font_size=20]There is nothing nearby to examine.[/font_size][/center]"
 	else:
 		_record_entry(nearest.read_entry())
-	dialogue_panel.show()
+	_set_ui_state(UiState.DIALOGUE)
 
 func _record_entry(entry: Dictionary) -> void:
 	var word: String = entry.word
@@ -71,14 +71,18 @@ func _record_entry(entry: Dictionary) -> void:
 	_refresh_notebook()
 
 func _toggle_character_menu() -> void:
-	_set_character_menu_open(not character_panel.visible)
+	_set_ui_state(UiState.EXPLORING if ui_state == UiState.CHARACTER else UiState.CHARACTER)
 
 func _set_character_menu_open(is_open: bool) -> void:
-	character_panel.visible = is_open
-	character_button.text = "CLOSE [I]" if is_open else "CHARACTER [I]"
-	player.set_movement_enabled(not is_open)
-	if is_open:
-		dialogue_panel.hide()
+	_set_ui_state(UiState.CHARACTER if is_open else UiState.EXPLORING)
+
+func _set_ui_state(next_state: int) -> void:
+	ui_state = next_state
+	dialogue_panel.visible = ui_state == UiState.DIALOGUE
+	character_panel.visible = ui_state == UiState.CHARACTER
+	character_button.text = "CLOSE [I]" if ui_state == UiState.CHARACTER else "CHARACTER [I]"
+	player.set_movement_enabled(ui_state == UiState.EXPLORING)
+	if ui_state == UiState.CHARACTER:
 		_refresh_notebook()
 	else:
 		guess_input.release_focus()

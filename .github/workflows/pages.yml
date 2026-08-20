@@ -26,10 +26,16 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      - name: Assemble browser prototype
+        shell: bash
+        run: |
+          mkdir -p pages-dist
+          cp index.html styles.css pages-dist/
+          cp -R assets src pages-dist/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: godot-web
+          path: pages-dist
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

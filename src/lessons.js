@@ -1,166 +1,212 @@
-export const VOCABULARY = {
-  霧: { id: "mist", text: "霧" }, 鎮: { id: "town", text: "鎮" }, 你好: { id: "hello", text: "你好" },
-  茶: { id: "tea", text: "茶" }, 喝: { id: "drink", text: "喝" }, 水: { id: "water", text: "水" },
-  給: { id: "give", text: "給" }, 請: { id: "please", text: "請" }, 我: { id: "me", text: "我" },
-  謝謝: { id: "thanks", text: "謝謝" }, 火: { id: "fire", text: "火" }, 燈: { id: "lantern", text: "燈" },
-  藥: { id: "medicine", text: "藥" }, 貓: { id: "cat", text: "貓" }
-};
+export const TARGET_WORDS = Object.freeze(["你", "我", "他", "水", "是", "誰"]);
+
+export const VOCABULARY = Object.freeze({
+  你: { id: "you", text: "你" },
+  我: { id: "I", text: "我" },
+  他: { id: "he", text: "他" },
+  水: { id: "water", text: "水" },
+  是: { id: "be", text: "是" },
+  誰: { id: "who", text: "誰" }
+});
 
 export const CONFIDENCE = Object.freeze({ UNSURE: "unsure", PROBABLE: "probable", CONFIDENT: "confident" });
-export const INVOCATION_RESULT = Object.freeze({
-  SUCCESS: "SUCCESS",
-  INCOMPLETE_INTENT: "INCOMPLETE_INTENT",
-  AMBIGUOUS_INTENT: "AMBIGUOUS_INTENT",
-  SYNTACTIC_MISMATCH: "SYNTACTIC_MISMATCH",
-  SEMANTIC_MISMATCH: "SEMANTIC_MISMATCH",
-  PRAGMATIC_MISMATCH: "PRAGMATIC_MISMATCH",
-  INSUFFICIENT_EVIDENCE: "INSUFFICIENT_EVIDENCE"
-});
-export const BROWSER_CURRICULUM = Object.freeze({
-  firstTarget: "水",
-  minimumDistinctContextsBeforeInvocation: 2,
-  minimumDistinctContextsForUnderstanding: 2,
-  waterGiftIntent: ["give", "me", "water"]
-});
-
-export const INVOCATION_ROLE = Object.freeze({
-  give: "TRANSFER_PREDICATE",
-  me: "SELF_PARTICIPANT",
-  water: "WATER_THEME"
-});
-
-const WATER_GIFT_CONSTRUCTIONS = Object.freeze([
-  { id: "DIRECT_REQUEST", roles: ["TRANSFER_PREDICATE", "SELF_PARTICIPANT", "WATER_THEME"], result: INVOCATION_RESULT.SUCCESS, reaction: "He follows your gesture from himself to the flask and accepts the offered water." },
-  { id: "TOPICALIZED_REQUEST", roles: ["WATER_THEME", "TRANSFER_PREDICATE", "SELF_PARTICIPANT"], result: INVOCATION_RESULT.SUCCESS, reaction: "He recognises water as the topic, then reaches for the flask you indicate." },
-  { id: "MARKED_REQUEST", roles: ["TRANSFER_PREDICATE", "WATER_THEME", "SELF_PARTICIPANT"], result: INVOCATION_RESULT.AMBIGUOUS_INTENT, reaction: "He recognises the transfer, but points between you and himself to confirm the recipient." },
-  { id: "SPEAKER_AS_AGENT", roles: ["SELF_PARTICIPANT", "TRANSFER_PREDICATE", "WATER_THEME"], result: INVOCATION_RESULT.INCOMPLETE_INTENT, reaction: "He understands that you will give water, then looks around for the missing recipient." }
+export const POSES = Object.freeze([
+  "idle", "point-self", "point-player", "point-third", "question", "nod", "confused",
+  "hold-empty-bowl", "hold-water", "drink-water"
 ]);
 
-export const WORLD = Object.freeze({ width: 2400, height: 1600 });
+export const PORTRAIT_ASSETS = Object.freeze({
+  gatekeeper: "assets/portraits/gatekeeper.svg",
+  clerk: "assets/portraits/clerk.svg",
+  traveller: "assets/portraits/thirsty-traveller.svg",
+  reflection: "assets/portraits/player-reflection.svg",
+  object: "assets/portraits/object-study.svg"
+});
 
-export const LOCATIONS = [
-  { id: "south-gate", name: "南門", english: "South Gate", bounds: [650, 1200, 1750, 1600] },
-  { id: "market", name: "長街", english: "Market Street", bounds: [0, 460, 900, 1250] },
-  { id: "tea-house", name: "茶坊", english: "Eastern Courtyard", bounds: [1500, 400, 2400, 1250] },
-  { id: "shrine", name: "問仙臺", english: "High Terrace", bounds: [650, 0, 1750, 580] },
-  { id: "crossroads", name: "雲水橋", english: "Central Crossing", bounds: [880, 500, 1520, 1250] }
-];
+export const BROWSER_CURRICULUM = Object.freeze({
+  targetWords: TARGET_WORDS,
+  minimumDistinctContextsForUnderstanding: 2,
+  firstTask: "FIND_THIRSTY_PERSON",
+  taughtTransferVerb: false
+});
 
-const npcBody = (radius = 22) => ({ x: -radius, y: -radius * .45, width: radius * 2, height: radius * 1.35 });
-const objectBody = (width, height, offsetY = 0) => ({ x: -width / 2, y: -height / 2 + offsetY, width, height });
+const collider = (width, height, y = -height * .55) => ({ x: -width / 2, y, width, height });
+const visual = (sprite, width, height, layer = "depth", anchorX = .5, anchorY = 1) => ({ sprite, width, height, layer, anchorX, anchorY });
+const line = (id, speaker, text, tokens, portrait, pose, expression, gestureTarget, prop = null, sfx = null, context = "") => ({
+  id, speaker, text, tokens, portrait, pose, expression, gestureTarget, prop, sfx, context
+});
 
-export const ENTITIES = [
-  { id: "gate-sign", type: "object", x: 1180, y: 1450, label: "門邊石碑", action: "Inspect", interactionRadius: 112, bodyCollider: objectBody(66, 38, 1), context: "A single mark is cut above a basin darkened by rain.", lines: [{ id: "gate-inscription", speaker: "石碑", text: "水", tokens: ["水"] }] },
-  { id: "gatekeeper", type: "npc", x: 1035, y: 1320, label: "守門人", action: "Talk", interactionRadius: 118, bodyCollider: npcBody(20), context: "The guard lowers his spear and greets you with a closed-fist salute.", lines: [{ id: "guard-greeting", speaker: "守門人", text: "你好，旅人。", tokens: ["你好"] }, { id: "guard-town", speaker: "守門人", text: "霧隱鎮。", tokens: ["霧", "鎮"] }, { id: "guard-repeat", speaker: "守門人", text: "你好。", tokens: ["你好"] }] },
-  { id: "tea-pot", type: "object", x: 1930, y: 760, label: "冒煙的茶壺", action: "Inspect", interactionRadius: 98, bodyCollider: objectBody(42, 28, 2), context: "Steam rises while matching marks repeat across pot, cups, and banner.", lines: [{ id: "pot-mark", speaker: "茶壺", text: "茶", tokens: ["茶"] }] },
-  { id: "tea-keeper", type: "npc", x: 2050, y: 825, label: "茶攤老闆", action: "Talk", interactionRadius: 124, bodyCollider: npcBody(), context: "The vendor fills two cups, keeps one, and places the other before you.", lines: [{ id: "vendor-tea", speaker: "茶攤老闆", text: "茶。", tokens: ["茶"] }, { id: "vendor-self", speaker: "茶攤老闆", text: "我喝茶。", tokens: ["我", "喝", "茶"] }, { id: "vendor-give", speaker: "茶攤老闆", text: "給你茶。", tokens: ["給", "茶"] }, { id: "vendor-offer", speaker: "茶攤老闆", text: "請，喝茶。", tokens: ["請", "喝", "茶"] }] },
-  { id: "well", type: "object", x: 455, y: 920, label: "青石井", action: "Inspect", interactionRadius: 126, bodyCollider: objectBody(74, 54, 2), context: "A bucket rises from the well. Your empty flask hangs beside the rope.", grantsOnObservation: "water-flask", lines: [{ id: "well-water", speaker: "井沿刻字", text: "水", tokens: ["水"] }] },
-  { id: "water-carrier", type: "npc", x: 585, y: 970, label: "挑水人", action: "Talk", interactionRadius: 128, bodyCollider: npcBody(23), context: "The worker fills two buckets and passes one to a waiting villager.", lines: [{ id: "carrier-water", speaker: "挑水人", text: "水。", tokens: ["水"] }, { id: "carrier-give", speaker: "挑水人", text: "給你水。", tokens: ["給", "水"] }, { id: "carrier-thanks", speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
-  { id: "thirsty-disciple", type: "npc", x: 1210, y: 930, label: "年輕弟子", action: "Talk", interactionRadius: 130, bodyCollider: npcBody(), context: "The disciple holds out an empty bowl, touches his chest, and coughs.", quest: true, lines: [{ id: "disciple-water", speaker: "年輕弟子", text: "水……", tokens: ["水"] }, { id: "disciple-self", speaker: "年輕弟子", text: "我……水……", tokens: ["我", "水"] }], resolvedLines: [{ id: "disciple-resolved", speaker: "年輕弟子", text: "水！謝謝你。", tokens: ["水", "謝謝"] }, { id: "disciple-path", speaker: "年輕弟子", text: "問仙臺，請。", tokens: ["請"] }] },
-  { id: "lantern", type: "object", x: 1285, y: 510, label: "長明燈", action: "Inspect", interactionRadius: 105, bodyCollider: objectBody(42, 30, 1), context: "A taper touches the brazier; nearby lanterns answer with warm light.", lines: [{ id: "brazier-fire", speaker: "燈座刻字", text: "火", tokens: ["火"] }, { id: "watcher-lantern", speaker: "看燈人", text: "火。燈。", tokens: ["火", "燈"] }] },
-  { id: "herbalist", type: "npc", x: 610, y: 710, label: "藥師", action: "Talk", interactionRadius: 118, bodyCollider: npcBody(), context: "Crushed leaves are bound to a bruised wrist; the healer taps a labelled drawer.", lines: [{ id: "healer-medicine", speaker: "藥師", text: "藥。", tokens: ["藥"] }, { id: "patient-thanks", speaker: "村民", text: "謝謝。", tokens: ["謝謝"] }] },
-  { id: "cat", type: "object", x: 1840, y: 980, label: "屋簷下的小獸", action: "Observe", interactionRadius: 96, bodyCollider: npcBody(15), context: "The small animal stretches, brushes a child's leg, and meows.", lines: [{ id: "child-cat", speaker: "小孩", text: "貓！貓！", tokens: ["貓"] }] }
-];
+export const ROOM = Object.freeze({
+  id: "gatehouse-courtyard",
+  english: "South Gate Courtyard",
+  width: 1600,
+  height: 900,
+  walkableBounds: Object.freeze([275, 175, 1050, 505]),
+  playerStart: Object.freeze({ x: 800, y: 505, facing: -1 }),
+  ground: "assets/gate-room/stone-ground.png"
+});
 
+export const STRUCTURES = Object.freeze([
+  { id: "north-wall-1", type: "structure", x: 390, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
+  { id: "north-wall-2", type: "structure", x: 625, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
+  { id: "north-inner-gate", type: "structure", x: 800, y: 230, ...visual("assets/gate-room/structures/north-inner-gate.png", 270, 270, "back-structure"), collider: collider(185, 45, -40) },
+  { id: "north-wall-3", type: "structure", x: 980, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
+  { id: "north-wall-4", type: "structure", x: 1215, y: 205, ...visual("assets/gate-room/structures/wall-horizontal.png", 300, 205, "back-structure"), collider: collider(255, 42, -46) },
+  { id: "corner-nw", type: "structure", x: 255, y: 210, ...visual("assets/gate-room/structures/corner-nw.png", 235, 235, "back-structure"), collider: collider(80, 68, -55) },
+  { id: "corner-ne", type: "structure", x: 1345, y: 210, ...visual("assets/gate-room/structures/corner-ne.png", 235, 235, "back-structure"), collider: collider(80, 68, -55) },
+  { id: "left-wall-1", type: "structure", x: 250, y: 360, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
+  { id: "left-wall-2", type: "structure", x: 250, y: 540, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
+  { id: "left-wall-3", type: "structure", x: 250, y: 700, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
+  { id: "right-wall-1", type: "structure", x: 1350, y: 360, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
+  { id: "right-wall-2", type: "structure", x: 1350, y: 540, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
+  { id: "right-wall-3", type: "structure", x: 1350, y: 700, ...visual("assets/gate-room/structures/wall-vertical.png", 225, 300, "back-structure"), collider: { x: -35, y: -205, width: 70, height: 205 } },
+  { id: "south-wall-left", type: "structure", x: 455, y: 735, ...visual("assets/gate-room/structures/wall-horizontal.png", 380, 260, "back-structure"), collider: collider(350, 58, -48) },
+  { id: "south-wall-right", type: "structure", x: 1145, y: 735, ...visual("assets/gate-room/structures/wall-horizontal.png", 380, 260, "back-structure"), collider: collider(350, 58, -48) },
+  { id: "south-gatehouse", type: "structure", x: 800, y: 780, ...visual("assets/gate-room/structures/south-gatehouse.png", 255, 255, "back-structure"), collider: null },
+  { id: "south-eave", type: "structure", x: 800, y: 730, ...visual("assets/gate-room/structures/roof-eave.png", 230, 92, "foreground"), collider: null }
+]);
+
+export const FURNITURE = Object.freeze([
+  {
+    id: "gate", type: "object", kind: "gate", x: 800, y: 650, label: "Closed South Gate", action: "Inspect",
+    ...visual("assets/gate-room/structures/wooden-doors.png", 105, 120, "back-structure"), interactionRadius: 125, collider: collider(100, 42, -27),
+    lines: [line("gate-closed", "Voice beyond the gate", "誰？", ["誰"], "object", "question", "watchful", "player", null, "wood-knock", "A voice beyond the closed gate asks a single question.")]
+  },
+  {
+    id: "mirror", type: "object", kind: "mirror", x: 465, y: 270, label: "Bronze mirror", action: "Inspect",
+    ...visual("assets/gate-room/props/bronze-mirror.png", 122, 122), interactionRadius: 125, collider: collider(60, 25, -24),
+    lines: [line("mirror-self", "Your reflection", "我。", ["我"], "reflection", "point-self", "recognition", "player", null, "soft-chime", "You touch your chest. The figure in the bronze mirror copies you.")]
+  },
+  {
+    id: "notice-board", type: "object", kind: "board", x: 1215, y: 285, label: "Picture board", action: "Inspect",
+    ...visual("assets/gate-room/props/notice-board.png", 180, 180), interactionRadius: 130, collider: collider(135, 35, -28),
+    lines: [
+      line("board-people", "Picture board", "你　我　他", ["你", "我", "他"], "object", "point-third", "studious", "board-figures", null, "paper", "Three painted figures point toward the viewer, themselves, and another person."),
+      line("board-question", "Picture board", "他是誰？", ["他", "是", "誰"], "object", "question", "curious", "board-third", null, "paper", "A painted hand circles the third figure, then the blank name space beneath him.")
+    ]
+  },
+  {
+    id: "water-jar", type: "object", kind: "water-jar", x: 345, y: 555, label: "Water jar", action: "Inspect",
+    ...visual("assets/gate-room/props/water-jar.png", 118, 118), interactionRadius: 125, collider: collider(72, 45, -37), grantsOnObservation: "water-bowl",
+    lines: [
+      line("jar-water", "Water jar", "水。", ["水"], "object", "hold-water", "clear", "water-jar", "water", "water-pour", "You lift the lid. Water reflects the window light and fills a small bowl."),
+      line("jar-question", "A mark on the ladle", "誰……水？", ["誰", "水"], "object", "question", "curious", "room-people", "water", "water-drop", "The ladle hangs between the water and the three people in the courtyard.")
+    ]
+  },
+  {
+    id: "work-table", type: "furniture", kind: "table", x: 1190, y: 545, label: "Guard table", action: "Inspect",
+    ...visual("assets/gate-room/props/guard-table.png", 210, 210), interactionRadius: 95, collider: collider(158, 52, -43), lines: []
+  }
+]);
+
+export const DECORATIONS = Object.freeze([
+  { id: "lantern-nw", type: "decoration", x: 455, y: 230, ...visual("assets/gate-room/props/lantern.png", 92, 92, "back-structure"), collider: collider(28, 24, -20) },
+  { id: "lantern-ne", type: "decoration", x: 1145, y: 230, ...visual("assets/gate-room/props/lantern.png", 92, 92, "back-structure"), collider: collider(28, 24, -20) },
+  { id: "lantern-sw", type: "decoration", x: 610, y: 690, ...visual("assets/gate-room/props/lantern.png", 98, 98), collider: collider(30, 24, -20) },
+  { id: "lantern-se", type: "decoration", x: 990, y: 690, ...visual("assets/gate-room/props/lantern.png", 98, 98), collider: collider(30, 24, -20) },
+  { id: "crate", type: "decoration", x: 360, y: 330, ...visual("assets/gate-room/props/wooden-crate.png", 105, 105), collider: collider(66, 48, -39) },
+  { id: "water-bucket", type: "decoration", x: 390, y: 535, ...visual("assets/gate-room/props/water-bucket.png", 82, 82), collider: collider(48, 34, -28) },
+  { id: "stele", type: "decoration", x: 1260, y: 570, ...visual("assets/gate-room/props/stone-stele.png", 115, 115), collider: collider(65, 40, -33) },
+  { id: "bamboo-left", type: "decoration", x: 305, y: 290, ...visual("assets/gate-room/props/bamboo.png", 155, 155, "back-structure"), collider: collider(60, 32, -26) },
+  { id: "rock-right", type: "decoration", x: 1290, y: 350, ...visual("assets/gate-room/props/scholar-rock.png", 112, 112), collider: collider(62, 38, -32) },
+  { id: "weapon-rack", type: "decoration", x: 415, y: 610, ...visual("assets/gate-room/props/weapon-rack.png", 130, 130), collider: collider(90, 32, -26) },
+  { id: "chair", type: "decoration", x: 1110, y: 575, ...visual("assets/gate-room/props/wooden-chair.png", 92, 92), collider: collider(48, 32, -26) },
+  { id: "flag", type: "decoration", x: 1295, y: 650, ...visual("assets/gate-room/props/small-flag.png", 110, 110), collider: collider(26, 22, -18) },
+  { id: "leaves", type: "effect", x: 520, y: 520, ...visual("assets/gate-room/props/fallen-leaves.png", 125, 125, "effects"), collider: null },
+  { id: "mist", type: "effect", x: 1060, y: 270, ...visual("assets/gate-room/props/mist-wisp.png", 170, 170, "effects"), collider: null }
+]);
+
+export const NPCS = Object.freeze([
+  {
+    id: "gatekeeper", type: "npc", kind: "gatekeeper", x: 790, y: 425, label: "Gatekeeper", action: "Talk",
+    portrait: "gatekeeper", ...visual("assets/gate-room/characters/gatekeeper.png", 92, 184), interactionRadius: 128, collider: collider(42, 38, -31),
+    lines: [
+      line("guard-you", "Gatekeeper", "你。", ["你"], "gatekeeper", "point-player", "firm", "player", null, "cloth", "The gatekeeper extends one hand directly toward you."),
+      line("guard-self", "Gatekeeper", "我。", ["我"], "gatekeeper", "point-self", "calm", "gatekeeper", null, "cloth", "He presses the same hand against his own chest."),
+      line("guard-who-you", "Gatekeeper", "你是誰？", ["你", "是", "誰"], "gatekeeper", "question", "curious", "player", null, "wood-tap", "He points at you again, then opens his palm in a question."),
+      line("guard-third", "Gatekeeper", "他。", ["他"], "gatekeeper", "point-third", "firm", "clerk", null, "cloth", "He turns and points toward the clerk by the picture board."),
+      line("guard-who-third", "Gatekeeper", "他是誰？", ["他", "是", "誰"], "gatekeeper", "question", "curious", "clerk", null, "wood-tap", "He keeps pointing at the clerk while asking the same kind of question."),
+      line("guard-who-water", "Gatekeeper", "誰……水？", ["誰", "水"], "gatekeeper", "point-third", "concerned", "room-people", "water", "water-drop", "He looks from the water bowl to each person, waiting for you to notice who needs it.")
+    ]
+  },
+  {
+    id: "clerk", type: "npc", kind: "clerk", x: 520, y: 420, label: "Clerk", action: "Talk",
+    portrait: "clerk", ...visual("assets/gate-room/characters/clerk.png", 88, 176), interactionRadius: 125, collider: collider(40, 36, -30),
+    lines: [
+      line("clerk-self", "Clerk", "我。", ["我"], "clerk", "point-self", "friendly", "clerk", null, "cloth", "The clerk smiles and taps his own chest—not the gatekeeper's."),
+      line("clerk-you", "Clerk", "你。", ["你"], "clerk", "point-player", "friendly", "player", null, "cloth", "He points across the courtyard toward you."),
+      line("clerk-third", "Clerk", "他。", ["他"], "clerk", "point-third", "concerned", "thirsty-traveller", null, "cloth", "He glances toward the traveller with the empty bowl."),
+      line("clerk-question", "Clerk", "他是誰？", ["他", "是", "誰"], "clerk", "question", "curious", "thirsty-traveller", null, "paper", "The clerk points to the traveller, then to a blank line on his register.")
+    ]
+  },
+  {
+    id: "thirsty-traveller", type: "npc", kind: "traveller", x: 1045, y: 465, label: "Tired traveller", action: "Talk",
+    portrait: "traveller", ...visual("assets/gate-room/characters/thirsty-traveller.png", 92, 184), interactionRadius: 130, collider: collider(42, 38, -31), waterTarget: true,
+    lines: [
+      line("traveller-self", "Tired traveller", "我……", ["我"], "traveller", "point-self", "tired", "thirsty-traveller", "empty-bowl", "cough", "The traveller touches his own chest and raises an empty bowl."),
+      line("traveller-water", "Tired traveller", "水……", ["水"], "traveller", "hold-empty-bowl", "thirsty", "water-jar", "empty-bowl", "bowl", "He looks into the empty bowl, then toward the full water jar."),
+      line("traveller-need", "Tired traveller", "我……水……", ["我", "水"], "traveller", "hold-empty-bowl", "thirsty", "thirsty-traveller", "empty-bowl", "cough", "He points to himself, tilts the empty bowl, and swallows with difficulty.")
+    ],
+    resolvedLines: [line("traveller-drinks", "Tired traveller", "水。", ["水"], "traveller", "drink-water", "relieved", "thirsty-traveller", "water", "drink", "He accepts the bowl, drinks slowly, and nods with relief.")]
+  }
+]);
+
+export const ENTITIES = Object.freeze([...FURNITURE.filter(item => item.lines.length), ...NPCS]);
+export const RENDER_OBJECTS = Object.freeze([...STRUCTURES, ...FURNITURE, ...DECORATIONS, ...NPCS]);
+export const COLLIDERS = Object.freeze(RENDER_OBJECTS.filter(item => item.collider));
+
+function canonicalOccurrenceId(occurrenceId) { const parts = String(occurrenceId).split(":"); if (parts.length >= 4 && /^\d+$/.test(parts.at(-1))) parts.pop(); return parts.join(":"); }
 function migrateEvidence(entry = {}) {
   const source = Array.isArray(entry.evidence) ? entry.evidence : (entry.history ?? []);
-  const migrated = source.map(item => ({
-    occurrenceId: canonicalOccurrenceId(item.occurrenceId ?? `${item.entityId ?? "legacy"}:${item.location ?? "unknown"}:${item.chineseLine ?? entry.text ?? "word"}`),
-    entityId: item.entityId ?? "legacy",
-    location: item.location ?? entry.lastLocation ?? "Unknown",
-    chineseLine: item.chineseLine ?? entry.text ?? "",
-    context: item.context ?? "Imported from an earlier notebook version.",
-    timestamp: item.timestamp ?? entry.lastSeenAt ?? 0
-  }));
+  const migrated = source.map(item => ({ occurrenceId: canonicalOccurrenceId(item.occurrenceId ?? `${item.entityId ?? "legacy"}:${item.location ?? "unknown"}:${item.chineseLine ?? entry.text ?? "word"}`), entityId: item.entityId ?? "legacy", location: item.location ?? entry.lastLocation ?? "Unknown", chineseLine: item.chineseLine ?? entry.text ?? "", context: item.context ?? "Imported observation.", timestamp: item.timestamp ?? entry.lastSeenAt ?? 0 }));
   return migrated.filter((item, index) => migrated.findIndex(other => other.occurrenceId === item.occurrenceId) === index);
-}
-
-function canonicalOccurrenceId(occurrenceId) {
-  const parts = String(occurrenceId).split(":");
-  if (parts.length >= 4 && /^\d+$/.test(parts.at(-1))) parts.pop();
-  return parts.join(":");
 }
 
 export function createJournal(saved = {}) {
   const entries = Object.fromEntries(Object.entries(saved.entries ?? {}).map(([id, raw]) => {
-    const evidence = migrateEvidence(raw);
-    const encounters = raw.encounters ?? raw.count ?? evidence.length;
+    const evidence = migrateEvidence(raw), encounters = raw.encounters ?? raw.count ?? evidence.length;
     const entry = { ...raw, id, guess: raw.guess ?? "", confirmed: Boolean(raw.confirmed), confidence: raw.confidence ?? CONFIDENCE.UNSURE, revisions: raw.revisions ?? [], evidence, encounters, count: encounters, distinctContexts: evidence.length, locations: raw.locations ?? [...new Set(evidence.map(item => item.location))] };
     if (!getConfirmationReadiness(entry).ready) entry.confirmed = false;
     return [id, entry];
   }));
-  return { entries, inventory: saved.inventory ?? [], quest: saved.quest ?? "unmet" };
+  return { entries, inventory: saved.inventory ?? [], quest: saved.quest ?? "observing", analytics: { startedAt: saved.analytics?.startedAt ?? Date.now(), tokenFirstSeen: saved.analytics?.tokenFirstSeen ?? {}, clickSequence: saved.analytics?.clickSequence ?? [], wrongSelections: saved.analytics?.wrongSelections ?? [], hintUses: saved.analytics?.hintUses ?? 0 } };
 }
 
 export function recordEvidence(journal, observation) {
   const { tokenText, location, entityId, occurrenceId, chineseLine = "", context = "", timestamp = Date.now() } = observation;
-  const vocab = VOCABULARY[tokenText];
-  if (!vocab || !occurrenceId) return journal;
+  const vocab = VOCABULARY[tokenText]; if (!vocab || !occurrenceId) return journal;
   const evidenceId = canonicalOccurrenceId(occurrenceId);
   const existing = journal.entries[vocab.id] ?? { id: vocab.id, text: vocab.text, guess: "", confirmed: false, confidence: CONFIDENCE.UNSURE, revisions: [], encounters: 0, count: 0, locations: [], evidence: [], distinctContexts: 0 };
   const duplicate = existing.evidence.some(item => item.occurrenceId === evidenceId);
   const evidence = duplicate ? existing.evidence : [...existing.evidence, { occurrenceId: evidenceId, entityId, location, chineseLine, context, timestamp }];
-  const encounters = existing.encounters + 1;
-  const locations = existing.locations.includes(location) ? existing.locations : [...existing.locations, location];
+  const encounters = existing.encounters + 1, locations = existing.locations.includes(location) ? existing.locations : [...existing.locations, location];
   const entry = { ...existing, encounters, count: encounters, distinctContexts: evidence.length, lastLocation: location, lastEntity: entityId, lastSeenAt: timestamp, locations, evidence };
-  return { ...journal, entries: { ...journal.entries, [vocab.id]: entry } };
+  const analytics = { ...journal.analytics, tokenFirstSeen: journal.analytics.tokenFirstSeen[vocab.id] ? journal.analytics.tokenFirstSeen : { ...journal.analytics.tokenFirstSeen, [vocab.id]: timestamp }, clickSequence: [...journal.analytics.clickSequence, { token: vocab.id, occurrenceId: evidenceId, duplicate, timestamp }].slice(-300) };
+  return { ...journal, analytics, entries: { ...journal.entries, [vocab.id]: entry } };
 }
 
-export function recordEncounter(journal, tokenText, location, entityId, timestamp = Date.now(), occurrenceId = `${entityId}:${location}`) {
-  return recordEvidence(journal, { tokenText, location, entityId, occurrenceId, chineseLine: tokenText, timestamp });
-}
-
-export function setGuess(journal, entryId, guess, timestamp = Date.now()) {
-  const entry = journal.entries[entryId]; if (!entry) return journal;
-  const nextGuess = guess.trim().slice(0, 80);
-  const revisions = entry.guess && nextGuess && entry.guess !== nextGuess ? [...entry.revisions, { from: entry.guess, to: nextGuess, timestamp }].slice(-12) : entry.revisions;
-  const updated = { ...entry, guess: nextGuess, revisions };
-  if (!getConfirmationReadiness(updated).ready) updated.confirmed = false;
-  return { ...journal, entries: { ...journal.entries, [entryId]: updated } };
-}
-
-export function setConfidence(journal, entryId, confidence) {
-  const entry = journal.entries[entryId]; if (!entry || !Object.values(CONFIDENCE).includes(confidence)) return journal;
-  const updated = { ...entry, confidence };
-  if (!getConfirmationReadiness(updated).ready) updated.confirmed = false;
-  return { ...journal, entries: { ...journal.entries, [entryId]: updated } };
-}
-
-export function setConfirmed(journal, entryId, confirmed) {
-  const entry = journal.entries[entryId]; if (!entry) return journal;
-  if (confirmed && !getConfirmationReadiness(entry).ready) return journal;
-  return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confirmed: Boolean(confirmed) } } };
-}
-
-export function grantItem(journal, item) { return journal.inventory.includes(item) ? journal : { ...journal, inventory: [...journal.inventory, item] }; }
+export function recordEncounter(journal, tokenText, location, entityId, timestamp = Date.now(), occurrenceId = `${entityId}:${location}`) { return recordEvidence(journal, { tokenText, location, entityId, occurrenceId, chineseLine: tokenText, timestamp }); }
+export function setGuess(journal, entryId, guess, timestamp = Date.now()) { const entry = journal.entries[entryId]; if (!entry) return journal; const nextGuess = guess.trim().slice(0, 80); const revisions = entry.guess && nextGuess && entry.guess !== nextGuess ? [...entry.revisions, { from: entry.guess, to: nextGuess, timestamp }].slice(-12) : entry.revisions; const updated = { ...entry, guess: nextGuess, revisions }; if (!getConfirmationReadiness(updated).ready) updated.confirmed = false; return { ...journal, entries: { ...journal.entries, [entryId]: updated } }; }
+export function setConfidence(journal, entryId, confidence) { const entry = journal.entries[entryId]; if (!entry || !Object.values(CONFIDENCE).includes(confidence)) return journal; const updated = { ...entry, confidence }; if (!getConfirmationReadiness(updated).ready) updated.confirmed = false; return { ...journal, entries: { ...journal.entries, [entryId]: updated } }; }
+export function setConfirmed(journal, entryId, confirmed) { const entry = journal.entries[entryId]; if (!entry || (confirmed && !getConfirmationReadiness(entry).ready)) return journal; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confirmed: Boolean(confirmed) } } }; }
+export function grantItem(journal, item) { return journal.inventory.includes(item) ? journal : { ...journal, inventory: [...journal.inventory, item], quest: item === "water-bowl" ? "find-thirsty-person" : journal.quest }; }
 export function getEncounteredEntries(journal) { return Object.values(journal.entries).sort((a, b) => b.lastSeenAt - a.lastSeenAt); }
-export function getConfirmationReadiness(entry) {
-  if (!entry?.guess?.trim()) return { ready: false, reason: "Write a hypothesis first." };
-  if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Compare at least two distinct contexts." };
-  if (entry.confidence === CONFIDENCE.UNSURE) return { ready: false, reason: "Raise confidence to probable or confident when you are ready." };
-  return { ready: true, reason: "Ready for your own confirmation." };
-}
+export function getConfirmationReadiness(entry) { if (!entry?.guess?.trim()) return { ready: false, reason: "Write an English hypothesis first." }; if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Compare at least two distinct contexts." }; if (entry.confidence === CONFIDENCE.UNSURE) return { ready: false, reason: "Choose probable or confident when the evidence feels strong enough." }; return { ready: true, reason: "Ready for your own confirmation." }; }
 export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.confirmed && getConfirmationReadiness(entry).ready); }
 
-export function analyseInvocationConstruction(selectedIds) {
-  const roles = selectedIds.map(id => INVOCATION_ROLE[id] ?? "UNKNOWN");
-  if (new Set(selectedIds).size !== selectedIds.length || roles.includes("UNKNOWN")) return { construction: null, roles, result: INVOCATION_RESULT.SEMANTIC_MISMATCH };
-  const match = WATER_GIFT_CONSTRUCTIONS.find(candidate => candidate.roles.every((role, index) => roles[index] === role));
-  return match ? { construction: match.id, roles, result: match.result, reaction: match.reaction } : { construction: null, roles, result: INVOCATION_RESULT.SYNTACTIC_MISMATCH };
+export function createTutorialSession(saved = {}) { return { resolved: Boolean(saved.resolved), wrongTargets: saved.wrongTargets ?? [], lastFailedSignature: saved.lastFailedSignature ?? null }; }
+export function semanticHypothesisSignature(journal) { return ["who", "water"].map(id => { const entry = journal.entries[id]; return entry ? `${id}:${entry.guess.trim().toLowerCase()}:${entry.confidence}:${entry.distinctContexts}:${entry.revisions.length}` : `${id}:missing`; }).join("|"); }
+export function getWaterTaskReadiness(journal) {
+  if (!journal.inventory.includes("water-bowl")) return { ready: false, reason: "You are not carrying water." };
+  for (const id of ["who", "water"]) { const readiness = getConfirmationReadiness(journal.entries[id]); if (!readiness.ready) return { ready: false, reason: "Your notes about the question and the water still need more evidence." }; }
+  return { ready: true, reason: "Your current hypotheses can now be tested in the courtyard." };
 }
-
-export function interpretWaterGift(journal, selectedIds) {
-  const entries = selectedIds.map(id => journal.entries[id]).filter(Boolean);
-  if (entries.length !== selectedIds.length || !selectedIds.length) return { result: INVOCATION_RESULT.SEMANTIC_MISMATCH, reaction: "The signs do not yet form a recognisable intention." };
-  if (entries.some(entry => !entry.guess.trim())) return { result: INVOCATION_RESULT.INCOMPLETE_INTENT, reaction: "One sign still has no hypothesis in your notes." };
-  if (entries.some(entry => !entry.confirmed || !getConfirmationReadiness(entry).ready)) return { result: INVOCATION_RESULT.INSUFFICIENT_EVIDENCE, reaction: "Your notes still mark part of this expression as uncertain or insufficiently observed." };
-  const construction = analyseInvocationConstruction(selectedIds);
-  if (construction.result === INVOCATION_RESULT.SEMANTIC_MISMATCH) return { ...construction, reaction: "The disciple follows the signs, but their meanings pull toward different intentions." };
-  if (construction.result === INVOCATION_RESULT.SYNTACTIC_MISMATCH) return { ...construction, reaction: "The signs are familiar, but their roles do not yet form a construction he can follow." };
-  if (construction.result !== INVOCATION_RESULT.SUCCESS) return construction;
-  if (!journal.inventory.includes("water-flask")) return { ...construction, result: INVOCATION_RESULT.PRAGMATIC_MISMATCH, reaction: "He understands the request, then looks from your empty hands toward the lower street." };
-  return { ...construction, worldAction: "TRANSFER_WATER_TO_DISCIPLE" };
+export function attemptWaterTarget(session, journal, targetId, timestamp = Date.now()) {
+  if (session.resolved) return { result: "ALREADY_RESOLVED", session, journal };
+  const readiness = getWaterTaskReadiness(journal); if (!readiness.ready) return { result: "NOT_READY", reason: readiness.reason, session, journal };
+  const signature = semanticHypothesisSignature(journal); if (session.lastFailedSignature === signature) return { result: "REVISIT_NOTES", reason: "Their reaction suggests revising one of your hypotheses before trying another person.", session, journal };
+  if (targetId === "thirsty-traveller") return { result: "SUCCESS", session: { ...session, resolved: true }, journal: { ...journal, quest: "resolved" } };
+  const wrongTargets = session.wrongTargets.includes(targetId) ? session.wrongTargets : [...session.wrongTargets, targetId];
+  const analytics = { ...journal.analytics, wrongSelections: [...journal.analytics.wrongSelections, { targetId, timestamp }].slice(-50) };
+  return { result: "CONFUSED", reason: "They recoil from the bowl and gesture uncertainly toward the others.", session: { ...session, wrongTargets, lastFailedSignature: signature }, journal: { ...journal, analytics } };
 }
-
-export function canInvokeWaterGift(journal, selectedIds) { return interpretWaterGift(journal, selectedIds).result === INVOCATION_RESULT.SUCCESS; }
-export function resolveWaterGift(journal, selectedIds) { return canInvokeWaterGift(journal, selectedIds) ? { ...journal, quest: "resolved" } : { ...journal, quest: "seeking" }; }

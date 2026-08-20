@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=20260820-5";
+import { GAME_STATE } from "./game-state.js?v=gatehouse-v1";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 
@@ -11,9 +11,8 @@ export function resolveGameAction(key, state) {
   if (key === "enter" && state === GAME_STATE.TITLE) return "START";
   if (key === "e" && state === GAME_STATE.EXPLORING) return "INTERACT";
   if (key === "e" && state === GAME_STATE.DIALOGUE) return "ADVANCE_DIALOGUE";
-  if (key === "e" && state === GAME_STATE.INVOCATION) return "INVOKE";
   if (key === "n" && [GAME_STATE.EXPLORING, GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK].includes(state)) return "TOGGLE_NOTEBOOK";
-  if (key === "escape" && [GAME_STATE.HELP, GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK, GAME_STATE.INVOCATION, GAME_STATE.CHAPTER].includes(state)) return "ESCAPE";
+  if (key === "escape" && [GAME_STATE.HELP, GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK, GAME_STATE.CHAPTER].includes(state)) return "ESCAPE";
   if (key === "f3" && state === GAME_STATE.EXPLORING) return "TOGGLE_COLLISIONS";
   return null;
 }
@@ -48,7 +47,7 @@ export class InputRouter {
     }
     const action = resolveRoutedAction(key, this.getState(), event.target);
     if (!action || event.repeat) return;
-    if (["INTERACT", "ADVANCE_DIALOGUE", "INVOKE", "TOGGLE_NOTEBOOK", "ESCAPE"].includes(action)) event.preventDefault();
+    if (["INTERACT", "ADVANCE_DIALOGUE", "TOGGLE_NOTEBOOK", "ESCAPE"].includes(action)) event.preventDefault();
     this.onAction(action, event);
   }
 

@@ -3,14 +3,24 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   BROWSER_CURRICULUM, CONFIDENCE, ENTITIES, INVOCATION_RESULT, LOCATIONS, WORLD,
-  buildFlashcards, canInvokeWaterGift, createJournal, grantItem, interpretWaterGift,
-  recordEvidence, recordEncounter, resolveWaterGift, setConfidence, setConfirmed, setGuess
+  analyseInvocationConstruction, buildFlashcards, canInvokeWaterGift, createJournal, getConfirmationReadiness,
+  grantItem, interpretWaterGift, recordEvidence, recordEncounter, resolveWaterGift, setConfidence, setConfirmed, setGuess
 } from "../src/lessons.js";
 import { PLAYER_SPEED, SOUTH_GATE_DETAIL, isPlayerWalkable, isWorldWalkable, pointInEntityBody, projectWorldPoint, selectInteractionTarget } from "../src/game.js";
 import { GAME_STATE, GameStateController } from "../src/game-state.js";
 import { isTextEntryTarget, resolveRoutedAction } from "../src/input.js";
+import { resolveJoystickVector } from "../src/joystick.js";
 
 const observe = (journal, tokenText, occurrenceId, entityId = "observer", location = "Central Crossing") => recordEvidence(journal, { tokenText, occurrenceId, entityId, location, chineseLine: tokenText, context: `context ${occurrenceId}`, timestamp: Number(occurrenceId.replace(/\D/g, "")) || 1 });
+
+test("mobile joystick centres, clamps, and normalises pointer movement", () => {
+  const rect = { left: 10, top: 20, width: 100, height: 100 };
+  assert.deepEqual(resolveJoystickVector(60, 70, rect), { pixelX: 0, pixelY: 0, x: 0, y: 0 });
+  const right = resolveJoystickVector(260, 70, rect);
+  assert.ok(Math.abs(right.pixelX - 29) < 1e-9); assert.equal(right.pixelY, 0); assert.ok(Math.abs(right.x - 1) < 1e-9); assert.equal(right.y, 0);
+  const diagonal = resolveJoystickVector(160, 170, rect);
+  assert.ok(Math.hypot(diagonal.x, diagonal.y) <= 1 + Number.EPSILON);
+});
 
 test("encounters accumulate without revealing a canonical answer", () => {
   let journal = createJournal(); journal = recordEncounter(journal, "水", "Market Street", "well", 1, "well:water"); journal = recordEncounter(journal, "水", "Central Crossing", "disciple", 2, "disciple:water");
@@ -22,28 +32,37 @@ test("repeating one occurrence does not fake independent evidence", () => {
   assert.equal(journal.entries.water.encounters, 2); assert.equal(journal.entries.water.distinctContexts, 1); assert.equal(journal.entries.water.evidence.length, 1);
   const migrated = createJournal({ entries: { water: { text: "水", count: 2, history: [{ entityId: "well", location: "Market Street" }, { entityId: "well", location: "Market Street" }] } } });
   assert.equal(migrated.entries.water.distinctContexts, 1);
+  let repeatedLine = observe(createJournal(), "貓", "cat:child-cat:cat:0", "cat"); repeatedLine = observe(repeatedLine, "貓", "cat:child-cat:cat:2", "cat");
+  assert.equal(repeatedLine.entries.cat.encounters, 2); assert.equal(repeatedLine.entries.cat.distinctContexts, 1);
 });
 
-test("hypothesis revisions and confidence persist without grading", () => {
-  let journal = observe(createJournal(), "茶", "tea:1", "tea-pot"); journal = setGuess(journal, "tea", "a bowl"); journal = setGuess(journal, "tea", "a drink", 3); journal = setConfidence(journal, "tea", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "tea", true);
+test("hypothesis revisions, confidence, and confirmation readiness persist without grading", () => {
+  let journal = observe(createJournal(), "茶", "tea:1", "tea-pot"); journal = observe(journal, "茶", "vendor:tea", "tea-keeper"); journal = setGuess(journal, "tea", "a bowl"); journal = setGuess(journal, "tea", "a drink", 3); journal = setConfidence(journal, "tea", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "tea", true);
   assert.equal(journal.entries.tea.guess, "a drink"); assert.deepEqual(journal.entries.tea.revisions, [{ from: "a bowl", to: "a drink", timestamp: 3 }]); assert.equal(journal.entries.tea.confidence, CONFIDENCE.PROBABLE); assert.equal(journal.entries.tea.confirmed, true); assert.equal("correct" in journal.entries.tea, false);
+  journal = setConfidence(journal, "tea", CONFIDENCE.UNSURE); assert.equal(journal.entries.tea.confirmed, false);
 });
 
-test("only player-confirmed hypotheses become flashcards", () => {
-  let journal = observe(createJournal(), "茶", "tea:1", "tea-pot"); journal = observe(journal, "水", "well:1", "well"); journal = setGuess(journal, "tea", "a drink"); journal = setConfirmed(journal, "tea", true); journal = setGuess(journal, "water", "liquid");
+test("flashcards require two contexts, a hypothesis, confidence, and self-confirmation", () => {
+  let journal = observe(createJournal(), "茶", "tea:1", "tea-pot"); journal = setGuess(journal, "tea", "a drink"); journal = setConfidence(journal, "tea", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "tea", true); assert.equal(getConfirmationReadiness(journal.entries.tea).ready, false); assert.equal(journal.entries.tea.confirmed, false);
+  journal = observe(journal, "茶", "tea:2", "tea-keeper"); journal = setConfirmed(journal, "tea", true);
   assert.deepEqual(buildFlashcards(journal).map(card => card.id), ["tea"]);
 });
 
-test("Invocation requires evidence, hypotheses, the object, semantics, and order", () => {
+test("Invocation interprets construction roles and world prerequisites", () => {
   let journal = createJournal();
   journal = observe(journal, "給", "vendor:give", "tea-keeper"); journal = observe(journal, "給", "carrier:give", "water-carrier");
-  journal = observe(journal, "水", "stele:water", "gate-sign"); journal = observe(journal, "水", "well:water", "well"); journal = observe(journal, "我", "disciple:me", "thirsty-disciple");
+  journal = observe(journal, "水", "stele:water", "gate-sign"); journal = observe(journal, "水", "well:water", "well"); journal = observe(journal, "我", "disciple:me", "thirsty-disciple"); journal = observe(journal, "我", "vendor:me", "tea-keeper");
   assert.equal(interpretWaterGift(journal, ["give", "me", "water"]).result, INVOCATION_RESULT.INCOMPLETE_INTENT);
   for (const id of ["give", "me", "water"]) journal = setGuess(journal, id, `hypothesis for ${id}`);
+  assert.equal(interpretWaterGift(journal, ["give", "me", "water"]).result, INVOCATION_RESULT.INSUFFICIENT_EVIDENCE);
+  for (const id of ["give", "me", "water"]) { journal = setConfidence(journal, id, CONFIDENCE.PROBABLE); journal = setConfirmed(journal, id, true); }
   assert.equal(interpretWaterGift(journal, ["give", "me", "water"]).result, INVOCATION_RESULT.PRAGMATIC_MISMATCH);
   journal = grantItem(journal, "water-flask");
-  assert.equal(interpretWaterGift(journal, ["water", "give", "me"]).result, INVOCATION_RESULT.AMBIGUOUS_INTENT);
+  assert.equal(interpretWaterGift(journal, ["water", "give", "me"]).result, INVOCATION_RESULT.SUCCESS);
+  assert.equal(interpretWaterGift(journal, ["give", "water", "me"]).result, INVOCATION_RESULT.AMBIGUOUS_INTENT);
+  assert.equal(interpretWaterGift(journal, ["me", "give", "water"]).result, INVOCATION_RESULT.INCOMPLETE_INTENT);
   assert.equal(interpretWaterGift(journal, ["give", "me", "water", "tea"]).result, INVOCATION_RESULT.SEMANTIC_MISMATCH);
+  assert.equal(analyseInvocationConstruction(["water", "give", "me"]).construction, "TOPICALIZED_REQUEST");
   assert.equal(canInvokeWaterGift(journal, ["give", "me", "water"]), true); assert.equal(resolveWaterGift(journal, ["give", "me", "water"]).quest, "resolved");
 });
 
@@ -72,10 +91,13 @@ test("physical NPC bodies block movement independently of interaction radii", ()
   const guard = ENTITIES.find(entity => entity.id === "gatekeeper"); assert.equal(pointInEntityBody(guard.x, guard.y, guard), true); assert.equal(isPlayerWalkable(guard.x, guard.y), false); assert.ok(guard.interactionRadius > guard.bodyCollider.width);
 });
 
-test("target selection favours facing and rejects targets through solids", () => {
+test("target selection excludes behind-only and occluded targets", () => {
   const player = { x: 1200, y: 1320, facing: 1, lookX: 1, lookY: 0 };
   const targets = [{ id: "front", x: 1260, y: 1320, interactionRadius: 100 }, { id: "behind", x: 1145, y: 1320, interactionRadius: 100 }];
   assert.equal(selectInteractionTarget(player, targets)?.id, "front");
+  assert.equal(selectInteractionTarget(player, [targets[1]]), null);
+  const localPlayer = { x: 0, y: 0, facing: 1, lookX: 1, lookY: 0 }, throughWall = [{ id: "blocked", x: 80, y: 0, interactionRadius: 100 }];
+  assert.equal(selectInteractionTarget(localPlayer, throughWall, [[35, -20, 15, 40]]), null);
 });
 
 test("the close camera has a stable local scale", () => {
@@ -88,8 +110,23 @@ test("the South Gate detail covers the opening interactions", () => {
   assert.ok(inside(ENTITIES.find(entity => entity.id === "gate-sign"))); assert.ok(inside(ENTITIES.find(entity => entity.id === "gatekeeper"))); assert.ok(Math.abs(SOUTH_GATE_DETAIL.width * 1.5 - 1672) < 2);
 });
 
-test("South Gate walls block the player while its central route stays open", () => {
-  assert.equal(isPlayerWalkable(1010, 1200), false); assert.equal(isPlayerWalkable(1390, 1200), false); assert.equal(isPlayerWalkable(850, 1400), false); for (let y = 1020; y <= 1530; y += 10) assert.equal(isPlayerWalkable(1200, y), true, `central route blocked at y=${y}`);
+test("South Gate foreground converts world-space occluders into source-image pixels", () => {
+  const gameSource = readFileSync(new URL("../src/game.js", import.meta.url), "utf8");
+  assert.match(gameSource, /sourceScaleX = this\.southGateDetailLayer\.width \/ SOUTH_GATE_DETAIL\.width/);
+  assert.match(gameSource, /sx \* sourceScaleX, sy \* sourceScaleY, sw \* sourceScaleX, sh \* sourceScaleY/);
+  assert.match(gameSource, /ctx\.rect\(dx, dy, dw, dh\); ctx\.clip\(\)/);
+});
+
+test("South Gate walls and stele block the player while a detour remains open", () => {
+  const sign = ENTITIES.find(entity => entity.id === "gate-sign"); assert.equal(isPlayerWalkable(sign.x, sign.y), false);
+  assert.equal(isPlayerWalkable(1010, 1200), false); assert.equal(isPlayerWalkable(1390, 1200), false); assert.equal(isPlayerWalkable(850, 1400), false);
+  for (let y = 1020; y <= 1380; y += 10) assert.equal(isPlayerWalkable(1200, y), true, `gate approach blocked at y=${y}`);
+  for (const [x, y] of [[1100, 1400], [1100, 1450], [1100, 1500], [1200, 1510]]) assert.equal(isPlayerWalkable(x, y), true, `stele detour blocked at ${x},${y}`);
+});
+
+test("modal focus code uses inert, ignores hidden ancestors, and keeps Dialogue focus off tokens", () => {
+  const focus = readFileSync(new URL("../src/modal-focus.js", import.meta.url), "utf8"), html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(focus, /node\.inert = Boolean/); assert.match(focus, /closest\("\[hidden\], \[aria-hidden='true'\], \[inert\]"\)/); assert.match(html, /id="dialogue-panel"[^>]*data-focus-self/); assert.match(html, /role="dialog"/);
 });
 
 test("movement remains deliberate and the curriculum matches Godot", () => {

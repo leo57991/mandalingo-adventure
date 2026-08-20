@@ -15,6 +15,7 @@ enum UiState { EXPLORING, DIALOGUE, CHARACTER }
 var notebook: Dictionary = {}
 var last_word := ""
 var ui_state := UiState.EXPLORING
+var ui_state_stack: Array[int] = [UiState.EXPLORING]
 
 func _ready() -> void:
 	player.interact_requested.connect(_on_interact_requested)
@@ -27,7 +28,7 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		if ui_state != UiState.EXPLORING:
-			_set_ui_state(UiState.EXPLORING)
+			_pop_ui_state()
 			get_viewport().set_input_as_handled()
 			return
 	if event.is_action_pressed("inventory") or event.is_action_pressed("notebook"):
@@ -50,14 +51,20 @@ func _on_interact_requested(from_position: Vector2) -> void:
 		dialogue_text.text = "[center][font_size=20]There is nothing nearby to examine.[/font_size][/center]"
 	else:
 		_record_entry(nearest.read_entry())
-	_set_ui_state(UiState.DIALOGUE)
+	_push_ui_state(UiState.DIALOGUE)
 
 func _record_entry(entry: Dictionary) -> void:
 	var word: String = entry.word
 	if not notebook.has(word):
-		notebook[word] = {"count": 0, "location": "", "guess": "(no guess yet)"}
+		notebook[word] = {"count": 0, "location": "", "guess": "(no guess yet)", "contexts": {}}
 	notebook[word]["count"] += 1
 	notebook[word]["location"] = entry.location
+	var occurrence_id: String = entry.get("occurrence_id", entry.location + ":" + word)
+	notebook[word]["contexts"][occurrence_id] = {
+		"location": entry.location,
+		"line": entry.get("line", word),
+		"context": entry.context
+	}
 	last_word = word
 	var spoken_line: String = entry.get("line", word)
 	var highlighted_word := "[font_size=72][color=#edcf8b]" + word + "[/color][/font_size]"
@@ -71,13 +78,34 @@ func _record_entry(entry: Dictionary) -> void:
 	_refresh_notebook()
 
 func _toggle_character_menu() -> void:
-	_set_ui_state(UiState.EXPLORING if ui_state == UiState.CHARACTER else UiState.CHARACTER)
+	if ui_state == UiState.CHARACTER:
+		_pop_ui_state()
+	else:
+		_push_ui_state(UiState.CHARACTER)
 
 func _set_character_menu_open(is_open: bool) -> void:
-	_set_ui_state(UiState.CHARACTER if is_open else UiState.EXPLORING)
+	if is_open and ui_state != UiState.CHARACTER:
+		_push_ui_state(UiState.CHARACTER)
+	elif not is_open and ui_state == UiState.CHARACTER:
+		_pop_ui_state()
 
 func _set_ui_state(next_state: int) -> void:
-	ui_state = next_state
+	ui_state_stack = [next_state]
+	_apply_ui_state()
+
+func _push_ui_state(next_state: int) -> void:
+	if ui_state == next_state:
+		return
+	ui_state_stack.push_back(next_state)
+	_apply_ui_state()
+
+func _pop_ui_state() -> void:
+	if ui_state_stack.size() > 1:
+		ui_state_stack.pop_back()
+	_apply_ui_state()
+
+func _apply_ui_state() -> void:
+	ui_state = ui_state_stack.back()
 	dialogue_panel.visible = ui_state == UiState.DIALOGUE
 	character_panel.visible = ui_state == UiState.CHARACTER
 	character_button.text = "CLOSE [I]" if ui_state == UiState.CHARACTER else "CHARACTER [I]"
@@ -102,10 +130,11 @@ func _refresh_notebook() -> void:
 	var lines := "[font_size=24]Water Foundations[/font_size]\n[color=#9fb3a6]Keep your own interpretation. The notebook will simply save it for now.[/color]\n\n"
 	for word in notebook:
 		var entry: Dictionary = notebook[word]
+		var distinct_contexts: int = entry.get("contexts", {}).size()
 		lines += "[font_size=48][color=#edcf8b]" + word + "[/color][/font_size]\n"
-		lines += "Seen: " + str(entry["count"]) + " times　Last place: " + entry["location"] + "\n"
+		lines += "Seen: " + str(entry["count"]) + " times　Distinct contexts: " + str(distinct_contexts) + "　Last place: " + entry["location"] + "\n"
 		lines += "Your English guess: " + entry["guess"] + "\n"
-		if word == "水" and entry["count"] >= 2:
+		if word == "水" and distinct_contexts >= 2:
 			lines += "[color=#79b9cf]Water-spell insight is beginning to form.[/color]\n"
 		lines += "\n"
 	notebook_text.text = lines

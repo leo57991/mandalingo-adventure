@@ -1,13 +1,14 @@
-import { MandalingoGame } from "./game.js?v=20260820-4";
-import { Soundscape } from "./audio.js?v=20260820-4";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=20260820-4";
-import { InputRouter } from "./input.js?v=20260820-4";
-import { ModalFocusManager } from "./modal-focus.js?v=20260820-4";
+import { MandalingoGame } from "./game.js?v=20260820-5";
+import { Soundscape } from "./audio.js?v=20260820-5";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=20260820-5";
+import { InputRouter } from "./input.js?v=20260820-5";
+import { ModalFocusManager } from "./modal-focus.js?v=20260820-5";
+import { resolveJoystickVector } from "./joystick.js?v=20260820-5";
 import {
   CONFIDENCE, INVOCATION_RESULT, VOCABULARY, buildFlashcards, createJournal,
-  getEncounteredEntries, grantItem, interpretWaterGift, recordEvidence,
+  getConfirmationReadiness, getEncounteredEntries, grantItem, interpretWaterGift, recordEvidence,
   resolveWaterGift, setConfidence, setConfirmed, setGuess
-} from "./lessons.js?v=20260820-4";
+} from "./lessons.js?v=20260820-5";
 
 const $ = selector => document.querySelector(selector);
 const elements = {
@@ -101,16 +102,16 @@ function renderContextualSentence(line) {
   for (let index = 0; index < line.text.length;) {
     const token = tokens.find(candidate => line.text.startsWith(candidate, index));
     if (!token) { fragment.append(document.createTextNode(line.text[index])); index += 1; continue; }
-    const characterIndex = index, button = document.createElement("button");
+    const button = document.createElement("button");
     button.className = "context-token"; button.type = "button"; button.textContent = token; button.setAttribute("aria-label", `Record ${token} as contextual evidence`);
-    button.addEventListener("click", () => observeToken(token, line, characterIndex, button)); fragment.append(button); index += token.length;
+    button.addEventListener("click", () => observeToken(token, line, button)); fragment.append(button); index += token.length;
   }
   elements.dialogueText.replaceChildren(fragment);
 }
-function observeToken(tokenText, line, characterIndex, button) {
+function observeToken(tokenText, line, button) {
   const vocab = VOCABULARY[tokenText]; if (!vocab || !activeEntity) return;
   const before = journal.entries[vocab.id]?.distinctContexts ?? 0;
-  journal = recordEvidence(journal, { tokenText, entityId: activeEntity.id, location: game.location.english, occurrenceId: `${activeEntity.id}:${line.id}:${tokenText}:${characterIndex}`, chineseLine: line.text, context: activeEntity.context });
+  journal = recordEvidence(journal, { tokenText, entityId: activeEntity.id, location: game.location.english, occurrenceId: `${activeEntity.id}:${line.id}:${tokenText}`, chineseLine: line.text, context: activeEntity.context });
   if (activeEntity.grantsOnObservation && tokenText === "水") {
     const hadItem = journal.inventory.includes(activeEntity.grantsOnObservation); journal = grantItem(journal, activeEntity.grantsOnObservation);
     if (!hadItem) showToast("You copy the mark, then fill the flask at your belt");
@@ -144,10 +145,15 @@ function renderJournal() {
     inputField.addEventListener("change", () => { journal = setGuess(journal, entry.id, inputField.value); saveJournal(); renderJournal(); });
     const confidence = document.createElement("select"); confidence.className = "confidence-select"; confidence.setAttribute("aria-label", `Confidence for ${entry.text}`);
     for (const value of Object.values(CONFIDENCE)) confidence.add(new Option(value[0].toUpperCase() + value.slice(1), value, false, entry.confidence === value));
-    confidence.addEventListener("change", () => { journal = setConfidence(journal, entry.id, confidence.value); saveJournal(); });
-    const confirm = document.createElement("button"); confirm.className = `confirm-note${entry.confirmed ? " is-confirmed" : ""}`; confirm.textContent = entry.confirmed ? "Understood ✓" : "Mark understood";
-    confirm.addEventListener("click", () => { const current = journal.entries[entry.id]; if (!current.guess.trim()) { showToast("Write your own hypothesis before confirming this note"); inputField.focus(); return; } journal = setConfirmed(journal, entry.id, !current.confirmed); saveJournal(); renderJournal(); });
-    const controls = document.createElement("div"); controls.className = "entry-controls"; controls.append(inputField, confidence, confirm); row.append(heading, meta, evidence, controls); return row;
+    confidence.addEventListener("change", () => { journal = setConfidence(journal, entry.id, confidence.value); saveJournal(); renderJournal(); });
+    const readiness = getConfirmationReadiness(entry);
+    const confirm = document.createElement("button"); confirm.className = `confirm-note${entry.confirmed ? " is-confirmed" : ""}`; confirm.textContent = entry.confirmed ? "Understood ✓" : readiness.ready ? "Mark understood" : "Not ready"; confirm.title = readiness.reason; confirm.setAttribute("aria-label", entry.confirmed ? `${entry.text} is self-confirmed` : `${confirm.textContent}: ${readiness.reason}`);
+    confirm.addEventListener("click", () => { const current = journal.entries[entry.id], currentReadiness = getConfirmationReadiness(current); if (!current.confirmed && !currentReadiness.ready) { showToast(currentReadiness.reason); if (!current.guess.trim()) inputField.focus(); else if (current.confidence === CONFIDENCE.UNSURE) confidence.focus(); return; } journal = setConfirmed(journal, entry.id, !current.confirmed); saveJournal(); renderJournal(); });
+    const controls = document.createElement("div"); controls.className = "entry-controls"; const readinessHint = document.createElement("small"); readinessHint.className = "readiness-hint"; readinessHint.textContent = entry.confirmed ? "Self-confirmed from your evidence and confidence." : readiness.reason; controls.append(inputField, confidence, confirm, readinessHint);
+    const history = document.createElement("details"); history.className = "revision-history"; history.hidden = entry.revisions.length === 0;
+    const summary = document.createElement("summary"); summary.textContent = `Hypothesis history (${entry.revisions.length})`; history.append(summary);
+    for (const revision of entry.revisions.slice(-4).reverse()) { const item = document.createElement("p"); const before = document.createElement("s"), after = document.createElement("b"); before.textContent = revision.from; after.textContent = revision.to; item.append(before, document.createTextNode(" → "), after); history.append(item); }
+    row.append(heading, meta, evidence, controls, history); return row;
   }));
 }
 function renderCards() {
@@ -167,7 +173,7 @@ function openInvocation() { selectedWordIds = []; elements.reaction.textContent 
 function closeInvocation() { if (state.current === GAME_STATE.INVOCATION) state.pop(); }
 function renderInvocation() {
   const entries = getEncounteredEntries(journal);
-  elements.selectedWords.replaceChildren(...(selectedWordIds.length ? selectedWordIds.map(id => { const token = document.createElement("b"); token.className = "selected-chip"; token.textContent = journal.entries[id].text; return token; }) : [Object.assign(document.createElement("span"), { textContent: "Select three words in the intended order" })]));
+  elements.selectedWords.replaceChildren(...(selectedWordIds.length ? selectedWordIds.map(id => { const token = document.createElement("b"); token.className = "selected-chip"; token.textContent = journal.entries[id].text; return token; }) : [Object.assign(document.createElement("span"), { textContent: "Choose signs; the world will interpret their roles" })]));
   elements.wordBank.replaceChildren(...entries.map(entry => { const button = document.createElement("button"); button.className = `word-chip${selectedWordIds.includes(entry.id) ? " is-selected" : ""}`; button.textContent = entry.text; button.title = entry.guess || "No hypothesis written"; button.addEventListener("click", () => { if (selectedWordIds.includes(entry.id)) selectedWordIds = selectedWordIds.filter(id => id !== entry.id); else if (selectedWordIds.length < 3) selectedWordIds.push(entry.id); renderInvocation(); }); return button; }));
 }
 function invokeWords() {
@@ -200,7 +206,7 @@ function setupJoystick() {
   const base = $("#joystick"), knob = $("#joystick-knob"); let pointerId = null;
   const release = () => { pointerId = null; knob.style.transform = "translate(0,0)"; game.setMobileVector(0, 0); };
   resetJoystick = release;
-  const update = event => { if (state.current !== GAME_STATE.EXPLORING) { release(); return; } const rect = base.getBoundingClientRect(), max = rect.width * .29; let x = event.clientX - rect.left - rect.width / 2, y = event.clientY - rect.top - rect.height / 2; const length = Math.hypot(x, y); if (length > max) { x = x / length * max; y = y / length * max; } knob.style.transform = `translate(${x}px,${y}px)`; game.setMobileVector(x / max, y / max); };
+  const update = event => { if (state.current !== GAME_STATE.EXPLORING) { release(); return; } const vector = resolveJoystickVector(event.clientX, event.clientY, base.getBoundingClientRect()); knob.style.transform = `translate(${vector.pixelX}px,${vector.pixelY}px)`; game.setMobileVector(vector.x, vector.y); };
   base.addEventListener("pointerdown", event => { pointerId = event.pointerId; base.setPointerCapture(pointerId); update(event); }); base.addEventListener("pointermove", event => { if (event.pointerId === pointerId) update(event); }); base.addEventListener("pointerup", release); base.addEventListener("pointercancel", release); $("#interact-btn").addEventListener("pointerdown", () => game.interact());
 }
 

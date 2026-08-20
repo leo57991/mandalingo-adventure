@@ -12,10 +12,13 @@ export class ModalFocusManager {
   sync(container) {
     if (container === this.current) return;
     clearTimeout(this.focusTimer);
+    this.current?.removeAttribute("aria-modal");
     if (!this.current && container) this.restoreTarget = this.document.activeElement;
     this.current = container;
+    this.applyBackgroundInert(container);
     if (container) {
-      this.focusTimer = setTimeout(() => { if (this.current === container) this.focusables()[0]?.focus(); }, 80);
+      container.setAttribute("aria-modal", "true");
+      this.focusTimer = setTimeout(() => { if (this.current === container) this.initialFocus(container)?.focus(); }, 80);
     } else if (this.restoreTarget?.isConnected) {
       const restoreTarget = this.restoreTarget;
       this.focusTimer = setTimeout(() => restoreTarget.focus(), 80);
@@ -25,7 +28,17 @@ export class ModalFocusManager {
 
   focusables() {
     if (!this.current) return [];
-    return [...this.current.querySelectorAll(FOCUSABLE)].filter(node => !node.hidden && node.getAttribute("aria-hidden") !== "true");
+    return [...this.current.querySelectorAll(FOCUSABLE)].filter(node => !node.closest("[hidden], [aria-hidden='true'], [inert]") && getComputedStyle(node).visibility !== "hidden");
+  }
+
+  initialFocus(container) {
+    return container.hasAttribute("data-focus-self") ? container : this.focusables()[0];
+  }
+
+  applyBackgroundInert(container) {
+    const parent = container?.parentElement ?? this.current?.parentElement ?? this.document.querySelector("#app");
+    if (!parent) return;
+    for (const node of parent.children) node.inert = Boolean(container && node !== container);
   }
 
   trap(event) {
@@ -33,7 +46,8 @@ export class ModalFocusManager {
     const nodes = this.focusables();
     if (!nodes.length) { event.preventDefault(); return; }
     const first = nodes[0], last = nodes.at(-1);
-    if (event.shiftKey && this.document.activeElement === first) { event.preventDefault(); last.focus(); }
+    if (this.document.activeElement === this.current) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
+    else if (event.shiftKey && this.document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && this.document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 

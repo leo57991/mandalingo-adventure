@@ -7,7 +7,7 @@
     <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a modular wuxia courtyard." />
     <title>Mandalingo — Gatehouse Tutorial</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=gatehouse-v2" />
+    <link rel="stylesheet" href="styles.css?v=gatehouse-v3" />
   </head>
   <body>
     <main id="app">
@@ -18,7 +18,7 @@
         <p class="eyebrow">A CONTEXTUAL LANGUAGE MYSTERY</p>
         <h1 id="game-title">MANDA<span>LINGO</span></h1>
         <p class="chapter-name">THE GATEHOUSE</p>
-        <p class="intro">Six unfamiliar signs. Three people. One bowl of water.<br />Watch gestures, compare contexts, and form your own meaning.</p>
+        <p class="intro">The city gate is barred.<br />Read the courtyard through gestures, objects and consequences.</p>
         <button id="start-btn" class="primary-button"><span>Enter the courtyard</span><kbd>Enter</kbd></button>
         <button id="how-btn" class="text-button">How this playtest works</button>
         <div class="principles"><span>No translations</span><i></i><span>No instant grading</span><i></i><span>Your own notebook</span></div>
@@ -33,12 +33,12 @@
           <article><b>02</b><span>E</span><h3>Observe</h3><p>Talk to people and inspect objects. Click unfamiliar signs yourself to preserve their context.</p></article>
           <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Write an English guess. The room tests your interpretation through reactions, never a translation.</p></article>
         </div>
-        <p class="tip">A note needs two distinct contexts before you can mark it understood.</p>
+        <p class="tip">A hypothesis becomes a flashcard only after an action in the world supports it.</p>
       </section>
 
       <header id="hud" class="hud" aria-hidden="true">
         <div class="location"><small>CURRENT AREA</small><strong id="location-english">South Gate Courtyard</strong></div>
-        <div class="objective"><small>CURRENT THREAD</small><strong id="objective-text">Observe how the people identify one another</strong></div>
+        <div class="objective"><span class="goal-icons" aria-hidden="true">🚪🔒 → 🚪✨</span><strong id="objective-text">Find a way through the gate</strong></div>
         <div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
       </header>
 
@@ -55,7 +55,7 @@
           <p id="dialogue-text" class="dialogue-text" lang="zh-Hant"></p>
           <p id="dialogue-reaction" class="dialogue-reaction" aria-live="polite"></p>
           <div id="understanding-check" class="understanding-check" hidden>
-            <small>Choose the figure the gesture refers to</small>
+            <small>Follow the gesture</small>
             <div id="understanding-options" class="understanding-options"></div>
           </div>
           <div class="dialogue-footer">
@@ -75,19 +75,19 @@
         </aside>
         <div class="notebook-content">
           <div class="notebook-top"><div><p id="notebook-kicker">FIELD NOTES</p><h3 id="notebook-heading">Words encountered</h3></div><button id="close-notebook" class="close-button" aria-label="Close notebook">×</button></div>
-          <p id="notebook-intro" class="notebook-intro">Compare at least two contexts, revise your hypothesis, then decide when your confidence is earned.</p>
+          <p id="notebook-intro" class="notebook-intro">Observe → form a hypothesis → compare contexts → test it through action.</p>
           <div id="journal-view" class="journal-view"></div><div id="cards-view" class="cards-view" hidden></div>
         </div>
       </section>
 
       <section id="chapter-banner" class="chapter-banner" role="dialog" aria-hidden="true" aria-labelledby="chapter-title">
-        <p>ROOM CLEARED</p><h2 id="chapter-title">The Thirsty Traveller</h2><span>You used your own hypotheses to read the people in the courtyard.</span>
+        <p>THE GATE OPENS</p><h2 id="chapter-title">A Way Into Town</h2><span>Your interpretations were supported by what happened in the courtyard.</span>
         <button id="continue-town" class="primary-small">Review the courtyard</button>
       </section>
 
       <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
       <div id="mobile-controls" class="mobile-controls" aria-hidden="true"><div id="joystick" class="joystick"><div id="joystick-knob"></div></div><button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button></div>
     </main>
-    <script type="module" src="src/main.js?v=gatehouse-v2"></script>
+    <script type="module" src="src/main.js?v=gatehouse-v3"></script>
   </body>
 </html>

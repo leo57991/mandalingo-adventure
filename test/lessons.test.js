@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import {
   BROWSER_CURRICULUM, COLLIDERS, CONFIDENCE, ENTITIES, FURNITURE, NPCS, POSES, PORTRAIT_ASSETS,
-  RENDER_OBJECTS, ROOM, STRUCTURES, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptUnderstandingChoice, attemptWaterTarget, buildFlashcards,
-  createJournal, createTutorialSession, getConfirmationReadiness, getStageReadiness, getWaterTaskReadiness, grantItem,
-  recordEvidence, recordEncounter, resolvePortraitAsset, setConfidence, setConfirmed, setGuess
+  RENDER_OBJECTS, ROOM, STAGE_HOSTS, STRUCTURES, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptUnderstandingChoice, attemptWaterTarget, buildFlashcards,
+  createJournal, createTutorialSession, getConfirmationReadiness, getLearningState, getStageReadiness, getWaterTaskReadiness, grantItem,
+  recordEvidence, recordEncounter, resolvePortraitAsset, setConfidence, setConfirmed, setGuess, verifyWords
 } from "../src/lessons.js";
 import { FIXED_CAMERA, PLAYER_SPEED, RENDER_LAYERS, isPlayerWalkable, isWorldWalkable, pointInEntityBody, selectInteractionTarget } from "../src/game.js";
 import { GAME_STATE, GameStateController } from "../src/game-state.js";
@@ -15,7 +15,7 @@ import { resolveJoystickVector } from "../src/joystick.js";
 const observe = (journal, tokenText, occurrenceId, entityId = "observer") => recordEvidence(journal, { tokenText, occurrenceId, entityId, location: ROOM.english, chineseLine: tokenText, context: `context ${occurrenceId}`, timestamp: Number(occurrenceId.replace(/\D/g, "")) || 1 });
 const assetExists = path => existsSync(new URL(`../${path}`, import.meta.url));
 const prepareWord = (journal, word) => {
-  const id = VOCABULARY[word].id; let next = observe(journal, word, `${id}:context:1`); next = observe(next, word, `${id}:context:2`); next = setGuess(next, id, `hypothesis ${id}`); next = setConfidence(next, id, CONFIDENCE.PROBABLE); return setConfirmed(next, id, true);
+  const id = VOCABULARY[word].id; let next = observe(journal, word, `${id}:context:1`); next = observe(next, word, `${id}:context:2`); return setGuess(next, id, `hypothesis ${id}`);
 };
 const prepareAllWords = () => TARGET_WORDS.reduce((journal, word) => prepareWord(journal, word), createJournal());
 
@@ -36,6 +36,11 @@ test("every target has at least two distinct contextual occurrences", () => {
   const contexts = Object.fromEntries(TARGET_WORDS.map(word => [word, new Set()]));
   for (const entity of ENTITIES) for (const dialogue of [...entity.lines, ...(entity.resolvedLines ?? [])]) for (const token of new Set(dialogue.tokens)) contexts[token]?.add(`${entity.id}:${dialogue.id}`);
   for (const word of TARGET_WORDS) assert.ok(contexts[word].size >= 2, `${word} only has ${contexts[word].size} contexts`);
+});
+
+test("semantic clues live in performance rather than English narration", () => {
+  const forbidden = /points? (at|to|toward)|touch(?:es)? (?:his|her|their|your) (?:own )?chest|looks? (?:at|toward|from)|empty bowl|full water|third figure|viewer|copies you/i;
+  for (const entity of ENTITIES) for (const dialogue of [...entity.lines, ...(entity.resolvedLines ?? []), ...(entity.remediationLines ?? [])]) assert.doesNotMatch(dialogue.context, forbidden, `${entity.id}:${dialogue.id}`);
 });
 
 test("every dialogue cue names a real portrait, pose, expression, target, prop, and sfx field", () => {
@@ -75,6 +80,22 @@ test("fixed courtyard boundaries, colliders, and interaction radii share room da
   for (const entity of COLLIDERS.filter(item => item.layer === "depth")) assert.equal(isPlayerWalkable(entity.x, entity.y + entity.collider.y + 2), false, entity.id);
 });
 
+test("the courtyard layout tells a locked-gate story at a glance", () => {
+  const gate = FURNITURE.find(item => item.id === "gate"), guard = NPCS.find(item => item.id === "gatekeeper"), clerk = NPCS.find(item => item.id === "clerk"), traveller = NPCS.find(item => item.id === "thirsty-traveller"), board = FURNITURE.find(item => item.id === "notice-board"), table = FURNITURE.find(item => item.id === "work-table"), jar = FURNITURE.find(item => item.id === "water-jar");
+  assert.ok(ROOM.playerStart.y > guard.y && guard.y > gate.y, "player enters from the south and the guard blocks the northern city gate");
+  assert.equal(board.layer, "back-structure"); assert.ok(Math.hypot(clerk.x - table.x, clerk.y - table.y) < 100); assert.ok(Math.hypot(clerk.x - board.x, clerk.y - board.y) < 130);
+  assert.ok(traveller.x < ROOM.width / 2 && jar.x > ROOM.width / 2, "empty bowl and water jar form a cross-courtyard sight line");
+  assert.deepEqual(STAGE_HOSTS, { pronouns: "gatekeeper", identity: "notice-board" });
+});
+
+test("visual language cues render during play and the player feet stay anchored", () => {
+  const source = readFileSync(new URL("../src/game.js", import.meta.url), "utf8");
+  assert.match(source, /this\.drawObject\(ctx, npc\); this\.drawActorGesture\(ctx, npc, cue\)/);
+  assert.match(source, /drawQuestionCue/); assert.match(source, /drawWaterThought/); assert.match(source, /drawRegisterMarks/);
+  assert.doesNotMatch(source, /translate\(this\.player\.x, this\.player\.y \+ bob\)/); assert.match(source, /translate\(this\.player\.x, this\.player\.y\)/);
+  assert.match(source, /COLLIDERS\.filter\(entity => entity\.id !== "gate"\)/);
+});
+
 test("target selection favours a nearby object in the direction the player faces", () => {
   const player = { x: 790, y: 505, facing: -1, lookX: 0, lookY: -1 };
   assert.equal(selectInteractionTarget(player)?.id, "gatekeeper");
@@ -87,21 +108,27 @@ test("repeating one clicked occurrence never fakes independent evidence", () => 
   let repeatedLine = observe(createJournal(), "我", "traveller:need:I:0"); repeatedLine = observe(repeatedLine, "我", "traveller:need:I:2"); assert.equal(repeatedLine.entries.I.distinctContexts, 1);
 });
 
-test("hypothesis revisions and self-confirmation persist without canonical grading", () => {
+test("hypotheses become flashcards only after a world action supports them", () => {
   let journal = observe(createJournal(), "水", "jar:water"); journal = observe(journal, "水", "traveller:water"); journal = setGuess(journal, "water", "a bowl"); journal = setGuess(journal, "water", "a drink", 3); journal = setConfidence(journal, "water", CONFIDENCE.PROBABLE); journal = setConfirmed(journal, "water", true);
-  assert.deepEqual(journal.entries.water.revisions, [{ from: "a bowl", to: "a drink", timestamp: 3 }]); assert.equal(journal.entries.water.confirmed, true); assert.equal("correct" in journal.entries.water, false); assert.deepEqual(buildFlashcards(journal).map(card => card.id), ["water"]);
+  assert.equal(journal.entries.water.confirmed, false); assert.equal(getLearningState(journal.entries.water), "context-ready"); assert.deepEqual(buildFlashcards(journal), []);
+  journal = verifyWords(journal, ["water"], "traveller-drank-water", "The traveller drank from the bowl", 4);
+  assert.deepEqual(journal.entries.water.revisions, [{ from: "a bowl", to: "a drink", timestamp: 3 }]); assert.equal(journal.entries.water.worldVerified, true); assert.equal(journal.entries.water.confidence, CONFIDENCE.CONFIDENT); assert.equal("correct" in journal.entries.water, false); assert.deepEqual(buildFlashcards(journal).map(card => card.id), ["water"]);
 });
 
 test("all six words pass through three ordered world checks", () => {
   let journal = createJournal(); for (const word of ["誰", "水"]) journal = prepareWord(journal, word); journal = grantItem(journal, "water-bowl");
   let session = createTutorialSession(); assert.equal(getWaterTaskReadiness(journal, session).ready, false); assert.equal(session.stage, TUTORIAL_STAGE.PRONOUNS);
   journal = prepareAllWords(); journal = grantItem(journal, "water-bowl"); assert.equal(getStageReadiness(session, journal).ready, true);
-  for (const target of ["player", "gatekeeper", "clerk"]) { const outcome = attemptUnderstandingChoice(session, journal, target); assert.ok(["NEXT", "STAGE_COMPLETE"].includes(outcome.result)); session = outcome.session; }
-  assert.equal(session.stage, TUTORIAL_STAGE.IDENTITY); let identity = attemptUnderstandingChoice(session, journal, "clerk"); assert.equal(identity.result, "STAGE_COMPLETE"); session = identity.session; assert.equal(session.stage, TUTORIAL_STAGE.WATER); assert.equal(getWaterTaskReadiness(journal, session).ready, true);
+  for (const target of ["player", "clerk", "thirsty-traveller"]) { const outcome = attemptUnderstandingChoice(session, journal, target); assert.ok(["NEXT", "STAGE_COMPLETE"].includes(outcome.result)); session = outcome.session; journal = outcome.journal; }
+  assert.equal(session.stage, TUTORIAL_STAGE.IDENTITY); assert.deepEqual(["you", "I", "he"].map(id => journal.entries[id].worldVerified), [true, true, true]);
+  let identity = attemptUnderstandingChoice(session, journal, "thirsty-traveller"); assert.equal(identity.result, "STAGE_COMPLETE"); session = identity.session; journal = identity.journal; assert.equal(session.stage, TUTORIAL_STAGE.WATER); assert.equal(journal.entries.be.worldVerified, true); assert.equal(journal.entries.who.worldVerified, true); assert.equal(getWaterTaskReadiness(journal, session).ready, true);
+  const water = attemptWaterTarget(session, journal, "thirsty-traveller"); assert.equal(water.result, "SUCCESS"); assert.equal(water.journal.entries.water.worldVerified, true); assert.equal(buildFlashcards(water.journal).length, 6);
 });
 
 test("wrong water choices require new world evidence, not punctuation edits", () => {
-  let journal = grantItem(prepareAllWords(), "water-bowl"), session = { ...createTutorialSession(), stage: TUTORIAL_STAGE.WATER };
+  let journal = grantItem(prepareAllWords(), "water-bowl"), session = createTutorialSession();
+  for (const target of ["player", "clerk", "thirsty-traveller", "thirsty-traveller"]) { const outcome = attemptUnderstandingChoice(session, journal, target); session = outcome.session; journal = outcome.journal; }
+  assert.equal(session.stage, TUTORIAL_STAGE.WATER);
   let outcome = attemptWaterTarget(session, journal, "gatekeeper", 10); assert.equal(outcome.result, "CONFUSED"); session = outcome.session; journal = outcome.journal;
   journal = setGuess(journal, "who", `${journal.entries.who.guess}.`, 11); outcome = attemptWaterTarget(session, journal, "thirsty-traveller", 12); assert.equal(outcome.result, "REVISIT_WORLD");
   journal = observe(journal, "水", "gatekeeper:guard-remedy-water:water", "gatekeeper"); outcome = attemptWaterTarget(session, journal, "thirsty-traveller", 13); assert.equal(outcome.result, "SUCCESS"); assert.equal(outcome.journal.quest, "resolved"); assert.equal(outcome.session.stage, TUTORIAL_STAGE.COMPLETE);
@@ -120,5 +147,5 @@ test("focus restoration rejects hidden ancestors and falls back to the game canv
 
 test("the browser module chain uses a single cache version", () => {
   const index = readFileSync(new URL("../index.html", import.meta.url), "utf8"), main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8"), game = readFileSync(new URL("../src/game.js", import.meta.url), "utf8"), version = index.match(/main\.js\?v=([\w-]+)/)?.[1];
-  assert.equal(version, "gatehouse-v2"); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js", "joystick.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
+  assert.equal(version, "gatehouse-v3"); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js", "joystick.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
 });

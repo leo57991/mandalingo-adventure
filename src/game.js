@@ -1,4 +1,5 @@
-import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v5";
+import { paintCourtyard, paintCourtyardGate, paintCourtyardForeground, getCourtyardOcclusion } from "./courtyard-art.js?v=gatehouse-v14";
+import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v14";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -38,7 +39,12 @@ export class MandalingoGame {
     this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }]));
     this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget ? "empty-bowl" : null, startedAt: 0 }]));
     this.images = new Map();
-    for (const source of new Set([...ROOM.groundTiles, ROOM.playerSprite, ...RENDER_OBJECTS.map(item => item.sprite).filter(Boolean), "assets/gate-room/props/empty-bowl.png"])) this.loadImage(source);
+    this.loadImage("assets/gate-room/courtyard-autumn-v1.png");
+    this.loadImage("assets/gate-room/structures/wooden-doors.png");
+    this.courtyardBackdrop = document.createElement("canvas");
+    this.courtyardBackdrop.width = WIDTH; this.courtyardBackdrop.height = HEIGHT;
+    paintCourtyard(this.courtyardBackdrop.getContext("2d"));
+    for (const source of new Set([ROOM.playerSprite, ...RENDER_OBJECTS.filter(item => item.type !== "structure" && item.id !== "gate").map(item => item.sprite).filter(Boolean), "assets/gate-room/props/empty-bowl.png"])) this.loadImage(source);
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
 
@@ -103,27 +109,27 @@ export class MandalingoGame {
       { kind: "player", y: this.player.y, actor: this.player }
     ].sort((a, b) => a.y - b.y);
     for (const item of depth) item.kind === "player" ? this.drawPlayer(ctx) : item.kind === "npc" ? this.drawNpc(ctx, item.actor) : this.drawObject(ctx, item.actor);
+    this.drawCourtyardForeground(ctx);
     this.drawResolutionDialogue(ctx);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "foreground")) this.drawObject(ctx, item);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "effects")) this.drawEffect(ctx, item);
-    this.drawAtmosphere(ctx); if (this.questResolved) this.drawGateLight(ctx); if (this.debugCollisions) this.drawCollisionDebug(ctx);
+    if (this.questResolved) this.drawGateLight(ctx); if (this.debugCollisions) this.drawCollisionDebug(ctx);
   }
 
   drawGround(ctx) {
-    ctx.fillStyle = "#26343a"; ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.save(); ctx.beginPath(); ctx.rect(205, 105, 1190, 670); ctx.clip();
-    const [base, damp, worn] = ROOM.groundTiles.map(source => this.imageReady(source));
-    const fillTexture = (image, alpha, operation, scale, offsetX = 0, offsetY = 0) => {
-      if (!image) return; const pattern = ctx.createPattern(image, "repeat"); if (!pattern) return;
-      if (pattern.setTransform && typeof DOMMatrix !== "undefined") pattern.setTransform(new DOMMatrix().translate(offsetX, offsetY).scale(scale));
-      ctx.globalAlpha = alpha; ctx.globalCompositeOperation = operation; ctx.fillStyle = pattern; ctx.fillRect(205, 105, 1190, 670);
-    };
-    fillTexture(base, .75, "source-over", .5); fillTexture(damp, .09, "multiply", .54, 117, 63); fillTexture(worn, .07, "soft-light", .47, 241, 129);
-    ctx.restore();
-    const shade = ctx.createRadialGradient(800, 430, 180, 800, 430, 780); shade.addColorStop(0, "rgba(213,201,166,.08)"); shade.addColorStop(1, "rgba(4,12,19,.72)"); ctx.fillStyle = shade; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    const art = this.imageReady("assets/gate-room/courtyard-autumn-v1.png");
+    if (!art) { ctx.drawImage(this.courtyardBackdrop, 0, 0); return; }
+    ctx.fillStyle = "#263a32"; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.save(); ctx.globalAlpha = .45; ctx.drawImage(art, 0, -20, WIDTH, HEIGHT); ctx.restore();
+    ctx.drawImage(art, 80, -20, 1440, 900);
+    const vignette = ctx.createLinearGradient(0, 0, WIDTH, 0);
+    vignette.addColorStop(0, "rgba(22,37,31,.85)"); vignette.addColorStop(.14, "rgba(22,37,31,0)");
+    vignette.addColorStop(.86, "rgba(22,37,31,0)"); vignette.addColorStop(1, "rgba(22,37,31,.85)");
+    ctx.fillStyle = vignette; ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
 
   drawObject(ctx, item) {
+    if (item.type === "structure") return;
     if (item.id === "gate") { this.drawGate(ctx, item); return; }
     const image = this.imageReady(item.sprite); if (!image) return;
     const left = item.x - item.width * (item.anchorX ?? .5), top = item.y + (item.footOffset ?? 0) - item.height * (item.anchorY ?? 1);
@@ -134,12 +140,21 @@ export class MandalingoGame {
   }
 
   drawGate(ctx, item) {
-    const image = this.imageReady(item.sprite); if (!image || this.gateOpenProgress >= 1) return;
-    const crop = item.crop ?? { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight }, left = item.x - item.width * item.anchorX, top = item.y - item.height * item.anchorY, half = item.width / 2, sourceHalf = crop.width / 2, slide = half * this.gateOpenProgress;
-    ctx.save(); ctx.globalAlpha = 1 - this.gateOpenProgress * .3;
-    ctx.drawImage(image, crop.x, crop.y, sourceHalf, crop.height, left - slide, top, half, item.height);
-    ctx.drawImage(image, crop.x + sourceHalf, crop.y, sourceHalf, crop.height, left + half + slide, top, half, item.height);
+    const doors = this.imageReady("assets/gate-room/structures/wooden-doors.png");
+    if (!doors || !this.imageReady("assets/gate-room/courtyard-autumn-v1.png")) { paintCourtyardGate(ctx, this.gateOpenProgress); return; }
+    ctx.save(); ctx.beginPath(); ctx.rect(727, 145, 165, 134); ctx.clip();
+    const slide = this.gateOpenProgress * 84;
+    ctx.drawImage(doors, 128, 54, 56, 157, 727 - slide, 145, 82, 134);
+    ctx.drawImage(doors, 187, 54, 55, 157, 810 + slide, 145, 82, 134);
     ctx.restore();
+  }
+
+  drawCourtyardForeground(ctx) {
+    const art = this.imageReady("assets/gate-room/courtyard-autumn-v1.png");
+    if (!art) { paintCourtyardForeground(ctx, this.player); return; }
+    ctx.save(); ctx.globalAlpha = getCourtyardOcclusion(this.player);
+    ctx.beginPath(); ctx.rect(225, 652, 475, 135); ctx.rect(922, 652, 455, 135); ctx.clip();
+    ctx.drawImage(art, 80, -20, 1440, 900); ctx.restore();
   }
 
   drawWaterNotice(ctx, item) {

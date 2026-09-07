@@ -1,14 +1,14 @@
-import { Soundscape } from "./audio.js?v=gatehouse-v5";
-import { MandalingoGame } from "./game.js?v=gatehouse-v5";
+import { Soundscape } from "./audio.js?v=gatehouse-v14";
+import { MandalingoGame } from "./game.js?v=gatehouse-v14";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, grantItem, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=gatehouse-v5";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v5";
-import { InputRouter } from "./input.js?v=gatehouse-v5";
-import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v5";
-import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v5";
+} from "./lessons.js?v=gatehouse-v14";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v14";
+import { InputRouter } from "./input.js?v=gatehouse-v14";
+import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v14";
+import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v14";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);

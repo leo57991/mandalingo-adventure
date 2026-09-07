@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Courtyard visual review</title>
+<style>body{margin:0;background:#17251e;color:#f3e9cb;font:14px system-ui}nav{display:flex;gap:8px;padding:8px;align-items:center}button{padding:10px;background:#e9dfc4;color:#17251e;border:0;border-radius:4px;cursor:pointer}button:focus-visible{outline:3px solid #f7b954;outline-offset:2px}iframe{display:block;border:0;width:100vw;height:calc(100vh - 100px)}output{display:block;padding:8px;font-family:monospace}</style>
+<nav aria-label="Local visual review fixtures"><button data-move="a">Walk left</button><button data-move="d">Walk right</button><button data-move="w">Walk up</button><button data-move="s">Walk down</button><button data-fixture="traveller">Traveller</button><button data-fixture="clerk">Clerk</button><button data-fixture="water">Water</button><button data-fixture="south">South wall</button><button data-fixture="gate">Gate opening</button></nav>
+<output id="status" aria-live="polite">Loading local game…</output><iframe title="Playable courtyard" src="../index.html"></iframe>
+<script type="module">
+// Local review harness only; tools/ is excluded from the Pages artifact.
+const frame=document.querySelector('iframe'),status=document.querySelector('output');
+const api=()=>frame.contentWindow.__mandalingo;
+const points={traveller:[500,525,-1,-.3],clerk:[990,432,1,-.4],water:[1130,520,1,0],south:[450,660,0,1]};
+for(const button of document.querySelectorAll('[data-move]'))button.onclick=()=>{const game=api().game;game.setKey(button.dataset.move,true);setTimeout(()=>game.setKey(button.dataset.move,false),1100);};
+for(const button of document.querySelectorAll('[data-fixture]'))button.onclick=()=>{const game=api().game,id=button.dataset.fixture;if(id==='gate'){game.beginWaterResolution();return;}const [x,y,lookX,lookY]=points[id];Object.assign(game.player,{x,y,lookX,lookY,facing:Math.sign(lookX)||1});};
+setInterval(()=>{const a=api();if(!a)return;status.textContent=JSON.stringify({state:a.state.current,x:Math.round(a.game.player.x),y:Math.round(a.game.player.y),target:a.game.nearby?.id??null,gate:a.game.gateOpenProgress,phase:a.game.resolutionPhase});},300);
+</script></html>

@@ -122,8 +122,8 @@ export const FURNITURE = Object.freeze([
 export const DECORATIONS = Object.freeze([
   { id: "lantern-nw", type: "decoration", x: 500, y: 285, ...visual("assets/gate-room/props/lantern.png", 84, 84, "back-structure"), collider: collider(26, 22, -18) },
   { id: "lantern-ne", type: "decoration", x: 1100, y: 285, ...visual("assets/gate-room/props/lantern.png", 84, 84, "back-structure"), collider: collider(26, 22, -18) },
-  { id: "lantern-sw", type: "decoration", x: 625, y: 710, ...visual("assets/gate-room/props/lantern.png", 90, 90), collider: collider(28, 22, -18) },
-  { id: "lantern-se", type: "decoration", x: 975, y: 710, ...visual("assets/gate-room/props/lantern.png", 90, 90), collider: collider(28, 22, -18) },
+  { id: "lantern-sw", type: "decoration", x: 625, y: 710, ...visual("assets/gate-room/props/lantern.png", 90, 90, "foreground"), collider: collider(28, 22, -18) },
+  { id: "lantern-se", type: "decoration", x: 975, y: 710, ...visual("assets/gate-room/props/lantern.png", 90, 90, "foreground"), collider: collider(28, 22, -18) },
   { id: "crate", type: "decoration", x: 350, y: 520, ...visual("assets/gate-room/props/wooden-crate.png", 94, 94), collider: collider(62, 44, -36) },
   { id: "water-bucket", type: "decoration", x: 1250, y: 540, ...visual("assets/gate-room/props/water-bucket.png", 74, 74), collider: collider(44, 30, -25) },
   { id: "bamboo-left", type: "decoration", x: 310, y: 300, ...visual("assets/gate-room/props/bamboo.png", 145, 145, "back-structure"), collider: collider(55, 30, -24) },

@@ -1,14 +1,14 @@
-import { Soundscape } from "./audio.js?v=gatehouse-v14";
-import { MandalingoGame } from "./game.js?v=gatehouse-v14";
+import { Soundscape } from "./audio.js?v=gatehouse-v15";
+import { MandalingoGame } from "./game.js?v=gatehouse-v15";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
-  getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, grantItem, recordEvidence,
+  collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=gatehouse-v14";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v14";
-import { InputRouter } from "./input.js?v=gatehouse-v14";
-import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v14";
-import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v14";
+} from "./lessons.js?v=gatehouse-v15";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v15";
+import { InputRouter } from "./input.js?v=gatehouse-v15";
+import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v15";
+import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v15";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -23,8 +23,8 @@ const elements = {
 };
 
 function loadProgress() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; } }
-const saved = loadProgress();
-let journal = createJournal(saved.journal), tutorialSession = createTutorialSession(saved.session);
+const saved = loadProgress() ?? {};
+let journal = createJournal(saved.journal), tutorialSession = createTutorialSession({ ...saved.session, resolved: saved.journal?.quest === "resolved" || saved.session?.resolved });
 let activeEntity = null, activeLines = [], lineIndex = 0, toastTimer = null, resetJoystick = () => {};
 const sound = new Soundscape();
 const focusManager = new ModalFocusManager(document, elements.game);
@@ -50,22 +50,24 @@ const input = new InputRouter({
   }
 });
 
-function saveProgress() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ journal, session: tutorialSession })); updateInterface(); }
-function setVisible(node, visible) { node.classList.toggle("is-visible", visible); node.setAttribute("aria-hidden", String(!visible)); }
+function saveProgress() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ journal, session: tutorialSession })); } catch { showToast("Progress could not be saved on this device."); } updateInterface(); }
+function setVisible(node, visible) { node.hidden = !visible; node.classList.toggle("is-visible", visible); node.setAttribute("aria-hidden", String(!visible)); }
 function syncUiState() {
   const current = state.current;
   setVisible(elements.title, current === GAME_STATE.TITLE); setVisible(elements.help, current === GAME_STATE.HELP);
   setVisible(elements.dialogue, current === GAME_STATE.DIALOGUE); setVisible(elements.notebook, current === GAME_STATE.NOTEBOOK); setVisible(elements.chapter, current === GAME_STATE.CHAPTER);
   const activePlay = ![GAME_STATE.TITLE, GAME_STATE.HELP].includes(current); elements.hud.classList.toggle("is-visible", activePlay); elements.hud.setAttribute("aria-hidden", String(!activePlay));
   elements.mobile.classList.toggle("is-visible", current === GAME_STATE.EXPLORING); elements.mobile.setAttribute("aria-hidden", String(current !== GAME_STATE.EXPLORING));
+  document.querySelector("#app").dataset.state = current;
+  $("#notebook-btn").disabled = current === GAME_STATE.CUTSCENE;
   game.setInputEnabled(current === GAME_STATE.EXPLORING); if (current !== GAME_STATE.EXPLORING) { elements.prompt.classList.remove("is-visible"); resetJoystick(); } else updateInteractionPrompt(game.nearby);
   const modal = current === GAME_STATE.HELP ? elements.help : current === GAME_STATE.DIALOGUE ? elements.dialogue : current === GAME_STATE.NOTEBOOK ? elements.notebook : current === GAME_STATE.CHAPTER ? elements.chapter : null;
   focusManager.sync(modal); updateInterface();
 }
 
 function startGame() {
-  if (state.current !== GAME_STATE.TITLE) return; sound.ensure(); game.start(); state.reset(GAME_STATE.EXPLORING);
-  requestAnimationFrame(() => elements.game.focus()); showToast("WASD · E · N");
+  if (state.current !== GAME_STATE.TITLE) return; sound.ensure(); game.start({ resolved: tutorialSession.resolved }); state.reset(GAME_STATE.EXPLORING);
+  requestAnimationFrame(() => elements.game.focus()); showToast("Explore · Observe · Follow the gestures");
 }
 
 function updateInteractionPrompt(entity) {
@@ -86,12 +88,13 @@ function renderLine() {
   recordDisplayedLine(line);
   elements.context.textContent = line.context; elements.context.hidden = !line.context; elements.speaker.textContent = line.speaker; elements.speakerType.textContent = activeEntity.type === "npc" ? "PERSON" : "OBJECT"; elements.lineCount.textContent = `${lineIndex + 1} / ${activeLines.length}`; elements.reaction.textContent = "";
   renderChineseLine(line); renderPortrait(line); game.resetActorCues(); if (activeEntity.type === "npc") game.setActorCue(activeEntity.id, { pose: line.pose, expression: line.expression, gestureTarget: line.gestureTarget, prop: line.prop });
+  game.dialogueActor = game.worldEntity(activeEntity); game.dialogueText = line.text;
   refreshDialogueActions();
-  $("#dialogue-next").hidden = false;
+  $("#dialogue-next").hidden = false; $("#dialogue-next").textContent = lineIndex < activeLines.length - 1 ? "Continue · E" : "Return · E";
   sound.page();
 }
 
-function refreshDialogueActions() { const readiness = getWaterTaskReadiness(journal, tutorialSession), canHelp = activeEntity?.waterTarget && readiness.ready; elements.useWater.hidden = !canHelp; elements.useWater.disabled = false; elements.useWater.title = readiness.reason; }
+function refreshDialogueActions() { const readiness = getWaterTaskReadiness(journal, tutorialSession), canHelp = activeEntity?.waterTarget && readiness.ready; elements.useWater.hidden = !canHelp; elements.useWater.disabled = false; elements.useWater.title = readiness.reason; const collect = $("#collect-bowl"); collect.hidden = !activeEntity?.collectibleItem || journal.inventory.includes("water-bowl") || journal.quest === "resolved"; }
 
 function renderChineseLine(line) {
   elements.text.replaceChildren(); const tokenSet = new Set(line.tokens);
@@ -114,19 +117,18 @@ function recordDisplayedLine(line) {
     journal = recordEvidence(journal, { tokenText, occurrenceId, entityId: activeEntity.id, location: "South Gate Courtyard", chineseLine: line.text, context: line.context });
     if (!known) added.push(tokenText);
   }
-  if (activeEntity.grantsOnObservation === "water-bowl" && line.tokens.includes("水")) journal = grantItem(journal, "water-bowl");
   saveProgress(); if (added.length) showToast(`▤　${added.join("・")}`);
 }
 
 function advanceDialogue() { if (state.current !== GAME_STATE.DIALOGUE) return; if (lineIndex < activeLines.length - 1) { lineIndex += 1; renderLine(); } else closeDialogue(); }
-function closeDialogue() { if (state.current !== GAME_STATE.DIALOGUE) return; activeEntity = null; activeLines = []; lineIndex = 0; game.resetActorCues(); state.pop(); }
+function closeDialogue() { if (state.current !== GAME_STATE.DIALOGUE) return; activeEntity = null; activeLines = []; lineIndex = 0; game.dialogueActor = null; game.dialogueText = ""; game.resetActorCues(); state.pop(); }
 
 function useWaterOnActive() {
   if (state.current !== GAME_STATE.DIALOGUE || !activeEntity?.waterTarget) return;
   const outcome = attemptWaterTarget(tutorialSession, journal, activeEntity.id); tutorialSession = outcome.session; journal = outcome.journal; saveProgress();
   if (outcome.result === "NOT_READY") { elements.reaction.textContent = "The traveller waits."; return; }
   if (outcome.result !== "SUCCESS") return;
-  activeEntity = null; activeLines = []; lineIndex = 0; state.reset(GAME_STATE.CUTSCENE); game.beginWaterResolution(); sound.invoke();
+  activeEntity = null; activeLines = []; lineIndex = 0; game.dialogueActor = null; game.dialogueText = ""; state.reset(GAME_STATE.CUTSCENE); game.beginWaterResolution(); sound.invoke();
 }
 
 function completeWaterResolution() { tutorialSession = { ...tutorialSession, resolving: false, resolved: true, stage: TUTORIAL_STAGE.COMPLETE }; journal = { ...journal, quest: "resolved" }; saveProgress(); state.reset(GAME_STATE.CHAPTER); }
@@ -161,25 +163,33 @@ function activateTab(tab) { document.querySelectorAll(".tab-button").forEach(but
 function closeChapter() { if (state.current === GAME_STATE.CHAPTER) { state.reset(GAME_STATE.EXPLORING); requestAnimationFrame(() => elements.game.focus()); showToast("The room remains open for review."); } }
 function closeCurrentOverlay() { if (state.current === GAME_STATE.HELP) state.pop(); else if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if (state.current === GAME_STATE.DIALOGUE) closeDialogue(); else if (state.current === GAME_STATE.CHAPTER) closeChapter(); }
 function updateInterface() {
+  game.carryingWater = journal.inventory.includes("water-bowl") && journal.quest !== "resolved";
+  $("#inventory-chip").hidden = !game.carryingWater;
   const entries = getEncounteredEntries(journal), cards = buildFlashcards(journal); elements.journalCount.textContent = entries.length; elements.cardCount.textContent = cards.length;
   if (journal.quest === "resolved") elements.objective.textContent = "The way into town is open";
   else if (tutorialSession.resolving) elements.objective.textContent = "Watch what happens";
-  else if (getWaterTaskReadiness(journal, tutorialSession).ready) elements.objective.textContent = "Try your idea in the courtyard";
+  else if (getWaterTaskReadiness(journal, tutorialSession).ready) elements.objective.textContent = "A bowl in hand. Someone may need it.";
   else elements.objective.textContent = "Find a way through the gate";
 }
 function showToast(message) { clearTimeout(toastTimer); elements.toast.textContent = message; elements.toast.classList.add("is-visible"); toastTimer = setTimeout(() => elements.toast.classList.remove("is-visible"), 2500); }
 function escapeHtml(value = "") { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
+$("#collect-bowl").addEventListener("click", () => {
+  if (state.current !== GAME_STATE.DIALOGUE || activeEntity?.id !== "water-jar") return;
+  journal = collectBowl(journal, activeEntity.id); saveProgress(); refreshDialogueActions();
+  elements.reaction.textContent = "The bowl rests in your hands."; $("#dialogue-next").focus(); sound.page();
+});
+if (tutorialSession.resolved) { journal.quest = "resolved"; $("#start-btn span").textContent = "Return to the courtyard"; }
 $("#start-btn").addEventListener("click", startGame); $("#how-btn").addEventListener("click", () => state.push(GAME_STATE.HELP)); $("[data-close='how-screen']").addEventListener("click", () => state.pop());
 $("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
-document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; });
+document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; elements.sound.setAttribute("aria-pressed", String(!muted)); });
 
 setupJoystick();
 function setupJoystick() {
   const base = $("#joystick"), knob = $("#joystick-knob"); let pointerId = null;
   const release = () => { pointerId = null; knob.style.transform = "translate(0,0)"; game.setMobileVector(0, 0); }; resetJoystick = release;
   const update = event => { if (state.current !== GAME_STATE.EXPLORING) { release(); return; } const vector = resolveJoystickVector(event.clientX, event.clientY, base.getBoundingClientRect()); knob.style.transform = `translate(${vector.pixelX}px,${vector.pixelY}px)`; game.setMobileVector(vector.x, vector.y); };
-  base.addEventListener("pointerdown", event => { pointerId = event.pointerId; base.setPointerCapture(pointerId); update(event); }); base.addEventListener("pointermove", event => { if (event.pointerId === pointerId) update(event); }); base.addEventListener("pointerup", release); base.addEventListener("pointercancel", release); $("#interact-btn").addEventListener("pointerdown", () => game.interact());
+  base.addEventListener("pointerdown", event => { pointerId = event.pointerId; base.setPointerCapture(pointerId); update(event); }); base.addEventListener("pointermove", event => { if (event.pointerId === pointerId) update(event); }); base.addEventListener("pointerup", release); base.addEventListener("pointercancel", release); $("#interact-btn").addEventListener("click", () => game.interact());
 }
 
 updateInterface();

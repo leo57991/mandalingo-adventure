@@ -110,7 +110,7 @@ export const FURNITURE = Object.freeze([
   },
   {
     id: "water-jar", type: "object", kind: "water-jar", x: 1215, y: 515, label: "Glazed jar", action: "Inspect",
-    ...visual("assets/gate-room/props/water-jar.png", 118, 118), interactionRadius: 125, collider: collider(72, 45, -37), grantsOnObservation: "water-bowl",
+    ...visual("assets/gate-room/props/water-jar-open-v1.png", 118, 118), interactionRadius: 125, collider: collider(72, 45, -37), collectibleItem: "water-bowl",
     lines: [line("jar-water", "Courtyard jar", "水。", ["水"], "object", "hold-water", "clear", "water-jar", "water", "water-pour", "Drip… drip…")]
   },
   {
@@ -128,7 +128,7 @@ export const DECORATIONS = Object.freeze([
   { id: "water-bucket", type: "decoration", x: 1250, y: 540, ...visual("assets/gate-room/props/water-bucket.png", 74, 74), collider: collider(44, 30, -25) },
   { id: "bamboo-left", type: "decoration", x: 310, y: 300, ...visual("assets/gate-room/props/bamboo.png", 145, 145, "back-structure"), collider: collider(55, 30, -24) },
   { id: "rock-right", type: "decoration", x: 1270, y: 385, ...visual("assets/gate-room/props/scholar-rock.png", 102, 102), collider: collider(56, 34, -28) },
-  { id: "weapon-rack", type: "decoration", x: 410, y: 625, ...visual("assets/gate-room/props/weapon-rack.png", 120, 120), collider: collider(84, 30, -24) },
+  { id: "weapon-rack", type: "decoration", x: 610, y: 350, ...visual("assets/gate-room/props/weapon-rack.png", 120, 120), collider: collider(84, 30, -24) },
   { id: "chair", type: "decoration", x: 1165, y: 455, ...visual("assets/gate-room/props/wooden-chair.png", 84, 84), collider: collider(44, 28, -23) },
   { id: "leaves", type: "effect", x: 500, y: 520, ...visual("assets/gate-room/props/fallen-leaves.png", 115, 115, "effects"), collider: null },
   { id: "mist", type: "effect", x: 1030, y: 300, ...visual("assets/gate-room/props/mist-wisp.png", 160, 160, "effects"), collider: null }
@@ -200,7 +200,7 @@ export function recordEncounter(journal, tokenText, location, entityId, timestam
 export function setGuess(journal, entryId, guess, timestamp = Date.now(), options = {}) { const entry = journal.entries[entryId]; if (!entry) return journal; const nextGuess = guess.trim().slice(0, 80), previousGuess = options.previousGuess ?? entry.guess; const revisions = options.recordRevision === false || !previousGuess || !nextGuess || previousGuess === nextGuess || entry.revisions.at(-1)?.to === nextGuess ? entry.revisions : [...entry.revisions, { from: previousGuess, to: nextGuess, timestamp }].slice(-12); return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, guess: nextGuess, revisions } } }; }
 export function setConfidence(journal, entryId, confidence) { const entry = journal.entries[entryId]; if (!entry || !Object.values(CONFIDENCE).includes(confidence) || entry.worldVerified) return journal; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confidence } } }; }
 export function setConfirmed(journal, entryId, confirmed) { const entry = journal.entries[entryId]; if (!entry || confirmed || entry.worldVerified) return journal; return { ...journal, entries: { ...journal.entries, [entryId]: { ...entry, confirmed: false } } }; }
-export function grantItem(journal, item) { return journal.inventory.includes(item) ? journal : { ...journal, inventory: [...journal.inventory, item], quest: item === "water-bowl" ? "find-thirsty-person" : journal.quest }; }
+export function grantItem(journal, item) { return journal.inventory.includes(item) ? journal : { ...journal, inventory: [...journal.inventory, item], quest: item === "water-bowl" && journal.quest !== "resolved" ? "find-thirsty-person" : journal.quest }; }
 export function getEncounteredEntries(journal) { return Object.values(journal.entries).sort((a, b) => b.lastSeenAt - a.lastSeenAt); }
 export function getConfirmationReadiness(entry) { if (!entry?.guess?.trim()) return { ready: false, reason: "Form a hypothesis first." }; if ((entry.distinctContexts ?? 0) < BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding) return { ready: false, reason: "Observe this sign in another context." }; return { ready: true, reason: "Ready to test through an action in the world." }; }
 export function getLearningState(entry) { if (!entry?.encounters) return "unobserved"; if (entry.worldVerified) return "world-verified"; if ((entry.distinctContexts ?? 0) >= BROWSER_CURRICULUM.minimumDistinctContextsForUnderstanding && entry.guess?.trim()) return "context-ready"; if (entry.guess?.trim()) return "hypothesis"; return "observed"; }
@@ -216,10 +216,11 @@ export function verifyWords(journal, entryIds, actionId, actionLabel, timestamp 
 export function buildFlashcards(journal) { return getEncounteredEntries(journal).filter(entry => entry.worldVerified && getConfirmationReadiness(entry).ready); }
 
 export const TUTORIAL_STAGE = Object.freeze({ WATER: "water", COMPLETE: "complete" });
+export function collectBowl(journal, targetId) { const item = FURNITURE.find(entity => entity.id === targetId)?.collectibleItem; return item && journal.quest !== "resolved" ? grantItem(journal, item) : journal; }
 export function totalDistinctEvidence(journal) { return Object.values(journal.entries).reduce((total, entry) => total + (entry.distinctContexts ?? 0), 0); }
 export function createTutorialSession(saved = {}) {
   const resolved = Boolean(saved.resolved), stage = resolved ? TUTORIAL_STAGE.COMPLETE : TUTORIAL_STAGE.WATER;
-  return { resolved, resolving: Boolean(saved.resolving) && !resolved, stage };
+  return { resolved, resolving: false, stage };
 }
 export function matchesWaterHypothesis(value = "") {
   const normalized = String(value).normalize("NFKC").toLocaleLowerCase("en").replace(/[’']/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -228,16 +229,12 @@ export function matchesWaterHypothesis(value = "") {
 export function getWaterTaskReadiness(journal, session = createTutorialSession()) {
   if (session.resolved || session.resolving || session.stage === TUTORIAL_STAGE.COMPLETE) return { ready: false, reason: "The traveller has already acted on your idea." };
   if (!journal.inventory.includes("water-bowl")) return { ready: false, reason: "You are not carrying water." };
-  const water = journal.entries.water;
-  if ((water?.distinctContexts ?? 0) < 2) return { ready: false, reason: "The mark has not appeared in enough places yet." };
-  if (!water?.guess?.trim()) return { ready: false, reason: "Write a hypothesis for 水 in the Notebook." };
-  if (!matchesWaterHypothesis(water.guess)) return { ready: false, reason: "The world offers no action for that hypothesis yet." };
-  return { ready: true, reason: "Your idea can now be tested in the courtyard." };
+  return { ready: true, reason: "Offer the bowl and watch the response." };
 }
 export function attemptWaterTarget(session, journal, targetId, timestamp = Date.now()) {
   if (session.resolved || session.resolving) return { result: "ALREADY_RESOLVED", session, journal };
   const readiness = getWaterTaskReadiness(journal, session); if (!readiness.ready) return { result: "NOT_READY", reason: readiness.reason, session, journal };
   if (targetId !== "thirsty-traveller") return { result: "NO_ACTION", session, journal };
-  const verified = verifyWords(journal, ["water"], "traveller-advocated-at-gate", "The traveller drank, recovered, and spoke for you", timestamp);
-  return { result: "SUCCESS", session: { ...session, resolving: true }, journal: { ...verified, quest: "traveller-helped" } };
+  // A physical offer supplies evidence, not authority over the learner's translation.
+  return { result: "SUCCESS", session: { ...session, resolving: true }, journal: { ...journal, quest: "traveller-helped" } };
 }

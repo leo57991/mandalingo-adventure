@@ -7,20 +7,20 @@
     <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a modular wuxia courtyard." />
     <title>Mandalingo — Gatehouse Tutorial</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=gatehouse-v14" />
+    <link rel="stylesheet" href="styles.css?v=gatehouse-v15" />
   </head>
   <body>
     <main id="app">
-      <canvas id="game" width="1600" height="900" tabindex="0" aria-label="Fixed orthographic view of the South Gate courtyard"></canvas>
+      <canvas id="game" width="1600" height="900" tabindex="0" aria-label="South Gate courtyard. Move with WASD or arrow keys; E to interact; N for notebook."></canvas>
 
       <section id="title-screen" class="screen title-screen is-visible" aria-labelledby="game-title">
         <div class="seal" aria-hidden="true">◇</div>
-        <p class="eyebrow">A CONTEXTUAL LANGUAGE MYSTERY</p>
+        <p class="eyebrow">AN AUTUMN JOURNEY · CHAPTER 01</p>
         <h1 id="game-title">MANDA<span>LINGO</span></h1>
-        <p class="chapter-name">THE GATEHOUSE</p>
+        <p class="chapter-name">THE SOUTH GATE</p>
         <p class="intro">The city gate is barred.<br />Read the courtyard through gestures, objects and consequences.</p>
         <button id="start-btn" class="primary-button"><span>Enter the courtyard</span><kbd>Enter</kbd></button>
-        <button id="how-btn" class="text-button">How this playtest works</button>
+        <button id="how-btn" class="text-button">A traveller’s guide</button>
         <div class="principles"><span>No translations</span><i></i><span>No instant grading</span><i></i><span>Your own notebook</span></div>
       </section>
 
@@ -29,17 +29,17 @@
         <p class="panel-kicker">THE TRAVELLER'S METHOD</p>
         <h2 id="how-title">Meaning lives in context</h2>
         <div class="how-grid">
-          <article><b>01</b><span>WASD · SHIFT</span><h3>Explore</h3><p>Walk or run around this fixed-screen courtyard. Every wall, prop, and character is a separate game object.</p></article>
+          <article><b>01</b><span>WASD · SHIFT</span><h3>Explore</h3><p>Walk through the courtyard. On a keyboard, use WASD or arrows; hold Shift to run. On touch screens, use the directional control.</p></article>
           <article><b>02</b><span>E</span><h3>Observe</h3><p>Talk to people and inspect objects. Every unfamiliar sign you actually see is recorded automatically.</p></article>
-          <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Write an English guess. The room tests your interpretation through reactions, never a translation.</p></article>
+          <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Keep your own guesses in the notebook. Try an action and watch what changes. Your notes never lock an action.</p></article>
         </div>
-        <p class="tip">A hypothesis becomes a flashcard only after an action in the world supports it.</p>
+        <p class="tip">Observe the people, inspect their surroundings, and follow the gestures.</p>
       </section>
 
       <header id="hud" class="hud" aria-hidden="true">
         <div class="location"><small>CURRENT AREA</small><strong id="location-english">South Gate Courtyard</strong></div>
-        <div class="objective"><span class="goal-icons" aria-hidden="true">🚪🔒 → 🚪✨</span><strong id="objective-text">Find a way through the gate</strong></div>
-        <div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
+        <div class="objective"><small>YOUR JOURNEY</small><span class="goal-icons" aria-hidden="true">◇</span><strong id="objective-text">Find a way through the gate</strong></div>
+        <div id="inventory-chip" class="inventory-chip" hidden><img src="assets/gate-room/props/empty-bowl.png" alt="" />Bowl in hand</div><div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
       </header>
 
       <div id="interaction-prompt" class="interaction-prompt" aria-live="polite"><kbd>E</kbd><div><small id="interaction-action">Talk</small><strong id="interaction-label">Gatekeeper</strong></div></div>
@@ -56,6 +56,7 @@
           <p id="dialogue-reaction" class="dialogue-reaction" aria-live="polite"></p>
           <div class="dialogue-footer">
             <button id="dialogue-notes" class="secondary-button">Open notes <kbd>N</kbd></button>
+            <button id="collect-bowl" class="water-button" hidden>Fill a bowl</button>
             <button id="use-water" class="water-button" hidden>Offer the bowl</button>
             <button id="dialogue-next" class="primary-small">Continue <kbd>E</kbd></button>
           </div>
@@ -80,9 +81,10 @@
         <button id="continue-town" class="primary-small">Review the courtyard</button>
       </section>
 
+      <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><small>SOUTH GATE · AUTUMN</small></footer>
       <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
-      <div id="mobile-controls" class="mobile-controls" aria-hidden="true"><div id="joystick" class="joystick"><div id="joystick-knob"></div></div><button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button></div>
+      <div id="mobile-controls" class="mobile-controls" aria-hidden="true"><div id="joystick" class="joystick"><div id="joystick-knob" class="joystick-knob"></div></div><button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button></div>
     </main>
-    <script type="module" src="src/main.js?v=gatehouse-v14"></script>
+    <script type="module" src="src/main.js?v=gatehouse-v15"></script>
   </body>
 </html>

@@ -1,10 +1,12 @@
-import { paintCourtyard, paintCourtyardGate, paintCourtyardForeground, getCourtyardOcclusion } from "./courtyard-art.js?v=gatehouse-v14";
-import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v14";
+import { paintCourtyard, paintCourtyardGate, paintCourtyardForeground, getCourtyardOcclusion } from "./courtyard-art.js?v=gatehouse-v15";
+import { COLLIDERS, ENTITIES, FURNITURE, NPCS, RENDER_OBJECTS, ROOM } from "./lessons.js?v=gatehouse-v15";
+
+import { COURTYARD_ART, courtyardCamera } from "./scene-layout.js?v=gatehouse-v15";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height, TAU = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-export const FIXED_CAMERA = true;
+export const FIXED_CAMERA = false;
 export const RENDER_LAYERS = Object.freeze(["ground", "back-structure", "depth", "foreground", "effects", "ui"]);
 export const PLAYER_SPEED = Object.freeze({ walkX: 120, walkY: 105, runX: 190, runY: 165 });
 export const PLAYER_COLLISION_RADIUS = 18;
@@ -37,8 +39,15 @@ export class MandalingoGame {
     this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false;
     this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 };
     this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }]));
-    this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget ? "empty-bowl" : null, startedAt: 0 }]));
-    this.images = new Map();
+    this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget && !this.questResolved ? "empty-bowl" : null, startedAt: 0 }]));
+    this.images = new Map(); this.stride = 0; this.moving = false; this.carryingWater = false;
+    this.reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.viewWidth = canvas.clientWidth || WIDTH; this.viewHeight = canvas.clientHeight || HEIGHT;
+    new ResizeObserver(([entry]) => {
+      this.viewWidth = entry.contentRect.width; this.viewHeight = entry.contentRect.height;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = Math.round(this.viewWidth*dpr); canvas.height = Math.round(this.viewHeight*dpr);
+    }).observe(canvas);
     this.loadImage("assets/gate-room/courtyard-autumn-v1.png");
     this.loadImage("assets/gate-room/structures/wooden-doors.png");
     this.courtyardBackdrop = document.createElement("canvas");
@@ -50,7 +59,13 @@ export class MandalingoGame {
 
   loadImage(source) { const image = new Image(); image.src = source; this.images.set(source, image); return image; }
   imageReady(source) { const image = this.images.get(source); return image?.complete && image.naturalWidth > 0 ? image : null; }
-  start() { this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues(); }
+  start({ resolved = false } = {}) { this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
+    if (resolved) {
+      this.questResolved = true; this.gateOpenProgress = 1; this.gateApproachTriggered = true;
+      this.actorPositions["thirsty-traveller"] = { x: 735, y: 405 };
+      this.setActorCue("thirsty-traveller", {pose:"idle", expression:"relieved", prop:null});
+    }
+  }
   setInputEnabled(enabled) { this.inputEnabled = enabled; if (!enabled) this.clearKeys(); }
   setKey(key, down) { if (down) this.keys.add(key); else this.keys.delete(key); }
   setMobileVector(x, y) { this.mobileVector = { x, y }; }
@@ -86,6 +101,7 @@ export class MandalingoGame {
     if (this.inputEnabled) { x += Number(this.keys.has("d") || this.keys.has("arrowright")) - Number(this.keys.has("a") || this.keys.has("arrowleft")); y += Number(this.keys.has("s") || this.keys.has("arrowdown")) - Number(this.keys.has("w") || this.keys.has("arrowup")); }
     const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
     if (!this.inputEnabled) x = y = 0;
+    const oldX = this.player.x, oldY = this.player.y;
     if (x || y) {
       this.player.lookX = x; this.player.lookY = y; if (Math.abs(x) > .1) this.player.facing = Math.sign(x);
       const running = this.keys.has("shift"), speedX = running ? PLAYER_SPEED.runX : PLAYER_SPEED.walkX, speedY = running ? PLAYER_SPEED.runY : PLAYER_SPEED.walkY;
@@ -94,6 +110,8 @@ export class MandalingoGame {
       if (isPlayerWalkable(nextX, this.player.y, PLAYER_COLLISION_RADIUS, activeColliders)) this.player.x = nextX;
       if (isPlayerWalkable(this.player.x, nextY, PLAYER_COLLISION_RADIUS, activeColliders)) this.player.y = nextY;
     }
+    const travelled = Math.hypot(this.player.x - oldX, this.player.y - oldY);
+    this.moving = travelled > .01; this.stride += travelled / 13;
     if (!this.gateApproachTriggered && !this.questResolved && this.player.y < 480) { this.gateApproachTriggered = true; this.callbacks.onGateApproach?.(NPCS.find(npc => npc.id === "gatekeeper")); }
     const interactionEntities = (this.questResolved ? ENTITIES.filter(entity => entity.id !== "gate") : ENTITIES).map(entity => this.worldEntity(entity));
     const nextNearby = selectInteractionTarget(this.player, interactionEntities);
@@ -101,7 +119,13 @@ export class MandalingoGame {
   }
 
   draw() {
-    const ctx = this.ctx; ctx.clearRect(0, 0, WIDTH, HEIGHT); this.drawGround(ctx);
+    const ctx = this.ctx, width = this.viewWidth, height = this.viewHeight;
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    const focus = this.resolution && !this.resolutionCompleted ? this.actorPositions["thirsty-traveller"] : (this.dialogueActor || this.player);
+    const camera = courtyardCamera(width,height,focus);
+    const dpr = this.canvas.width/width;
+    ctx.setTransform(camera.scale*dpr,0,0,camera.scale*dpr,-camera.x*camera.scale*dpr,-camera.y*camera.scale*dpr);
+    this.drawGround(ctx); this.drawSceneDetails(ctx);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "back-structure")) this.drawObject(ctx, item);
     const depth = [
       ...RENDER_OBJECTS.filter(object => object.layer === "depth" && object.type !== "npc").map(actor => ({ kind: "object", y: actor.y, actor })),
@@ -111,6 +135,7 @@ export class MandalingoGame {
     for (const item of depth) item.kind === "player" ? this.drawPlayer(ctx) : item.kind === "npc" ? this.drawNpc(ctx, item.actor) : this.drawObject(ctx, item.actor);
     this.drawCourtyardForeground(ctx);
     this.drawResolutionDialogue(ctx);
+    if (this.dialogueActor && this.dialogueText) this.drawSceneSpeech(ctx, this.dialogueActor, this.dialogueText);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "foreground")) this.drawObject(ctx, item);
     for (const item of RENDER_OBJECTS.filter(object => object.layer === "effects")) this.drawEffect(ctx, item);
     if (this.questResolved) this.drawGateLight(ctx); if (this.debugCollisions) this.drawCollisionDebug(ctx);
@@ -121,7 +146,7 @@ export class MandalingoGame {
     if (!art) { ctx.drawImage(this.courtyardBackdrop, 0, 0); return; }
     ctx.fillStyle = "#263a32"; ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.save(); ctx.globalAlpha = .45; ctx.drawImage(art, 0, -20, WIDTH, HEIGHT); ctx.restore();
-    ctx.drawImage(art, 80, -20, 1440, 900);
+    const {x,y,width,height} = COURTYARD_ART.backdrop; ctx.drawImage(art,x,y,width,height);
     const vignette = ctx.createLinearGradient(0, 0, WIDTH, 0);
     vignette.addColorStop(0, "rgba(22,37,31,.85)"); vignette.addColorStop(.14, "rgba(22,37,31,0)");
     vignette.addColorStop(.86, "rgba(22,37,31,0)"); vignette.addColorStop(1, "rgba(22,37,31,.85)");
@@ -142,10 +167,11 @@ export class MandalingoGame {
   drawGate(ctx, item) {
     const doors = this.imageReady("assets/gate-room/structures/wooden-doors.png");
     if (!doors || !this.imageReady("assets/gate-room/courtyard-autumn-v1.png")) { paintCourtyardGate(ctx, this.gateOpenProgress); return; }
-    ctx.save(); ctx.beginPath(); ctx.rect(727, 145, 165, 134); ctx.clip();
-    const slide = this.gateOpenProgress * 84;
-    ctx.drawImage(doors, 128, 54, 56, 157, 727 - slide, 145, 82, 134);
-    ctx.drawImage(doors, 187, 54, 55, 157, 810 + slide, 145, 82, 134);
+    const {x,y,width,height,travel} = COURTYARD_ART.gate;
+    ctx.save(); ctx.beginPath(); ctx.rect(x,y,width,height); ctx.clip();
+    const slide = this.gateOpenProgress * travel;
+    ctx.drawImage(doors,128,54,56,157,x-slide,y,82,height);
+    ctx.drawImage(doors,187,54,55,157,x+83+slide,y,82,height);
     ctx.restore();
   }
 
@@ -153,12 +179,12 @@ export class MandalingoGame {
     const art = this.imageReady("assets/gate-room/courtyard-autumn-v1.png");
     if (!art) { paintCourtyardForeground(ctx, this.player); return; }
     ctx.save(); ctx.globalAlpha = getCourtyardOcclusion(this.player);
-    ctx.beginPath(); ctx.rect(225, 652, 475, 135); ctx.rect(922, 652, 455, 135); ctx.clip();
+    ctx.beginPath(); for (const rect of COURTYARD_ART.parapets) ctx.rect(...rect); ctx.clip();
     ctx.drawImage(art, 80, -20, 1440, 900); ctx.restore();
   }
 
   drawWaterNotice(ctx, item) {
-    const top = item.y - item.height, jar = this.imageReady("assets/gate-room/props/water-jar.png");
+    const top = item.y - item.height, jar = this.imageReady("assets/gate-room/props/water-jar-open-v1.png");
     ctx.save(); ctx.translate(item.x, top + 105); ctx.fillStyle = "rgba(230,213,166,.82)"; ctx.fillRect(-62, -35, 124, 91); ctx.strokeStyle = "rgba(62,45,28,.8)"; ctx.lineWidth = 2; ctx.strokeRect(-62, -35, 124, 91);
     if (jar) ctx.drawImage(jar, -50, -26, 54, 54); ctx.fillStyle = "#34291f"; ctx.font = '700 45px "Noto Sans TC", "Microsoft JhengHei", sans-serif'; ctx.textAlign = "center"; ctx.fillText("水", 31, 23); ctx.restore();
   }
@@ -211,10 +237,27 @@ export class MandalingoGame {
   }
 
   drawPlayer(ctx) {
-    const image = this.imageReady(ROOM.playerSprite), moving = this.keys.size > 0 || Math.hypot(this.mobileVector.x, this.mobileVector.y) > .1, sway = moving ? Math.sin(this.time * 10) * .012 : Math.sin(this.time * 2) * .004;
+    const image = this.imageReady(ROOM.playerSprite), moving = this.moving && !this.reducedMotion, sway = moving ? Math.sin(this.stride) * .018 : 0;
     ctx.save(); ctx.translate(this.player.x, this.player.y); ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(0, -5, 24, 8, 0, 0, TAU); ctx.fill();
-    if (image) { const visual = ROOM.playerVisual; ctx.scale(this.player.facing || 1, 1); ctx.transform(1, 0, sway, 1, 0, 0); ctx.drawImage(image, -visual.width * visual.anchorX, -visual.height * visual.anchorY + visual.footOffset, visual.width, visual.height); }
+    if (image) { const visual = ROOM.playerVisual; ctx.scale(this.player.facing || 1, 1); ctx.transform(1, 0, sway, moving ? 1 - Math.abs(Math.sin(this.stride))*.014 : 1, 0, 0); ctx.drawImage(image, -visual.width * visual.anchorX, -visual.height * visual.anchorY + visual.footOffset, visual.width, visual.height); }
     else { ctx.fillStyle = "#31535f"; ctx.fillRect(-18, -65, 36, 68); }
+    ctx.restore();
+    if (this.carryingWater && !this.questResolved && !this.resolution) {
+      const bowl = this.imageReady("assets/gate-room/props/empty-bowl.png");
+      if (bowl) { ctx.drawImage(bowl,this.player.x+15,this.player.y-77,40,40);
+        ctx.fillStyle="#80c9cf"; ctx.beginPath(); ctx.ellipse(this.player.x+35,this.player.y-61,10,3,0,0,TAU); ctx.fill(); }
+    }
+  }
+
+  drawSceneDetails(ctx) {
+    ctx.save();
+    // A worn mat makes the western corner a stopping place; the damp basin anchors the jar.
+    ctx.fillStyle="rgba(69,49,24,.22)"; ctx.beginPath(); ctx.ellipse(455,508,93,29,0,0,TAU); ctx.fill();
+    ctx.fillStyle="rgba(59,91,83,.28)"; ctx.beginPath(); ctx.ellipse(1215,524,76,26,0,0,TAU); ctx.fill();
+    ctx.strokeStyle="rgba(214,229,204,.48)"; ctx.lineWidth=2;
+    // Warm pools beneath the lamps and drifting leaves connect the plate to live actors.
+    for(const x of [625,975]) {const glow=ctx.createRadialGradient(x,672,1,x,672,55);glow.addColorStop(0,"rgba(255,195,94,.16)");glow.addColorStop(1,"rgba(255,195,94,0)");ctx.fillStyle=glow;ctx.fillRect(x-55,617,110,110);}
+    if(!this.reducedMotion) for(let i=0;i<9;i++){const t=this.time*(9+i%3)+i*113;const x=320+(i*137+Math.sin(t*.012)*32)%960,y=300+t%380;ctx.save();ctx.translate(x,y);ctx.rotate(t*.025);ctx.fillStyle=i%2?"rgba(192,117,44,.55)":"rgba(231,179,75,.55)";ctx.beginPath();ctx.ellipse(0,0,5,2,0,0,TAU);ctx.fill();ctx.restore();}
     ctx.restore();
   }
 

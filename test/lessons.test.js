@@ -80,7 +80,7 @@ test("wall modules meet at deliberate edges without stacking duplicate architect
 });
 
 test("fixed courtyard boundaries, colliders, and interaction radii share room data", () => {
-  assert.equal(FIXED_CAMERA, true); assert.ok(ROOM.width === 1600 && ROOM.height === 900); assert.ok(isWorldWalkable(800, 430)); assert.equal(isWorldWalkable(50, 50), false);
+  assert.equal(FIXED_CAMERA, false); assert.ok(ROOM.width === 1600 && ROOM.height === 900); assert.ok(isWorldWalkable(800, 430)); assert.equal(isWorldWalkable(50, 50), false);
   assert.ok(isPlayerWalkable(ROOM.playerStart.x, ROOM.playerStart.y), "player start must be valid");
   for (const entity of [...FURNITURE, ...NPCS]) { assert.ok(entity.interactionRadius > 0); assert.ok(entity.collider); assert.equal(pointInEntityBody(entity.x, entity.y + entity.collider.y + 1, entity), true); }
   for (const entity of COLLIDERS.filter(item => item.layer === "depth")) assert.equal(isPlayerWalkable(entity.x, entity.y + entity.collider.y + 2), false, entity.id);
@@ -130,14 +130,14 @@ test("water alone unlocks the tutorial consequence without pronoun mastery", () 
   let journal = observe(createJournal(), "水", "notice:water"); journal = observe(journal, "水", "jar:water"); journal = setGuess(journal, "water", "fresh water"); journal = grantItem(journal, "water-bowl");
   const session = createTutorialSession(); assert.equal(session.stage, TUTORIAL_STAGE.WATER); assert.equal(getWaterTaskReadiness(journal, session).ready, true); assert.equal(journal.entries.you, undefined); assert.equal(journal.entries.he, undefined);
   assert.equal(attemptWaterTarget(session, journal, "gatekeeper").result, "NO_ACTION");
-  const outcome = attemptWaterTarget(session, journal, "thirsty-traveller"); assert.equal(outcome.result, "SUCCESS"); assert.equal(outcome.session.resolving, true); assert.equal(outcome.session.resolved, false); assert.equal(outcome.journal.entries.water.worldVerified, true); assert.equal(outcome.journal.quest, "traveller-helped"); assert.equal(buildFlashcards(outcome.journal).length, 1);
+  const outcome = attemptWaterTarget(session, journal, "thirsty-traveller"); assert.equal(outcome.result, "SUCCESS"); assert.equal(outcome.session.resolving, true); assert.equal(outcome.session.resolved, false); assert.equal(outcome.journal.entries.water.worldVerified, false); assert.equal(outcome.journal.quest, "traveller-helped"); assert.equal(buildFlashcards(outcome.journal).length, 0);
 });
 
-test("reasonable water hypotheses unlock action without displaying a correct answer", () => {
+test("physical offers remain independent of private water hypotheses", () => {
   for (const guess of ["water", "drinking water", "freshwater", "H2O", "aqua", "水"]) assert.equal(matchesWaterHypothesis(guess), true, guess);
   for (const guess of ["bowl", "drink", "person", "waterfalling"]) assert.equal(matchesWaterHypothesis(guess), false, guess);
   let journal = observe(createJournal(), "水", "notice:water"); journal = observe(journal, "水", "jar:water"); journal = grantItem(journal, "water-bowl"); journal = setGuess(journal, "water", "bowl"); const session = createTutorialSession();
-  assert.equal(getWaterTaskReadiness(journal, session).ready, false); journal = setGuess(journal, "water", "bowl."); assert.equal(getWaterTaskReadiness(journal, session).ready, false); journal = setGuess(journal, "water", "water to drink"); assert.equal(getWaterTaskReadiness(journal, session).ready, true);
+  assert.equal(getWaterTaskReadiness(journal, session).ready, true); journal = setGuess(journal, "water", "bowl."); assert.equal(getWaterTaskReadiness(journal, session).ready, true); journal = setGuess(journal, "water", "water to drink"); assert.equal(getWaterTaskReadiness(journal, session).ready, true);
   const ui = `${readFileSync(new URL("../index.html", import.meta.url), "utf8")}\n${readFileSync(new URL("../src/main.js", import.meta.url), "utf8")}`; assert.doesNotMatch(ui, /Correct!|水 means water|WORLD VERIFIED/i);
 });
 

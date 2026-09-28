@@ -2,12 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self' blob:" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#111c24" />
-    <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a modular wuxia courtyard." />
-    <title>Mandalingo — Gatehouse Tutorial</title>
+    <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a real-time 3D wuxia courtyard for desktop play." />
+    <title>Mandalingo — The South Gate</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=gatehouse-v15" />
+    <link rel="stylesheet" href="styles.css?v=courtyard-3d-v1" />
   </head>
   <body>
     <main id="app">
@@ -29,7 +30,7 @@
         <p class="panel-kicker">THE TRAVELLER'S METHOD</p>
         <h2 id="how-title">Meaning lives in context</h2>
         <div class="how-grid">
-          <article><b>01</b><span>WASD · SHIFT</span><h3>Explore</h3><p>Walk through the courtyard. On a keyboard, use WASD or arrows; hold Shift to run. On touch screens, use the directional control.</p></article>
+          <article><b>01</b><span>WASD · SHIFT</span><h3>Explore</h3><p>Walk with WASD or arrow keys; hold Shift to run. Press Escape to pause. Use the mouse to edit your notebook.</p></article>
           <article><b>02</b><span>E</span><h3>Observe</h3><p>Talk to people and inspect objects. Every unfamiliar sign you actually see is recorded automatically.</p></article>
           <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Keep your own guesses in the notebook. Try an action and watch what changes. Your notes never lock an action.</p></article>
         </div>
@@ -81,10 +82,17 @@
         <button id="continue-town" class="primary-small">Review the courtyard</button>
       </section>
 
-      <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><small>SOUTH GATE · AUTUMN</small></footer>
+      <section id="pause-panel" class="pause-panel" role="dialog" aria-hidden="true" aria-labelledby="pause-title" hidden>
+        <div class="pause-card"><p class="panel-kicker">SOUTH GATE · AUTUMN</p><h2 id="pause-title">Journey paused</h2><p>Your notes and discoveries are saved automatically.</p>
+          <button id="resume-btn" class="primary-small">Resume <kbd>Esc</kbd></button>
+          <button id="fullscreen-btn" class="secondary-button">Toggle fullscreen</button>
+          <button id="return-title-btn" class="secondary-button">Return to title</button>
+          <small>WASD / Arrows · Move　 Shift · Run<br>E · Interact　 N · Notebook</small>
+        </div>
+      </section>
+      <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><span><kbd>Esc</kbd> Pause</span><small>SOUTH GATE · AUTUMN · 3D</small></footer>
       <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
-      <div id="mobile-controls" class="mobile-controls" aria-hidden="true"><div id="joystick" class="joystick"><div id="joystick-knob" class="joystick-knob"></div></div><button id="interact-btn" class="interact-button"><b>E</b><span>Interact</span></button></div>
     </main>
-    <script type="module" src="src/main.js?v=gatehouse-v15"></script>
+    <script type="module" src="src/main.js?v=courtyard-3d-v1"></script>
   </body>
 </html>

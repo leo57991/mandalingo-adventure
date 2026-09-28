@@ -22,6 +22,8 @@ test('completed save restores the open gate and recovered traveller before the f
   assert.equal(game.gateOpenProgress, 1);
   assert.deepEqual(game.actorPositions['thirsty-traveller'], {x:735,y:405});
   assert.equal(game.actorCues['thirsty-traveller'].prop, null);
+  game.resetActorCues();
+  assert.equal(game.actorCues['thirsty-traveller'].prop, null, 'talking to someone else cannot restore the empty bowl after recovery');
 });
 test('interrupted consequence can be retried after a reload', () => {
   const session = createTutorialSession({resolving:true});

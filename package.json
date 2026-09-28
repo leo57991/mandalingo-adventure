@@ -7,8 +7,20 @@
   "scripts": {
     "dev": "node tools/dev-server.js",
     "test": "node --test",
-    "check": "node --check src/game.js && node --check src/main.js && node --test"
+    "check": "node --check src/game.js && node --check src/main.js && node --check desktop/main.cjs && node --test",
+    "desktop": "electron .",
+    "desktop:build": "node tools/build-desktop.mjs"
   },
-  "keywords": ["game", "mandarin", "canvas", "language-learning", "web-game"],
-  "license": "MIT"
+  "keywords": [
+    "game",
+    "mandarin",
+    "canvas",
+    "language-learning",
+    "web-game"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "44.4.5"
+  },
+  "main": "desktop/main.cjs"
 }

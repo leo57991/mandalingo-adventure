@@ -54,7 +54,7 @@ test("speaker-relative self-reference points to the current speaker", () => {
   assert.ok(new Set(ENTITIES.flatMap(entity => entity.lines.filter(item => item.tokens.includes("我") && item.pose === "point-self").map(item => item.gestureTarget))).size >= 2);
 });
 
-test("all scene elements are independent modular sprites with one data record", () => {
+test("authored scene records retain their reference assets and spatial identity", () => {
   assert.equal(RENDER_LAYERS.includes("ground"), true); assert.equal(RENDER_LAYERS.includes("depth"), true); assert.equal(RENDER_LAYERS.includes("foreground"), true);
   assert.ok(RENDER_OBJECTS.length >= 30);
   for (const object of RENDER_OBJECTS) {
@@ -93,18 +93,6 @@ test("the courtyard layout tells a locked-gate story at a glance", () => {
   assert.ok(traveller.x < ROOM.width / 2 && jar.x > ROOM.width / 2, "empty bowl and water jar form a cross-courtyard sight line");
   assert.equal(board.kind, "water-notice"); assert.deepEqual(board.lines.flatMap(line => line.tokens), ["水"]);
   assert.doesNotMatch(jar.label, /water/i, "the interaction prompt must not translate 水");
-});
-
-test("visual language cues render during play and the player feet stay anchored", () => {
-  const source = readFileSync(new URL("../src/game.js", import.meta.url), "utf8");
-  assert.match(source, /this\.drawObject\(ctx, npc\); this\.drawActorGesture\(ctx, npc, cue\)/);
-  assert.match(source, /drawQuestionCue/); assert.match(source, /drawWaterThought/); assert.match(source, /drawWaterNotice/);
-  const gestureSource = source.slice(source.indexOf("drawActorGesture"), source.indexOf("drawWaterThought")); assert.doesNotMatch(gestureSource, /lineTo|moveTo/);
-  assert.doesNotMatch(source, /translate\(this\.player\.x, this\.player\.y \+ bob\)/); assert.match(source, /translate\(this\.player\.x, this\.player\.y\)/);
-  assert.match(source, /COLLIDERS\.filter\(entity => entity\.id !== "gate"\)/);
-  assert.ok(ROOM.playerVisual.footOffset >= 0 && ROOM.playerVisual.footOffset <= 5); for (const npc of NPCS) assert.ok(npc.footOffset >= 25 && npc.footOffset <= 35, npc.id);
-  assert.match(source, /item\.y \+ \(item\.footOffset \?\? 0\)/); assert.match(source, /visual\.height \* visual\.anchorY \+ visual\.footOffset/);
-  assert.match(source, /if \(item\.crop\) ctx\.drawImage\(image, item\.crop\.x/);
 });
 
 test("target selection favours a nearby object in the direction the player faces", () => {
@@ -151,7 +139,7 @@ test("displayed target words auto-record and clicking only opens their evidence"
 test("the water consequence visibly moves the traveller, pleads, nods, and opens the gate", () => {
   const source = readFileSync(new URL("../src/game.js", import.meta.url), "utf8"), main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
   for (const phase of ["drink", "walk", "plead", "open"]) assert.match(source, new RegExp(`setResolutionPhase\\(\\"${phase}\\"\\)`));
-  assert.match(source, /destination = \{ x: 735, y: 405 \}/); assert.match(source, /drinking \? npc\.height \* \.68/); assert.match(source, /drawResolutionDialogue/); assert.match(source, /"我……水……"/); assert.match(source, /"你……？"/); assert.match(source, /this\.questResolved = true/); assert.match(source, /onResolutionComplete/); assert.match(main, /GAME_STATE\.CUTSCENE/); assert.match(main, /completeWaterResolution/);
+  assert.match(source, /destination = \{ x: 735, y: 405 \}/); assert.match(source, /this\.questResolved = true/); assert.match(source, /onResolutionComplete/); assert.match(main, /GAME_STATE\.CUTSCENE/); assert.match(main, /completeWaterResolution/);
 });
 
 test("Notebook nested over Dialogue locks movement and text entry suppresses shortcuts", () => {
@@ -168,5 +156,5 @@ test("focus restoration rejects hidden ancestors and falls back to the game canv
 test("the browser module chain uses a single cache version", () => {
   const index = readFileSync(new URL("../index.html", import.meta.url), "utf8"), main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8"), game = readFileSync(new URL("../src/game.js", import.meta.url), "utf8"), version = index.match(/main\.js\?v=([\w-]+)/)?.[1];
   assert.ok(version);
-  assert.ok(game.includes(`courtyard-art.js?v=${version}`)); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js", "joystick.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
+  assert.ok(game.includes(`courtyard-3d.js?v=${version}`)); for (const module of ["game.js", "audio.js", "lessons.js", "game-state.js", "input.js", "modal-focus.js"]) assert.ok(main.includes(`${module}?v=${version}`), module); assert.ok(game.includes(`lessons.js?v=${version}`)); assert.ok(index.includes(`styles.css?v=${version}`));
 });

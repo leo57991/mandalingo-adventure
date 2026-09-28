@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=gatehouse-v15";
+import { GAME_STATE } from "./game-state.js?v=courtyard-3d-v1";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 
@@ -12,7 +12,7 @@ export function resolveGameAction(key, state) {
   if (key === "e" && state === GAME_STATE.EXPLORING) return "INTERACT";
   if (key === "e" && state === GAME_STATE.DIALOGUE) return "ADVANCE_DIALOGUE";
   if (key === "n" && [GAME_STATE.EXPLORING, GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK].includes(state)) return "TOGGLE_NOTEBOOK";
-  if (key === "escape" && [GAME_STATE.HELP, GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK, GAME_STATE.CHAPTER].includes(state)) return "ESCAPE";
+  if (key === "escape" && [GAME_STATE.EXPLORING, GAME_STATE.PAUSED, GAME_STATE.HELP, GAME_STATE.DIALOGUE, GAME_STATE.NOTEBOOK, GAME_STATE.CHAPTER].includes(state)) return "ESCAPE";
   if (key === "f3" && state === GAME_STATE.EXPLORING) return "TOGGLE_COLLISIONS";
   return null;
 }

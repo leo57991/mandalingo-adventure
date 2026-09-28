@@ -1,14 +1,13 @@
-import { Soundscape } from "./audio.js?v=gatehouse-v15";
-import { MandalingoGame } from "./game.js?v=gatehouse-v15";
+import { Soundscape } from "./audio.js?v=courtyard-3d-v1";
+import { MandalingoGame } from "./game.js?v=courtyard-3d-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=gatehouse-v15";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=gatehouse-v15";
-import { InputRouter } from "./input.js?v=gatehouse-v15";
-import { ModalFocusManager } from "./modal-focus.js?v=gatehouse-v15";
-import { resolveJoystickVector } from "./joystick.js?v=gatehouse-v15";
+} from "./lessons.js?v=courtyard-3d-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-3d-v1";
+import { InputRouter } from "./input.js?v=courtyard-3d-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=courtyard-3d-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -19,13 +18,13 @@ const elements = {
   portraitStage: $("#portrait-stage"), portrait: $("#dialogue-portrait"), useWater: $("#use-water"),
   notebook: $("#notebook-panel"), journalView: $("#journal-view"), cardsView: $("#cards-view"), journalCount: $("#journal-count"), cardCount: $("#card-count"),
   notebookKicker: $("#notebook-kicker"), notebookHeading: $("#notebook-heading"), notebookIntro: $("#notebook-intro"), chapter: $("#chapter-banner"), fade: $("#scene-fade"),
-  mobile: $("#mobile-controls"), sound: $("#sound-btn")
+  pause: $("#pause-panel"), sound: $("#sound-btn")
 };
 
 function loadProgress() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; } }
 const saved = loadProgress() ?? {};
 let journal = createJournal(saved.journal), tutorialSession = createTutorialSession({ ...saved.session, resolved: saved.journal?.quest === "resolved" || saved.session?.resolved });
-let activeEntity = null, activeLines = [], lineIndex = 0, toastTimer = null, resetJoystick = () => {};
+let activeEntity = null, activeLines = [], lineIndex = 0, toastTimer = null;
 const sound = new Soundscape();
 const focusManager = new ModalFocusManager(document, elements.game);
 const state = new GameStateController(GAME_STATE.TITLE, syncUiState);
@@ -57,11 +56,11 @@ function syncUiState() {
   setVisible(elements.title, current === GAME_STATE.TITLE); setVisible(elements.help, current === GAME_STATE.HELP);
   setVisible(elements.dialogue, current === GAME_STATE.DIALOGUE); setVisible(elements.notebook, current === GAME_STATE.NOTEBOOK); setVisible(elements.chapter, current === GAME_STATE.CHAPTER);
   const activePlay = ![GAME_STATE.TITLE, GAME_STATE.HELP].includes(current); elements.hud.classList.toggle("is-visible", activePlay); elements.hud.setAttribute("aria-hidden", String(!activePlay));
-  elements.mobile.classList.toggle("is-visible", current === GAME_STATE.EXPLORING); elements.mobile.setAttribute("aria-hidden", String(current !== GAME_STATE.EXPLORING));
+  setVisible(elements.pause, current === GAME_STATE.PAUSED);
   document.querySelector("#app").dataset.state = current;
   $("#notebook-btn").disabled = current === GAME_STATE.CUTSCENE;
-  game.setInputEnabled(current === GAME_STATE.EXPLORING); if (current !== GAME_STATE.EXPLORING) { elements.prompt.classList.remove("is-visible"); resetJoystick(); } else updateInteractionPrompt(game.nearby);
-  const modal = current === GAME_STATE.HELP ? elements.help : current === GAME_STATE.DIALOGUE ? elements.dialogue : current === GAME_STATE.NOTEBOOK ? elements.notebook : current === GAME_STATE.CHAPTER ? elements.chapter : null;
+  game.setInputEnabled(current === GAME_STATE.EXPLORING); if (current !== GAME_STATE.EXPLORING) { elements.prompt.classList.remove("is-visible"); } else updateInteractionPrompt(game.nearby);
+  const modal = current === GAME_STATE.PAUSED ? elements.pause : current === GAME_STATE.HELP ? elements.help : current === GAME_STATE.DIALOGUE ? elements.dialogue : current === GAME_STATE.NOTEBOOK ? elements.notebook : current === GAME_STATE.CHAPTER ? elements.chapter : null;
   focusManager.sync(modal); updateInterface();
 }
 
@@ -161,7 +160,7 @@ function renderCards() { const cards = buildFlashcards(journal); if (!cards.leng
 function activateTab(tab) { document.querySelectorAll(".tab-button").forEach(button => button.classList.toggle("is-active", button.dataset.tab === tab)); const cards = tab === "cards"; elements.journalView.hidden = cards; elements.cardsView.hidden = !cards; elements.notebookKicker.textContent = cards ? "WORLD-SUPPORTED DECK" : "FIELD NOTES"; elements.notebookHeading.textContent = cards ? "Your flashcards" : "Words encountered"; elements.notebookIntro.textContent = cards ? "These cards preserve hypotheses supported by world actions; no translation is revealed." : "Seen words are recorded automatically. Form a hypothesis, then test it through action."; cards ? renderCards() : renderJournal(); }
 
 function closeChapter() { if (state.current === GAME_STATE.CHAPTER) { state.reset(GAME_STATE.EXPLORING); requestAnimationFrame(() => elements.game.focus()); showToast("The room remains open for review."); } }
-function closeCurrentOverlay() { if (state.current === GAME_STATE.HELP) state.pop(); else if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if (state.current === GAME_STATE.DIALOGUE) closeDialogue(); else if (state.current === GAME_STATE.CHAPTER) closeChapter(); }
+function closeCurrentOverlay() { if (state.current === GAME_STATE.EXPLORING) { state.push(GAME_STATE.PAUSED); return; } if (state.current === GAME_STATE.PAUSED) { state.pop(); return; } if (state.current === GAME_STATE.HELP) state.pop(); else if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if (state.current === GAME_STATE.DIALOGUE) closeDialogue(); else if (state.current === GAME_STATE.CHAPTER) closeChapter(); }
 function updateInterface() {
   game.carryingWater = journal.inventory.includes("water-bowl") && journal.quest !== "resolved";
   $("#inventory-chip").hidden = !game.carryingWater;
@@ -184,13 +183,17 @@ $("#start-btn").addEventListener("click", startGame); $("#how-btn").addEventList
 $("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
 document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; elements.sound.setAttribute("aria-pressed", String(!muted)); });
 
-setupJoystick();
-function setupJoystick() {
-  const base = $("#joystick"), knob = $("#joystick-knob"); let pointerId = null;
-  const release = () => { pointerId = null; knob.style.transform = "translate(0,0)"; game.setMobileVector(0, 0); }; resetJoystick = release;
-  const update = event => { if (state.current !== GAME_STATE.EXPLORING) { release(); return; } const vector = resolveJoystickVector(event.clientX, event.clientY, base.getBoundingClientRect()); knob.style.transform = `translate(${vector.pixelX}px,${vector.pixelY}px)`; game.setMobileVector(vector.x, vector.y); };
-  base.addEventListener("pointerdown", event => { pointerId = event.pointerId; base.setPointerCapture(pointerId); update(event); }); base.addEventListener("pointermove", event => { if (event.pointerId === pointerId) update(event); }); base.addEventListener("pointerup", release); base.addEventListener("pointercancel", release); $("#interact-btn").addEventListener("click", () => game.interact());
-}
+$('#resume-btn').addEventListener('click', () => state.pop());
+$('#fullscreen-btn').addEventListener('click', async () => {
+  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+  catch { showToast('Fullscreen is unavailable in this window.'); }
+});
+$('#return-title-btn').addEventListener('click', () => {
+  saveProgress(); game.started = false; state.reset(GAME_STATE.TITLE);
+  $('#start-btn span').textContent = 'Return to the courtyard';
+  requestAnimationFrame(() => $('#start-btn').focus());
+});
+window.addEventListener('blur', () => { if (state.current === GAME_STATE.EXPLORING) state.push(GAME_STATE.PAUSED); });
 
 updateInterface();
 window.__mandalingo = { game, state, input, getJournal: () => journal, getSession: () => tutorialSession, openDialogue };

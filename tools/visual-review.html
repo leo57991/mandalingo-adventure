@@ -9,8 +9,10 @@ const frame=document.querySelector('iframe'),status=document.querySelector('outp
 const api=()=>frame.contentWindow.__mandalingo;
 document.querySelector('#fresh').onclick=()=>{frame.contentWindow.localStorage.removeItem('mandalingo-gatehouse-playtest-v5');frame.contentWindow.location.reload();};
 document.querySelector('#reload').onclick=()=>frame.contentWindow.location.reload();
+function focusGame(){const a=api();if(a.state.current==='PAUSED')a.state.pop();frame.contentWindow.focus();frame.contentDocument.querySelector('#game').focus();}
 const points={traveller:[500,525,-1,-.3],clerk:[990,432,1,-.4],water:[1130,520,1,0],south:[450,660,0,1]};
-for(const button of document.querySelectorAll('[data-move]'))button.onclick=()=>{const game=api().game;game.setKey(button.dataset.move,true);setTimeout(()=>game.setKey(button.dataset.move,false),1100);};
+for(const button of document.querySelectorAll('[data-move]'))button.onclick=()=>{focusGame();const game=api().game;game.setKey(button.dataset.move,true);setTimeout(()=>game.setKey(button.dataset.move,false),1100);};
 for(const button of document.querySelectorAll('[data-fixture]'))button.onclick=()=>{const game=api().game,id=button.dataset.fixture;if(id==='gate'){game.beginWaterResolution();return;}const [x,y,lookX,lookY]=points[id];Object.assign(game.player,{x,y,lookX,lookY,facing:Math.sign(lookX)||1});};
-setInterval(()=>{const a=api();if(!a)return;status.textContent=JSON.stringify({state:a.state.current,x:Math.round(a.game.player.x),y:Math.round(a.game.player.y),target:a.game.nearby?.id??null,gate:a.game.gateOpenProgress,phase:a.game.resolutionPhase,inventory:a.getJournal().inventory,quest:a.getJournal().quest,errors:frame.contentWindow.reviewErrors??[]});},300);
+let lastFrame=0,lastSample=performance.now();
+setInterval(()=>{const a=api();if(!a)return;const now=performance.now(),currentFrame=a.game.view?.renderer?.info.render.frame??0,fps=Math.round((currentFrame-lastFrame)*1000/(now-lastSample));lastFrame=currentFrame;lastSample=now;status.textContent=JSON.stringify({state:a.state.current,x:Math.round(a.game.player.x),y:Math.round(a.game.player.y),target:a.game.nearby?.id??null,gate:a.game.gateOpenProgress,phase:a.game.resolutionPhase,inventory:a.getJournal().inventory,quest:a.getJournal().quest,fps,drawCalls:a.game.view?.renderer?.info.render.calls,triangles:a.game.view?.renderer?.info.render.triangles,errors:frame.contentWindow.reviewErrors??[]});},300);
 </script></html>

@@ -7,3 +7,6 @@ coverage/
 *.log
 .tools/
 godot/.godot/
+
+dist/
+.three-package/

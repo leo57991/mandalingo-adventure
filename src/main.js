@@ -1,13 +1,14 @@
-import { Soundscape } from "./audio.js?v=courtyard-3d-v1";
-import { MandalingoGame } from "./game.js?v=courtyard-3d-v1";
+import { observationCue } from "./evidence-vfx.js?v=courtyard-vfx-v1";
+import { Soundscape } from "./audio.js?v=courtyard-vfx-v1";
+import { MandalingoGame } from "./game.js?v=courtyard-vfx-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=courtyard-3d-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-3d-v1";
-import { InputRouter } from "./input.js?v=courtyard-3d-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=courtyard-3d-v1";
+} from "./lessons.js?v=courtyard-vfx-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-vfx-v1";
+import { InputRouter } from "./input.js?v=courtyard-vfx-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=courtyard-vfx-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -29,6 +30,7 @@ const sound = new Soundscape();
 const focusManager = new ModalFocusManager(document, elements.game);
 const state = new GameStateController(GAME_STATE.TITLE, syncUiState);
 const game = new MandalingoGame(elements.game, {
+  onEvidence: kind => sound.evidence(kind),
   onNearby: updateInteractionPrompt,
   onInteract: openDialogue,
   onGateApproach: guard => { if (tutorialSession.stage === TUTORIAL_STAGE.WATER && state.current === GAME_STATE.EXPLORING) openDialogue(guard); },
@@ -53,6 +55,7 @@ function saveProgress() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify
 function setVisible(node, visible) { node.hidden = !visible; node.classList.toggle("is-visible", visible); node.setAttribute("aria-hidden", String(!visible)); }
 function syncUiState() {
   const current = state.current;
+  game.presentationPaused = ![GAME_STATE.EXPLORING, GAME_STATE.DIALOGUE, GAME_STATE.CUTSCENE].includes(current);
   setVisible(elements.title, current === GAME_STATE.TITLE); setVisible(elements.help, current === GAME_STATE.HELP);
   setVisible(elements.dialogue, current === GAME_STATE.DIALOGUE); setVisible(elements.notebook, current === GAME_STATE.NOTEBOOK); setVisible(elements.chapter, current === GAME_STATE.CHAPTER);
   const activePlay = ![GAME_STATE.TITLE, GAME_STATE.HELP].includes(current); elements.hud.classList.toggle("is-visible", activePlay); elements.hud.setAttribute("aria-hidden", String(!activePlay));
@@ -88,6 +91,9 @@ function renderLine() {
   elements.context.textContent = line.context; elements.context.hidden = !line.context; elements.speaker.textContent = line.speaker; elements.speakerType.textContent = activeEntity.type === "npc" ? "PERSON" : "OBJECT"; elements.lineCount.textContent = `${lineIndex + 1} / ${activeLines.length}`; elements.reaction.textContent = "";
   renderChineseLine(line); renderPortrait(line); game.resetActorCues(); if (activeEntity.type === "npc") game.setActorCue(activeEntity.id, { pose: line.pose, expression: line.expression, gestureTarget: line.gestureTarget, prop: line.prop });
   game.dialogueActor = game.worldEntity(activeEntity); game.dialogueText = line.text;
+  const cue = observationCue(activeEntity, line);
+  $("#replay-evidence").hidden = !cue;
+  game.playEvidence(cue);
   refreshDialogueActions();
   $("#dialogue-next").hidden = false; $("#dialogue-next").textContent = lineIndex < activeLines.length - 1 ? "Continue · E" : "Return · E";
   sound.page();
@@ -173,9 +179,15 @@ function updateInterface() {
 function showToast(message) { clearTimeout(toastTimer); elements.toast.textContent = message; elements.toast.classList.add("is-visible"); toastTimer = setTimeout(() => elements.toast.classList.remove("is-visible"), 2500); }
 function escapeHtml(value = "") { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }
 
+$("#replay-evidence").addEventListener("click", () => {
+  if (state.current !== GAME_STATE.DIALOGUE) return;
+  game.playEvidence(observationCue(activeEntity, activeLines[lineIndex]));
+});
 $("#collect-bowl").addEventListener("click", () => {
   if (state.current !== GAME_STATE.DIALOGUE || activeEntity?.id !== "water-jar") return;
-  journal = collectBowl(journal, activeEntity.id); saveProgress(); refreshDialogueActions();
+  if (journal.inventory.includes("water-bowl") || journal.quest === "resolved") return;
+  journal = collectBowl(journal, activeEntity.id);
+  game.playEvidence({kind:"water-fill",sourceId:"water-jar",targetId:"player",key:"collection"}); saveProgress(); refreshDialogueActions();
   elements.reaction.textContent = "The bowl rests in your hands."; $("#dialogue-next").focus(); sound.page();
 });
 if (tutorialSession.resolved) { journal.quest = "resolved"; $("#start-btn span").textContent = "Return to the courtyard"; }

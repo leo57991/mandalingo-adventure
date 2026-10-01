@@ -4,7 +4,7 @@ import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=courtyard-3d-v1";
+} from "./lessons.js?v=courtyard-vfx-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -593,6 +593,54 @@ export function buildCourtyard() {
   collisionDebug.visible = false;
   return { scene, actors, doors, props, marker, sun, collisionDebug };
 }
+
+// Fixed-size presentation pool: clues never own inventory, guesses or quest state.
+export class EvidenceVFX {
+  constructor(scene) {
+    this.slots = Array.from({length:4},()=>{
+      const root=new T.Group(); scene.add(root);
+      const material=new T.MeshBasicMaterial({color:0x72e4ed,transparent:true,opacity:.8,depthWrite:false});
+      const rings=Array.from({length:3},()=>{const m=new T.Mesh(new T.TorusGeometry(1,.025,6,48),material);m.rotation.x=-Math.PI/2;root.add(m);return m;});
+      const beads=Array.from({length:16},()=>{const m=new T.Mesh(new T.SphereGeometry(.035,6,4),material);root.add(m);return m;});
+      return {root,material,rings,beads};
+    });
+    this.a=new T.Vector3();this.b=new T.Vector3();
+  }
+  anchor(id,world,bowl=false) {
+    const a=world.actors.get(id);
+    if(a){ if(bowl) return a.bowl.getWorldPosition(new T.Vector3()); return a.root.position.clone().add(new T.Vector3(0,1,0)); }
+    if(id==='water-jar') return new T.Vector3(4.15,.64,.5);
+    if(id==='gate') return new T.Vector3(0,1.15,-1.61);
+    return null;
+  }
+  render(game,world) {
+    world.scene.updateMatrixWorld(true);
+    this.slots.forEach((slot,index)=>{
+      const effect=game.evidence?.active[index];slot.root.visible=!!effect;if(!effect)return;
+      const water=['water-surface','water-fill','drink'].includes(effect.kind);
+      slot.material.color.setHex(water?0x72e4ed:0xffd58a);
+      const p=Math.min(1,(game.evidence.time-effect.startedAt)/effect.duration);
+      slot.material.opacity=Math.sin(Math.PI*p)*.85;
+      const bowl=['empty-bowl','water-fill','drink'].includes(effect.kind);
+      const a=this.anchor(effect.sourceId,world,effect.kind==='drink'||effect.kind==='empty-bowl');
+      const b=this.anchor(effect.targetId,world,bowl);if(!a||!b){slot.root.visible=false;return;}
+      const flow=['reference','water-fill','drink'].includes(effect.kind);
+      if(effect.kind==='drink')b.y+=.35;
+      slot.rings.forEach((ring,i)=>{
+        ring.visible=i===0||(!game.reducedMotion&&effect.kind==='water-surface');
+        ring.position.copy(b);const radius=effect.kind==='empty-bowl'?.19:effect.kind==='water-surface'?.15+.16*((p*2+i/3)%1):.32+.18*p;
+        ring.scale.setScalar(radius);ring.rotation.x=effect.kind==='gate-release'?0:-Math.PI/2;
+      });
+      slot.beads.forEach((bead,i)=>{
+        bead.visible=!game.reducedMotion&&effect.kind!=='empty-bowl';
+        const t=(p*2+i/16)%1;
+        if(flow){bead.position.lerpVectors(a,b,t);bead.position.y+=Math.sin(t*Math.PI)*.3;}
+        else{const angle=i*Math.PI*2/16+p*2;bead.position.copy(b);bead.position.x+=Math.cos(angle)*.3;bead.position.z+=Math.sin(angle)*.3;bead.position.y+=t*.48;}
+      });
+    });
+  }
+}
+
 export class Courtyard3D {
   constructor(canvas) {
     try {
@@ -607,6 +655,7 @@ export class Courtyard3D {
       return;
     }
     this.world = buildCourtyard();
+    this.evidenceVFX = new EvidenceVFX(this.world.scene);
     canvas.addEventListener("webglcontextlost", (event) => {
       event.preventDefault();
       this.showFailure(canvas);
@@ -750,6 +799,7 @@ export class Courtyard3D {
       this.label.style.left = `${(p.x * 0.5 + 0.5) * w}px`;
       this.label.style.top = `${(-p.y * 0.5 + 0.5) * h + game.canvas.offsetTop}px`;
     }
+    this.evidenceVFX.render(game, world);
     renderer.render(world.scene, camera);
     if (!this.acknowledged) {
       this.acknowledged = true;

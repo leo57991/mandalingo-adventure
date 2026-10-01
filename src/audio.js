@@ -9,5 +9,6 @@ export class Soundscape {
   page() { this.note(440, .13, 0, .1); }
   encounter() { this.note(587, .18, 0, .12); this.note(784, .24, .07, .08); }
   invoke() { [294, 392, 494, 587].forEach((f, i) => this.note(f, .6, i * .11, .15)); }
+  evidence(kind) { const water = ["water-surface", "water-fill", "drink"].includes(kind); this.note(water ? 660 : 330, .35, 0, .07); this.note(water ? 990 : 495, .45, .15, .045); }
   toggle() { this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : .14; return this.muted; }
 }

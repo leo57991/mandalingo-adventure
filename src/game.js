@@ -1,5 +1,6 @@
-import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-3d-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-3d-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=courtyard-vfx-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-vfx-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-vfx-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -48,13 +49,14 @@ export class MandalingoGame {
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
 
-  start({ resolved = false } = {}) { this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
+  start({ resolved = false } = {}) { this.evidence = new EvidenceEffects(); this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
     if (resolved) {
       this.questResolved = true; this.gateOpenProgress = 1; this.gateApproachTriggered = true;
       this.actorPositions["thirsty-traveller"] = { x: 735, y: 405 };
       this.setActorCue("thirsty-traveller", {pose:"idle", expression:"relieved", prop:null});
     }
   }
+  playEvidence(cue) { const played = this.evidence?.play(cue) || false; if (played) this.callbacks.onEvidence?.(cue.kind); return played; }
   setInputEnabled(enabled) { this.inputEnabled = enabled; if (!enabled) this.clearKeys(); }
   setKey(key, down) { if (down) this.keys.add(key); else this.keys.delete(key); }
   setMobileVector(x, y) { this.mobileVector = { x, y }; }
@@ -66,6 +68,8 @@ export class MandalingoGame {
   beginWaterResolution() { this.setInputEnabled(false); this.nearby = null; this.callbacks.onNearby?.(null); this.resolution = { elapsed: 0 }; this.resolutionPhase = null; this.resolutionCompleted = false; this.setResolutionPhase("drink"); }
   setResolutionPhase(phase) {
     if (this.resolutionPhase === phase) return; this.resolutionPhase = phase; this.resetActorCues();
+    const kind = {drink:"drink",walk:"recovery",open:"gate-release"}[phase];
+    if (kind) this.playEvidence({kind,sourceId:"thirsty-traveller",targetId:phase === "open" ? "gate" : "thirsty-traveller",key:`resolution:${phase}`});
     if (phase === "drink") this.setActorCue("thirsty-traveller", { pose: "drink-water", expression: "relieved", gestureTarget: "thirsty-traveller", prop: "water" });
     else if (phase === "walk") this.setActorCue("thirsty-traveller", { pose: "idle", expression: "recovering", gestureTarget: null, prop: null });
     else if (phase === "plead") { this.setActorCue("thirsty-traveller", { pose: "point-third", expression: "earnest", gestureTarget: "gatekeeper", prop: null }); this.setActorCue("gatekeeper", { pose: "question", expression: "listening", gestureTarget: "room-people", prop: null }); }
@@ -82,8 +86,10 @@ export class MandalingoGame {
   toggleCollisionDebug() { this.debugCollisions = !this.debugCollisions; return this.debugCollisions; }
   interact() { if (this.inputEnabled && this.nearby) this.callbacks.onInteract?.(this.nearby); }
 
-  loop(now) { const dt = Math.min((now - this.lastTime) / 1000, .04); this.lastTime = now; this.time += dt; if (this.started) this.update(dt); this.draw(); requestAnimationFrame(this.loop); }
+  loop(now) { const dt = Math.min((now - this.lastTime) / 1000, .04); this.lastTime = now; if (!this.presentationPaused) this.time += dt; if (this.started) this.update(dt); this.draw(); requestAnimationFrame(this.loop); }
   update(dt) {
+    this.evidence?.advance(dt, this.presentationPaused);
+    if (this.presentationPaused) return;
     if (this.resolution) this.updateResolution(dt);
     if (this.questResolved) this.gateOpenProgress = Math.min(1, this.gateOpenProgress + dt * 1.25);
     let x = this.mobileVector.x, y = this.mobileVector.y;

@@ -1,6 +1,7 @@
-import { EvidenceEffects } from "./evidence-vfx.js?v=courtyard-vfx-v1";
-import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-vfx-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-vfx-v1";
+import { isGateWalkable } from "./gate-geometry.js?v=courtyard-kneel-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=courtyard-kneel-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-kneel-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-kneel-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -39,7 +40,7 @@ export class MandalingoGame {
     this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 };
     this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }]));
     this.actorCues = Object.fromEntries(NPCS.map(npc => [npc.id, { pose: "idle", expression: "neutral", gestureTarget: null, prop: npc.waterTarget && !this.questResolved ? "empty-bowl" : null, startedAt: 0 }]));
-    this.stride = 0; this.moving = false; this.carryingWater = false;
+    this.stride = 0; this.moving = false; this.carryingWater = false; this.travellerKneeling = 1;
     this.reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.viewWidth = canvas.clientWidth || WIDTH; this.viewHeight = canvas.clientHeight || HEIGHT;
     this.view = new Courtyard3D(canvas);
@@ -49,7 +50,7 @@ export class MandalingoGame {
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
 
-  start({ resolved = false } = {}) { this.evidence = new EvidenceEffects(); this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
+  start({ resolved = false } = {}) { this.evidence = new EvidenceEffects(); this.travellerKneeling = resolved ? 0 : 1; this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
     if (resolved) {
       this.questResolved = true; this.gateOpenProgress = 1; this.gateApproachTriggered = true;
       this.actorPositions["thirsty-traveller"] = { x: 735, y: 405 };
@@ -78,9 +79,10 @@ export class MandalingoGame {
   updateResolution(dt) {
     this.resolution.elapsed += dt; const elapsed = this.resolution.elapsed, traveller = this.actorPositions["thirsty-traveller"], origin = NPCS.find(npc => npc.id === "thirsty-traveller"), destination = { x: 735, y: 405 };
     if (elapsed < 1.8) this.setResolutionPhase("drink");
-    else if (elapsed < 5.4) { this.setResolutionPhase("walk"); const progress = clamp((elapsed - 1.8) / 3.6, 0, 1); traveller.x = origin.x + (destination.x - origin.x) * progress; traveller.y = origin.y + (destination.y - origin.y) * progress; }
+    else if (elapsed < 5.4) { this.setResolutionPhase("walk"); const progress = clamp((elapsed - 2.6) / 2.8, 0, 1); traveller.x = origin.x + (destination.x - origin.x) * progress; traveller.y = origin.y + (destination.y - origin.y) * progress; }
     else if (elapsed < 7.8) { traveller.x = destination.x; traveller.y = destination.y; this.setResolutionPhase("plead"); }
     else this.setResolutionPhase("open");
+    this.travellerKneeling = 1 - clamp((elapsed - 1.8) / .8, 0, 1);
     if (!this.resolutionCompleted && elapsed >= 9.4 && this.gateOpenProgress >= .9) { this.resolutionCompleted = true; this.callbacks.onResolutionComplete?.(); }
   }
   toggleCollisionDebug() { this.debugCollisions = !this.debugCollisions; return this.debugCollisions; }
@@ -101,9 +103,9 @@ export class MandalingoGame {
       this.player.lookX = x; this.player.lookY = y; if (Math.abs(x) > .1) this.player.facing = Math.sign(x);
       const running = this.keys.has("shift"), speedX = running ? PLAYER_SPEED.runX : PLAYER_SPEED.walkX, speedY = running ? PLAYER_SPEED.runY : PLAYER_SPEED.walkY;
       const nextX = this.player.x + x * speedX * dt, nextY = this.player.y + y * speedY * dt;
-      const activeColliders = (this.questResolved ? COLLIDERS.filter(entity => entity.id !== "gate") : COLLIDERS).map(entity => this.worldEntity(entity));
-      if (isPlayerWalkable(nextX, this.player.y, PLAYER_COLLISION_RADIUS, activeColliders)) this.player.x = nextX;
-      if (isPlayerWalkable(this.player.x, nextY, PLAYER_COLLISION_RADIUS, activeColliders)) this.player.y = nextY;
+      const activeColliders = COLLIDERS.filter(entity => entity.id !== "gate").map(entity => this.worldEntity(entity));
+      if (isPlayerWalkable(nextX, this.player.y, PLAYER_COLLISION_RADIUS, activeColliders) && isGateWalkable(nextX,this.player.y,PLAYER_COLLISION_RADIUS,this.gateOpenProgress)) this.player.x = nextX;
+      if (isPlayerWalkable(this.player.x, nextY, PLAYER_COLLISION_RADIUS, activeColliders) && isGateWalkable(this.player.x,nextY,PLAYER_COLLISION_RADIUS,this.gateOpenProgress)) this.player.y = nextY;
     }
     const travelled = Math.hypot(this.player.x - oldX, this.player.y - oldY);
     this.moving = travelled > .01; this.stride += travelled / 13;

@@ -1,0 +1,11 @@
+# TASK-005J — Kneeling traveller and solid wooden gate
+
+User requests visibly weak lying/kneeling traveller and solid wooden gate collision. Use a kneeling, slumped posture while thirsty and drinking; rise smoothly after water, walk/plead upright, restore upright on completed saves. Keep existing authored dialogue, language rules, inventory and quest sequence. Preserve frozen Godot references and root pending language branch.
+
+Investigated published gate: legacy rectangle exists only while questResolved=false. It is removed as soon as opening begins and does not follow the visible hinged leaves when open. Replace that door rectangle with leaf collision derived from the same hinge/width/angle as the 3D doors, keeping gate posts solid. Existing room bounds remain unchanged.
+
+Validation: failing then passing tests for closed/opening/open leaf collision and posture/reset/rise; npm run check, local desktop browser collision and consequence fixtures, Windows build/smoke, full authorized PR/Pages/live release.
+
+Implemented: thirsty traveller keeps a low, bowed kneeling posture during idle/observation/drinking. Existing consequence reserves 0.8 seconds to rise before walking, and completed saves restore upright. Wooden gate uses circular-player versus rotated leaf segments plus fixed posts; collision persists through opening and after the quest, with F3 overlays tracking each leaf. Shared hinge/angle data matches the renderer. No curriculum, quest permission, mobile or Godot changes.
+
+Validation 2026-10-02: initial tests failed for crossing an open door and standing traveller; after implementation npm run check passes 57 tests. Tests exercise real movement at three closed-door positions, open centre, open leaf, mesh/collision endpoint agreement at 0/.5/1, kneeling/drinking/rise/restored upright and pose reset. git diff --check clean. Local browser: closed-door north movement stops y314; open-left-leaf movement stops x739 from755 at y330; new game kneeling visible; full jar/collection/offer/drink/recovery/open reaches CHAPTER, kneeling=0, gate=1, quest=resolved; no console errors/warnings. Windows packaged executable smoke exit0, rendered=true, errors=[], WebGL enabled; ZIP refreshed. Existing courtyard boundary retained. Godot export omitted per AGENTS.md frozen reference rule.

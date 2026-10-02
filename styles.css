@@ -41,8 +41,8 @@ kbd { display: inline-flex; min-width: 1.8em; height: 1.8em; align-items: center
 
 .hud { position: absolute; z-index: 12; inset: 18px 22px auto; display: flex; align-items: stretch; gap: 12px; pointer-events: none; opacity: 0; transform: translateY(-15px); transition: .35s; }
 .hud.is-visible { opacity: 1; transform: none; }
-.location, .objective, .hud-actions { min-height: 58px; display: flex; justify-content: center; flex-direction: column; padding: 9px 16px; border: 1px solid rgba(220,197,130,.2); background: rgba(8,17,22,.79); backdrop-filter: blur(9px); box-shadow: 0 8px 25px rgba(0,0,0,.24); }
-.location { min-width: 175px; }.objective { width: min(320px, 32vw); min-height: 48px; margin-left: auto; flex-direction: row; align-items: center; gap: 10px; padding: 7px 12px; }
+.location, .hud-actions { min-height: 58px; display: flex; justify-content: center; flex-direction: column; padding: 9px 16px; border: 1px solid rgba(220,197,130,.2); background: rgba(8,17,22,.79); backdrop-filter: blur(9px); box-shadow: 0 8px 25px rgba(0,0,0,.24); }
+.location { min-width: 175px; }
 .goal-icons { white-space: nowrap; font-size: 17px; filter: saturate(.8); }
 .hud small { color: #8fa49e; font-size: 9px; letter-spacing: .18em; }.hud strong { margin-top: 4px; font: 600 14px Georgia, serif; color: #eee2c7; }
 .hud-actions { flex-direction: row; align-items: center; gap: 8px; pointer-events: auto; padding: 7px; }
@@ -80,11 +80,11 @@ kbd { display: inline-flex; min-width: 1.8em; height: 1.8em; align-items: center
 .location { border:0; background:none; padding:0 24px 0 0; min-width:220px; }
 .location small { color:#acbbac; font-size:9px; letter-spacing:.18em; }
 .location strong { font:20px Georgia,serif; }
-.objective { position:relative; margin:0; padding:0 20px 0 35px; border:0; border-left:1px solid #b4a67840; background:none; width:auto; flex:1; display:grid; gap:4px; }
-.objective small { color:#b8bca8; font-size:9px; letter-spacing:.16em; }
-.objective strong { font-size:13px; font-weight:500; }
-.objective .goal-icons { position:absolute; left:12px; top:10px; color:#e0bc6e; font-size:18px; }
-.hud-actions { border:0; background:none; padding:0; gap:8px; }
+
+
+
+
+.hud-actions { margin-left:auto; border:0; background:none; padding:0; gap:8px; }
 .notebook-button,.icon-button { background:#26382e; border-color:#8e9c7750; border-radius:6px; min-height:44px; }
 .inventory-chip { display:flex; align-items:center; gap:5px; margin-right:16px; color:#cfdfc6; font-size:11px; white-space:nowrap; }
 .inventory-chip img { width:32px; height:32px; object-fit:contain; }
@@ -135,4 +135,4 @@ kbd { display: inline-flex; min-width: 1.8em; height: 1.8em; align-items: center
 .pause-card .panel-kicker { color:var(--gold); font-size:10px; letter-spacing:.2em; }
 .pause-card button { min-height:48px; }
 .pause-card small { margin-top:12px; color:#b5c6bb; line-height:1.8; text-align:center; }
-@media (max-width:1100px) { .location { display:none; } .objective { margin-left:0; } }
+@media (max-width:1100px) { .location { display:none; }  }

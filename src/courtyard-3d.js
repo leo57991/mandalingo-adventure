@@ -1,11 +1,11 @@
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-replay-v1";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-discovery-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=courtyard-replay-v1";
+} from "./lessons.js?v=courtyard-discovery-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];

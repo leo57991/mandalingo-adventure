@@ -8,7 +8,7 @@
     <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a real-time 3D wuxia courtyard for desktop play." />
     <title>Mandalingo — The South Gate</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=courtyard-replay-v1" />
+    <link rel="stylesheet" href="styles.css?v=courtyard-discovery-v1" />
   </head>
   <body>
     <main id="app">
@@ -19,7 +19,7 @@
         <p class="eyebrow">AN AUTUMN JOURNEY · CHAPTER 01</p>
         <h1 id="game-title">MANDA<span>LINGO</span></h1>
         <p class="chapter-name">THE SOUTH GATE</p>
-        <p class="intro">The city gate is barred.<br />Read the courtyard through gestures, objects and consequences.</p>
+        <p class="intro">The city gate is barred.</p>
         <button id="start-btn" class="primary-button"><span>Enter the courtyard</span><kbd>Enter</kbd></button>
         <button id="replay-opening" class="text-button">Replay opening · Keep saved progress</button>
         <p id="replay-description" class="tip" hidden>Opening replay. Your saved journey and notes are kept.</p>
@@ -36,12 +36,10 @@
           <article><b>02</b><span>E</span><h3>Observe</h3><p>Talk to people and inspect objects. Every unfamiliar sign you actually see is recorded automatically.</p></article>
           <article><b>03</b><span>N</span><h3>Hypothesise</h3><p>Keep your own guesses in the notebook. Try an action and watch what changes. Your notes never lock an action.</p></article>
         </div>
-        <p class="tip">Observe the people, inspect their surroundings, and follow the gestures.</p>
       </section>
 
       <header id="hud" class="hud" aria-hidden="true">
         <div class="location"><small>CURRENT AREA</small><strong id="location-english">South Gate Courtyard</strong></div>
-        <div class="objective"><small>YOUR JOURNEY</small><span class="goal-icons" aria-hidden="true">◇</span><strong id="objective-text">Find a way through the gate</strong></div>
         <span id="replay-chip" class="inventory-chip" hidden>Opening replay · Progress kept</span><div id="inventory-chip" class="inventory-chip" hidden><img src="assets/gate-room/props/empty-bowl.png" alt="" />Bowl in hand</div><div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
       </header>
 
@@ -75,7 +73,7 @@
         </aside>
         <div class="notebook-content">
           <div class="notebook-top"><div><p id="notebook-kicker">FIELD NOTES</p><h3 id="notebook-heading">Words encountered</h3></div><button id="close-notebook" class="close-button" aria-label="Close notebook">×</button></div>
-          <p id="notebook-intro" class="notebook-intro">Seen words are recorded automatically. Form a hypothesis, then test it through action.</p>
+          <p id="notebook-intro" class="notebook-intro">Seen words are recorded automatically.</p>
           <div id="journal-view" class="journal-view"></div><div id="cards-view" class="cards-view" hidden></div>
         </div>
       </section>
@@ -96,6 +94,6 @@
       <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><span><kbd>Esc</kbd> Pause</span><small>SOUTH GATE · AUTUMN · 3D</small></footer>
       <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
     </main>
-    <script type="module" src="src/main.js?v=courtyard-replay-v1"></script>
+    <script type="module" src="src/main.js?v=courtyard-discovery-v1"></script>
   </body>
 </html>

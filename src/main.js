@@ -1,20 +1,20 @@
-import { JourneyStore } from "./journey-store.js?v=courtyard-replay-v1";
-import { observationCue } from "./evidence-vfx.js?v=courtyard-replay-v1";
-import { Soundscape } from "./audio.js?v=courtyard-replay-v1";
-import { MandalingoGame } from "./game.js?v=courtyard-replay-v1";
+import { JourneyStore } from "./journey-store.js?v=courtyard-discovery-v1";
+import { observationCue } from "./evidence-vfx.js?v=courtyard-discovery-v1";
+import { Soundscape } from "./audio.js?v=courtyard-discovery-v1";
+import { MandalingoGame } from "./game.js?v=courtyard-discovery-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=courtyard-replay-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-replay-v1";
-import { InputRouter } from "./input.js?v=courtyard-replay-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=courtyard-replay-v1";
+} from "./lessons.js?v=courtyard-discovery-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-discovery-v1";
+import { InputRouter } from "./input.js?v=courtyard-discovery-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=courtyard-discovery-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
 const elements = {
-  game: $("#game"), title: $("#title-screen"), help: $("#how-screen"), hud: $("#hud"), objective: $("#objective-text"),
+  game: $("#game"), title: $("#title-screen"), help: $("#how-screen"), hud: $("#hud"),
   prompt: $("#interaction-prompt"), promptAction: $("#interaction-action"), promptLabel: $("#interaction-label"), toast: $("#toast"),
   dialogue: $("#dialogue-panel"), context: $("#context-text"), speaker: $("#speaker-name"), speakerType: $("#speaker-type"), lineCount: $("#line-count"), text: $("#dialogue-text"), reaction: $("#dialogue-reaction"),
   portraitStage: $("#portrait-stage"), portrait: $("#dialogue-portrait"), useWater: $("#use-water"),
@@ -70,7 +70,7 @@ function syncUiState() {
 
 function startGame() {
   if (state.current !== GAME_STATE.TITLE) return; sound.ensure(); game.start({ resolved: tutorialSession.resolved }); state.reset(GAME_STATE.EXPLORING);
-  requestAnimationFrame(() => elements.game.focus()); showToast("Explore · Observe · Follow the gestures");
+  requestAnimationFrame(() => elements.game.focus());
 }
 
 function updateInteractionPrompt(entity) {
@@ -100,7 +100,7 @@ function renderLine() {
   sound.page();
 }
 
-function refreshDialogueActions() { const readiness = getWaterTaskReadiness(journal, tutorialSession), canHelp = activeEntity?.waterTarget && readiness.ready; elements.useWater.hidden = !canHelp; elements.useWater.disabled = false; elements.useWater.title = readiness.reason; const collect = $("#collect-bowl"); collect.hidden = !activeEntity?.collectibleItem || journal.inventory.includes("water-bowl") || journal.quest === "resolved"; }
+function refreshDialogueActions() { const readiness = getWaterTaskReadiness(journal, tutorialSession), canHelp = activeEntity?.waterTarget && readiness.ready; elements.useWater.hidden = !canHelp; elements.useWater.disabled = false; elements.useWater.title = ""; const collect = $("#collect-bowl"); collect.hidden = !activeEntity?.collectibleItem || journal.inventory.includes("water-bowl") || journal.quest === "resolved"; }
 
 function renderChineseLine(line) {
   elements.text.replaceChildren(); const tokenSet = new Set(line.tokens);
@@ -164,18 +164,14 @@ function renderJournal() {
 }
 
 function renderCards() { const cards = buildFlashcards(journal); if (!cards.length) { elements.cardsView.innerHTML = `<div class="empty-state"><b>No flashcards yet.</b><span>Cards appear after a hypothesis is supported by an action in the world.</span></div>`; return; } elements.cardsView.replaceChildren(...cards.map(card => { const node = document.createElement("button"); node.className = "flashcard"; node.innerHTML = `<div class="front">${card.text}<small>World-supported hypothesis</small></div><div class="back"><b>${escapeHtml(card.guess)}</b><small>${card.distinctContexts} contexts · ${escapeHtml(card.confidence)}</small></div>`; node.addEventListener("click", () => node.classList.toggle("is-flipped")); return node; })); }
-function activateTab(tab) { document.querySelectorAll(".tab-button").forEach(button => button.classList.toggle("is-active", button.dataset.tab === tab)); const cards = tab === "cards"; elements.journalView.hidden = cards; elements.cardsView.hidden = !cards; elements.notebookKicker.textContent = cards ? "WORLD-SUPPORTED DECK" : "FIELD NOTES"; elements.notebookHeading.textContent = cards ? "Your flashcards" : "Words encountered"; elements.notebookIntro.textContent = cards ? "These cards preserve hypotheses supported by world actions; no translation is revealed." : "Seen words are recorded automatically. Form a hypothesis, then test it through action."; cards ? renderCards() : renderJournal(); }
+function activateTab(tab) { document.querySelectorAll(".tab-button").forEach(button => button.classList.toggle("is-active", button.dataset.tab === tab)); const cards = tab === "cards"; elements.journalView.hidden = cards; elements.cardsView.hidden = !cards; elements.notebookKicker.textContent = cards ? "WORLD-SUPPORTED DECK" : "FIELD NOTES"; elements.notebookHeading.textContent = cards ? "Your flashcards" : "Words encountered"; elements.notebookIntro.textContent = cards ? "These cards preserve hypotheses supported by world actions; no translation is revealed." : "Seen words are recorded automatically."; cards ? renderCards() : renderJournal(); }
 
-function closeChapter() { if (state.current === GAME_STATE.CHAPTER) { state.reset(GAME_STATE.EXPLORING); requestAnimationFrame(() => elements.game.focus()); showToast("The room remains open for review."); } }
+function closeChapter() { if (state.current === GAME_STATE.CHAPTER) { state.reset(GAME_STATE.EXPLORING); requestAnimationFrame(() => elements.game.focus()); } }
 function closeCurrentOverlay() { if (state.current === GAME_STATE.EXPLORING) { state.push(GAME_STATE.PAUSED); return; } if (state.current === GAME_STATE.PAUSED) { state.pop(); return; } if (state.current === GAME_STATE.HELP) state.pop(); else if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if (state.current === GAME_STATE.DIALOGUE) closeDialogue(); else if (state.current === GAME_STATE.CHAPTER) closeChapter(); }
 function updateInterface() {
   game.carryingWater = journal.inventory.includes("water-bowl") && journal.quest !== "resolved";
   $("#inventory-chip").hidden = !game.carryingWater;
   const entries = getEncounteredEntries(journal), cards = buildFlashcards(journal); elements.journalCount.textContent = entries.length; elements.cardCount.textContent = cards.length;
-  if (journal.quest === "resolved") elements.objective.textContent = "The way into town is open";
-  else if (tutorialSession.resolving) elements.objective.textContent = "Watch what happens";
-  else if (getWaterTaskReadiness(journal, tutorialSession).ready) elements.objective.textContent = "A bowl in hand. Someone may need it.";
-  else elements.objective.textContent = "Find a way through the gate";
 }
 function showToast(message) { clearTimeout(toastTimer); elements.toast.textContent = message; elements.toast.classList.add("is-visible"); toastTimer = setTimeout(() => elements.toast.classList.remove("is-visible"), 2500); }
 function escapeHtml(value = "") { const div = document.createElement("div"); div.textContent = value; return div.innerHTML; }

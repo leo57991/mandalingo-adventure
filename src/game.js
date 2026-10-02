@@ -1,7 +1,7 @@
-import { isGateWalkable } from "./gate-geometry.js?v=courtyard-kneel-v1";
-import { EvidenceEffects } from "./evidence-vfx.js?v=courtyard-kneel-v1";
-import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-kneel-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-kneel-v1";
+import { isGateWalkable } from "./gate-geometry.js?v=courtyard-replay-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=courtyard-replay-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-replay-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-replay-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));

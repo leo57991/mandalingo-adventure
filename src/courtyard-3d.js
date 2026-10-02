@@ -1,15 +1,16 @@
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-kneel-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=courtyard-vfx-v1";
+} from "./lessons.js?v=courtyard-kneel-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
 export function setGateOpening(doors, progress) {
-  const angle = T.MathUtils.clamp(progress, 0, 1) * Math.PI * 0.48;
+  const angle = gateAngle(progress);
   doors[0].rotation.y = -angle;
   doors[1].rotation.y = angle;
 }
@@ -202,19 +203,25 @@ export function poseActor(
     pose = "idle",
     time = 0,
     reducedMotion = false,
+    kneeling = 0,
   } = {},
 ) {
+  const kneel = Math.max(0, Math.min(1, kneeling));
+  a.body.scale.y = 1 - kneel * .2;
+  a.body.rotation.x = kneel * .18;
+  a.body.position.z = -kneel * .1;
+  a.leftLeg.position.y = a.rightLeg.position.y = .45 - kneel * .37;
   const swing = moving && !reducedMotion ? Math.sin(stride) * 0.48 : 0;
-  a.leftLeg.rotation.x = swing;
-  a.rightLeg.rotation.x = -swing;
+  a.leftLeg.rotation.x = swing * (1-kneel) - kneel * Math.PI/2;
+  a.rightLeg.rotation.x = -swing * (1-kneel) - kneel * Math.PI/2;
   a.leftArm.rotation.x = -swing * 0.7;
   a.rightArm.rotation.x = swing * 0.7;
   a.leftArm.rotation.z = 0;
   a.rightArm.rotation.z = 0;
   a.body.position.y =
-    moving && !reducedMotion ? Math.abs(Math.sin(stride)) * 0.025 : 0;
+    (moving && !reducedMotion ? Math.abs(Math.sin(stride)) * 0.025 : 0) - kneel * .18;
   a.head.rotation.x =
-    pose === "nod" && !reducedMotion ? Math.sin(time * 5) * 0.1 : 0;
+    kneel * .24 + (pose === "nod" && !reducedMotion ? Math.sin(time * 5) * 0.1 : 0);
   a.bowl.visible = carrying || pose === "drink-water";
   a.bowl.position.set(
     0,
@@ -334,8 +341,8 @@ export function buildCourtyard() {
   }
   const gatehouse = group(scene, 0, 0, -1.8);
   for (const s of [-1, 1]) {
-    box(gatehouse, 0.25, 2.25, 0.4, P.wood, s * 1.08, 1.125);
-    box(gatehouse, 0.4, 0.2, 0.55, P.stone, s * 1.08, 0.1);
+    box(gatehouse, 0.25, 2.25, 0.4, P.wood, s * GATE.postOffset/100, 1.125);
+    box(gatehouse, 0.4, 0.2, 0.55, P.stone, s * GATE.postOffset/100, 0.1);
   }
   box(gatehouse, 2.7, 0.27, 0.5, P.wood, 0, 2.02);
   roof(gatehouse, 3, 1.7, 2.28);
@@ -343,7 +350,7 @@ export function buildCourtyard() {
   box(gatehouse, 0.65, 0.045, 0.08, P.gold, 0, 2.06, 0.35);
   const doors = [];
   for (const s of [-1, 1]) {
-    const hinge = group(scene, s * 0.9, 0, -1.62);
+    const hinge = group(scene, (GATE.centerX-800+s*GATE.halfWidth)/100, 0, (GATE.hingeY-450)/100);
     doors.push(hinge);
     box(hinge, 0.9, 1.76, 0.12, P.wood, -s * 0.45, 0.9);
     for (let i = 0; i < 5; i++)
@@ -655,6 +662,14 @@ export class Courtyard3D {
       return;
     }
     this.world = buildCourtyard();
+    this.gateDebug = new T.Group();
+    this.world.scene.add(this.gateDebug);
+    for (const side of [-1,1]) {
+      const leaf = new T.Mesh(new T.BoxGeometry(GATE.halfWidth/100,.035,GATE.thickness/100),new T.MeshBasicMaterial({color:0xffc34b,wireframe:true}));
+      this.gateDebug.add(leaf);
+      const post = new T.Mesh(new T.BoxGeometry(GATE.postWidth/100,.035,GATE.postDepth/100),leaf.material);
+      post.position.set(...worldPoint(GATE.centerX+side*GATE.postOffset,GATE.postY));post.position.y=.06;this.gateDebug.add(post);
+    }
     this.evidenceVFX = new EvidenceVFX(this.world.scene);
     canvas.addEventListener("webglcontextlost", (event) => {
       event.preventDefault();
@@ -759,7 +774,8 @@ export class Courtyard3D {
         stride: player ? game.stride : game.time * 6,
         moving: player
           ? game.moving
-          : id === "thirsty-traveller" && game.resolutionPhase === "walk",
+          : id === "thirsty-traveller" && game.resolutionPhase === "walk" && game.travellerKneeling === 0,
+        kneeling: id === "thirsty-traveller" ? game.travellerKneeling : 0,
         carrying: player ? game.carryingWater && !game.resolution : !!cue.prop,
         emptyBowl: cue.prop === "empty-bowl",
         pose: cue.pose,
@@ -773,6 +789,12 @@ export class Courtyard3D {
       const [x, , z] = worldPoint(game.nearby.x, game.nearby.y);
       world.marker.position.set(x, 0.045, z);
     }
+    this.gateDebug.visible = game.debugCollisions;
+    gateLeaves(game.gateOpenProgress).forEach((leaf,i)=>{
+      const m=this.gateDebug.children[i*2];
+      m.position.set(...worldPoint((leaf.x+leaf.endX)/2,(leaf.y+leaf.endY)/2));m.position.y=.06;
+      m.rotation.y=-Math.atan2(leaf.endY-leaf.y,leaf.endX-leaf.x);
+    });
     world.collisionDebug.visible = game.debugCollisions;
     if (game.debugCollisions)
       for (const m of world.collisionDebug.children) {
@@ -782,7 +804,7 @@ export class Courtyard3D {
           ...worldPoint(e.x + c.x + c.width / 2, e.y + c.y + c.height / 2),
         );
         m.position.y = 0.06;
-        m.visible = e.id !== "gate" || !game.questResolved;
+        m.visible = e.id !== "gate";
       }
     let speaker = game.dialogueActor,
       text = game.dialogueText;

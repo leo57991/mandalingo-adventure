@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=courtyard-vfx-v1";
+import { GAME_STATE } from "./game-state.js?v=courtyard-kneel-v1";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 

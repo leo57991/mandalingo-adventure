@@ -1,14 +1,14 @@
-import { observationCue } from "./evidence-vfx.js?v=courtyard-vfx-v1";
-import { Soundscape } from "./audio.js?v=courtyard-vfx-v1";
-import { MandalingoGame } from "./game.js?v=courtyard-vfx-v1";
+import { observationCue } from "./evidence-vfx.js?v=courtyard-kneel-v1";
+import { Soundscape } from "./audio.js?v=courtyard-kneel-v1";
+import { MandalingoGame } from "./game.js?v=courtyard-kneel-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=courtyard-vfx-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-vfx-v1";
-import { InputRouter } from "./input.js?v=courtyard-vfx-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=courtyard-vfx-v1";
+} from "./lessons.js?v=courtyard-kneel-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-kneel-v1";
+import { InputRouter } from "./input.js?v=courtyard-kneel-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=courtyard-kneel-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);

@@ -1,14 +1,15 @@
-import { observationCue } from "./evidence-vfx.js?v=courtyard-kneel-v1";
-import { Soundscape } from "./audio.js?v=courtyard-kneel-v1";
-import { MandalingoGame } from "./game.js?v=courtyard-kneel-v1";
+import { JourneyStore } from "./journey-store.js?v=courtyard-replay-v1";
+import { observationCue } from "./evidence-vfx.js?v=courtyard-replay-v1";
+import { Soundscape } from "./audio.js?v=courtyard-replay-v1";
+import { MandalingoGame } from "./game.js?v=courtyard-replay-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=courtyard-kneel-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-kneel-v1";
-import { InputRouter } from "./input.js?v=courtyard-kneel-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=courtyard-kneel-v1";
+} from "./lessons.js?v=courtyard-replay-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-replay-v1";
+import { InputRouter } from "./input.js?v=courtyard-replay-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=courtyard-replay-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -22,8 +23,8 @@ const elements = {
   pause: $("#pause-panel"), sound: $("#sound-btn")
 };
 
-function loadProgress() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; } }
-const saved = loadProgress() ?? {};
+const progressStore = new JourneyStore(() => localStorage.getItem(STORAGE_KEY), value => localStorage.setItem(STORAGE_KEY, value), {replay:new URLSearchParams(location.search).get("replay") === "opening"});
+const saved = progressStore.load();
 let journal = createJournal(saved.journal), tutorialSession = createTutorialSession({ ...saved.session, resolved: saved.journal?.quest === "resolved" || saved.session?.resolved });
 let activeEntity = null, activeLines = [], lineIndex = 0, toastTimer = null;
 const sound = new Soundscape();
@@ -51,7 +52,7 @@ const input = new InputRouter({
   }
 });
 
-function saveProgress() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ journal, session: tutorialSession })); } catch { showToast("Progress could not be saved on this device."); } updateInterface(); }
+function saveProgress() { if (!progressStore.save({journal,session:tutorialSession})) showToast("Progress could not be saved on this device."); updateInterface(); }
 function setVisible(node, visible) { node.hidden = !visible; node.classList.toggle("is-visible", visible); node.setAttribute("aria-hidden", String(!visible)); }
 function syncUiState() {
   const current = state.current;
@@ -190,7 +191,25 @@ $("#collect-bowl").addEventListener("click", () => {
   game.playEvidence({kind:"water-fill",sourceId:"water-jar",targetId:"player",key:"collection"}); saveProgress(); refreshDialogueActions();
   elements.reaction.textContent = "The bowl rests in your hands."; $("#dialogue-next").focus(); sound.page();
 });
-if (tutorialSession.resolved) { journal.quest = "resolved"; $("#start-btn span").textContent = "Return to the courtyard"; }
+function configureJourneyTitle() {
+  if (tutorialSession.resolved) journal.quest = "resolved";
+  $("#start-btn span").textContent = tutorialSession.resolved ? "Return to the courtyard" : "Enter the courtyard";
+  $("#replay-opening").hidden = progressStore.replay;
+  $("#replay-chip").hidden = !progressStore.replay;
+  $("#return-title-btn").textContent = progressStore.replay ? "Return to saved journey" : "Return to title";
+  $("#replay-description").hidden = !progressStore.replay;
+  $("#pause-save-note").textContent = progressStore.replay ? "Your saved journey is kept. This replay does not replace it." : "Your notes and discoveries are saved automatically.";
+}
+function restoreJourney(progress) {
+  journal = createJournal(progress.journal);
+  tutorialSession = createTutorialSession({...progress.session,resolved:progress.journal?.quest === "resolved" || progress.session?.resolved});
+  configureJourneyTitle();
+}
+configureJourneyTitle();
+$("#replay-opening").addEventListener("click",()=>{
+  if (state.current !== GAME_STATE.TITLE) return;
+  restoreJourney(progressStore.beginReplay()); startGame();
+});
 $("#start-btn").addEventListener("click", startGame); $("#how-btn").addEventListener("click", () => state.push(GAME_STATE.HELP)); $("[data-close='how-screen']").addEventListener("click", () => state.pop());
 $("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
 document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; elements.sound.setAttribute("aria-pressed", String(!muted)); });
@@ -202,7 +221,8 @@ $('#fullscreen-btn').addEventListener('click', async () => {
 });
 $('#return-title-btn').addEventListener('click', () => {
   saveProgress(); game.started = false; state.reset(GAME_STATE.TITLE);
-  $('#start-btn span').textContent = 'Return to the courtyard';
+  if (progressStore.replay) restoreJourney(progressStore.endReplay());
+  configureJourneyTitle(); updateInterface();
   requestAnimationFrame(() => $('#start-btn').focus());
 });
 window.addEventListener('blur', () => { if (state.current === GAME_STATE.EXPLORING) state.push(GAME_STATE.PAUSED); });

@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=courtyard-kneel-v1";
+import { GAME_STATE } from "./game-state.js?v=courtyard-replay-v1";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 
@@ -19,6 +19,7 @@ export function resolveGameAction(key, state) {
 
 export function resolveRoutedAction(key, state, target) {
   if (isTextEntryTarget(target) && key !== "escape") return null;
+  if (key === "enter" && target?.matches?.("button, a[href], [role=button]")) return null;
   return resolveGameAction(key, state);
 }
 

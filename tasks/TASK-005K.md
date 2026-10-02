@@ -1,0 +1,9 @@
+# TASK-005K — View the opening without replacing saved progress
+
+User reports unchanged traveller on published game. Live inspection confirms completed save: HUD says the way into town is open, traveller stands beside guard. Add explicit non-saving opening replay from title and optional replay=opening URL, preserving original saved journey and notes. Returning to title from replay restores saved state. Clear replay label; no reset/deletion, curriculum change, Godot change or main pending branch merge.
+
+Validate persistence isolation, failed-storage behavior, browser completed save -> opening replay -> observe/notes/action -> return -> original save, native build, authorized release and live kneeling view.
+
+Implemented: JourneyStore isolates replay from persistent reads/writes, title Replay opening button and replay=opening URL select a blank ephemeral journey. HUD/title/pause label the mode; Return to saved journey restores saved journal/session. Enter on a title control now preserves native button activation rather than global START taking precedence. No save deletion or reset.
+
+Validation 2026-10-02: 60 tests passing via npm run check; git diff --check clean. Initial store isolation and button Enter regression tests failed before implementation. Browser completed-save fixture -> keyboard replay shows gate=0/kneeling=1/quest=observing while savedQuest=resolved; observation adds preview evidence only; Return to saved journey restores original evidence count and resolved journey, starting it shows gate=1/kneeling=0. One IAB iframe reload MutationObserver error logged by browser tooling; no MutationObserver references exist in application source. Final Windows build smoke exit0, rendered=true, errors=[], WebGL enabled; ZIP refreshed. Godot export omitted per frozen-reference rule.

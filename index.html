@@ -8,7 +8,7 @@
     <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a real-time 3D wuxia courtyard for desktop play." />
     <title>Mandalingo — The South Gate</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=courtyard-kneel-v1" />
+    <link rel="stylesheet" href="styles.css?v=courtyard-replay-v1" />
   </head>
   <body>
     <main id="app">
@@ -21,6 +21,8 @@
         <p class="chapter-name">THE SOUTH GATE</p>
         <p class="intro">The city gate is barred.<br />Read the courtyard through gestures, objects and consequences.</p>
         <button id="start-btn" class="primary-button"><span>Enter the courtyard</span><kbd>Enter</kbd></button>
+        <button id="replay-opening" class="text-button">Replay opening · Keep saved progress</button>
+        <p id="replay-description" class="tip" hidden>Opening replay. Your saved journey and notes are kept.</p>
         <button id="how-btn" class="text-button">A traveller’s guide</button>
         <div class="principles"><span>No translations</span><i></i><span>No instant grading</span><i></i><span>Your own notebook</span></div>
       </section>
@@ -40,7 +42,7 @@
       <header id="hud" class="hud" aria-hidden="true">
         <div class="location"><small>CURRENT AREA</small><strong id="location-english">South Gate Courtyard</strong></div>
         <div class="objective"><small>YOUR JOURNEY</small><span class="goal-icons" aria-hidden="true">◇</span><strong id="objective-text">Find a way through the gate</strong></div>
-        <div id="inventory-chip" class="inventory-chip" hidden><img src="assets/gate-room/props/empty-bowl.png" alt="" />Bowl in hand</div><div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
+        <span id="replay-chip" class="inventory-chip" hidden>Opening replay · Progress kept</span><div id="inventory-chip" class="inventory-chip" hidden><img src="assets/gate-room/props/empty-bowl.png" alt="" />Bowl in hand</div><div class="hud-actions"><button id="notebook-btn" class="notebook-button"><span>▤</span> Notebook <kbd>N</kbd></button><button id="sound-btn" class="icon-button" aria-label="Toggle sound">♫</button></div>
       </header>
 
       <div id="interaction-prompt" class="interaction-prompt" aria-live="polite"><kbd>E</kbd><div><small id="interaction-action">Talk</small><strong id="interaction-label">Gatekeeper</strong></div></div>
@@ -84,7 +86,7 @@
       </section>
 
       <section id="pause-panel" class="pause-panel" role="dialog" aria-hidden="true" aria-labelledby="pause-title" hidden>
-        <div class="pause-card"><p class="panel-kicker">SOUTH GATE · AUTUMN</p><h2 id="pause-title">Journey paused</h2><p>Your notes and discoveries are saved automatically.</p>
+        <div class="pause-card"><p class="panel-kicker">SOUTH GATE · AUTUMN</p><h2 id="pause-title">Journey paused</h2><p id="pause-save-note">Your notes and discoveries are saved automatically.</p>
           <button id="resume-btn" class="primary-small">Resume <kbd>Esc</kbd></button>
           <button id="fullscreen-btn" class="secondary-button">Toggle fullscreen</button>
           <button id="return-title-btn" class="secondary-button">Return to title</button>
@@ -94,6 +96,6 @@
       <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><span><kbd>Esc</kbd> Pause</span><small>SOUTH GATE · AUTUMN · 3D</small></footer>
       <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
     </main>
-    <script type="module" src="src/main.js?v=courtyard-kneel-v1"></script>
+    <script type="module" src="src/main.js?v=courtyard-replay-v1"></script>
   </body>
 </html>

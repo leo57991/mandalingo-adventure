@@ -25,7 +25,7 @@ app.whenReady().then(async()=>{let win;
   const reach=await run(`review.game.time=2;review.game.draw();({bowl:review.game.view.world.actors.get('thirsty-traveller').bowl.position.toArray(),facing:review.game.view.world.actors.get('thirsty-traveller').root.rotation.y,quest:review.getJournal().quest,inventory:review.getJournal().inventory})`);
   assert.ok(reach.bowl[2]>.6);assert.ok(Math.abs(reach.facing-Math.PI/2)<.001);assert.deepEqual(reach.inventory,[]);
   await shot('plea-reduced','review.game.reducedMotion=true;review.game.time=2');
-  await run(`(async()=>{review.game.reducedMotion=false;window.lesson=await import('./src/lessons.js?v=wuyin-journey-v1');review.openDialogue(lesson.NPCS.find(n=>n.id==='thirsty-traveller'));})()`);
+  await run(`(async()=>{review.game.reducedMotion=false;window.lesson=await import('./src/lessons.js?v=wuyin-world-v1');review.openDialogue(lesson.NPCS.find(n=>n.id==='thirsty-traveller'));})()`);
   await shot('plea-dialogue','review.game.time=2');
   await run(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));review.openDialogue(lesson.FURNITURE.find(n=>n.id==='water-jar'));document.querySelector('#collect-bowl').click();window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));review.openDialogue(lesson.NPCS.find(n=>n.id==='thirsty-traveller'));document.querySelector('#use-water').click();review.game.presentationPaused=true;`);
   assert.equal(await run('review.state.current'),'CUTSCENE');
@@ -34,7 +34,7 @@ app.whenReady().then(async()=>{let win;
   await shot('plea-recovered','review.game.resolution.elapsed=8;review.game.updateResolution(0);review.game.gateOpenProgress=1');
   await run('review.game.resolution.elapsed=9.5;review.game.updateResolution(0)');
   const final=await run('({quest:review.getJournal().quest,phase:review.game.resolutionPhase,kneeling:review.game.travellerKneeling,state:review.state.current})');
-  assert.equal(final.quest,'resolved');assert.equal(final.kneeling,0);assert.equal(final.state,'CHAPTER');const journalBeforeTown=await run('JSON.stringify(review.getJournal())');await run("document.querySelector('#enter-town').click();review.game.draw();");assert.equal(await run('review.game.location'),'town');assert.equal(await run('review.state.current'),'EXPLORING');assert.equal(await run('JSON.stringify(review.getJournal())'),journalBeforeTown);assert.deepEqual(errors,[]);
+  assert.equal(final.quest,'resolved');assert.equal(final.kneeling,0);assert.equal(final.state,'EXPLORING');const journalBeforeTown=await run('JSON.stringify(review.getJournal())');await run("review.game.presentationPaused=false;review.game.player.x=800;review.game.player.y=325;review.game.setKey('w',true);for(let i=0;i<65;i++)review.game.update(.04);review.game.clearKeys();review.game.presentationPaused=true;review.game.draw();");assert.equal(await run('review.game.location'),'town');assert.equal(await run('review.state.current'),'EXPLORING');assert.equal(await run('JSON.stringify(review.getJournal())'),journalBeforeTown);assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(out,'plea-review.json'),JSON.stringify({ok:true,base,water,reach,final,errors},null,2));app.exit(0);
  }catch(e){fs.writeFileSync(path.join(out,'plea-review.json'),JSON.stringify({ok:false,error:e.stack,errors},null,2));app.exit(1);}
 });

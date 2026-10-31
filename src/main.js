@@ -1,16 +1,16 @@
-import { JourneyStore } from "./journey-store.js?v=wuyin-journey-v1";
-import {createTownJourney} from './town-journey.js?v=wuyin-journey-v1';
-import { observationCue } from "./evidence-vfx.js?v=wuyin-journey-v1";
-import { Soundscape } from "./audio.js?v=wuyin-journey-v1";
-import { MandalingoGame } from "./game.js?v=wuyin-journey-v1";
+import { JourneyStore } from "./journey-store.js?v=wuyin-world-v1";
+import {createTownJourney} from './town-journey.js?v=wuyin-world-v1';
+import { observationCue } from "./evidence-vfx.js?v=wuyin-world-v1";
+import { Soundscape } from "./audio.js?v=wuyin-world-v1";
+import { MandalingoGame } from "./game.js?v=wuyin-world-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=wuyin-journey-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=wuyin-journey-v1";
-import { InputRouter } from "./input.js?v=wuyin-journey-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=wuyin-journey-v1";
+} from "./lessons.js?v=wuyin-world-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=wuyin-world-v1";
+import { InputRouter } from "./input.js?v=wuyin-world-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=wuyin-world-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -20,7 +20,7 @@ const elements = {
   dialogue: $("#dialogue-panel"), context: $("#context-text"), speaker: $("#speaker-name"), speakerType: $("#speaker-type"), lineCount: $("#line-count"), text: $("#dialogue-text"), reaction: $("#dialogue-reaction"),
   portraitStage: $("#portrait-stage"), portrait: $("#dialogue-portrait"), useWater: $("#use-water"),
   notebook: $("#notebook-panel"), journalView: $("#journal-view"), cardsView: $("#cards-view"), journalCount: $("#journal-count"), cardCount: $("#card-count"),
-  notebookKicker: $("#notebook-kicker"), notebookHeading: $("#notebook-heading"), notebookIntro: $("#notebook-intro"), chapter: $("#chapter-banner"), fade: $("#scene-fade"),
+  notebookKicker: $("#notebook-kicker"), notebookHeading: $("#notebook-heading"), notebookIntro: $("#notebook-intro"), fade: $("#scene-fade"),
   pause: $("#pause-panel"), sound: $("#sound-btn")
 };
 
@@ -65,13 +65,13 @@ function syncUiState() {
   const current = state.current;
   game.presentationPaused = ![GAME_STATE.EXPLORING, GAME_STATE.DIALOGUE, GAME_STATE.CUTSCENE].includes(current);
   setVisible(elements.title, current === GAME_STATE.TITLE); setVisible(elements.help, current === GAME_STATE.HELP);
-  setVisible(elements.dialogue, current === GAME_STATE.DIALOGUE); setVisible(elements.notebook, current === GAME_STATE.NOTEBOOK); setVisible(elements.chapter, current === GAME_STATE.CHAPTER);
+  setVisible(elements.dialogue, current === GAME_STATE.DIALOGUE); setVisible(elements.notebook, current === GAME_STATE.NOTEBOOK);
   const activePlay = ![GAME_STATE.TITLE, GAME_STATE.HELP].includes(current); elements.hud.classList.toggle("is-visible", activePlay); elements.hud.setAttribute("aria-hidden", String(!activePlay));
   setVisible(elements.pause, current === GAME_STATE.PAUSED);
   document.querySelector("#app").dataset.state = current;
   $("#notebook-btn").disabled = current === GAME_STATE.CUTSCENE;
   game.setInputEnabled(current === GAME_STATE.EXPLORING); if (current !== GAME_STATE.EXPLORING) { elements.prompt.classList.remove("is-visible"); } else updateInteractionPrompt(game.nearby);
-  const modal = current === GAME_STATE.PAUSED ? elements.pause : current === GAME_STATE.HELP ? elements.help : current === GAME_STATE.DIALOGUE ? elements.dialogue : current === GAME_STATE.NOTEBOOK ? elements.notebook : current === GAME_STATE.CHAPTER ? elements.chapter : null;
+  const modal = current === GAME_STATE.PAUSED ? elements.pause : current === GAME_STATE.HELP ? elements.help : current === GAME_STATE.DIALOGUE ? elements.dialogue : current === GAME_STATE.NOTEBOOK ? elements.notebook : null;
   focusManager.sync(modal); updateInterface();
 }
 
@@ -161,7 +161,7 @@ function useWaterOnActive() {
   activeEntity = null; activeLines = []; lineIndex = 0; game.dialogueActor = null; game.dialogueText = ""; state.reset(GAME_STATE.CUTSCENE); game.beginWaterResolution(); sound.invoke();
 }
 
-function completeWaterResolution() { tutorialSession = { ...tutorialSession, resolving: false, resolved: true, stage: TUTORIAL_STAGE.COMPLETE }; journal = { ...journal, quest: "resolved" }; saveProgress(); state.reset(GAME_STATE.CHAPTER); }
+function completeWaterResolution() { tutorialSession = { ...tutorialSession, resolving: false, resolved: true, stage: TUTORIAL_STAGE.COMPLETE }; journal = { ...journal, quest: "resolved" };game.resolution=null;game.resolutionPhase=null; saveProgress(); state.reset(GAME_STATE.EXPLORING); }
 
 function toggleNotebook() { if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if ([GAME_STATE.EXPLORING, GAME_STATE.DIALOGUE].includes(state.current)) openNotebook(); }
 function openNotebook(focusId = null) { state.push(GAME_STATE.NOTEBOOK); activateTab("journal"); renderJournal(); if (focusId) setTimeout(() => elements.journalView.querySelector(`[data-entry='${focusId}']`)?.scrollIntoView({ block: "center" }), 30); }
@@ -190,8 +190,7 @@ function renderJournal() {
 function renderCards() { const cards = buildFlashcards(journal); if (!cards.length) { elements.cardsView.innerHTML = `<div class="empty-state"><b>No flashcards yet.</b><span>Cards appear after a hypothesis is supported by an action in the world.</span></div>`; return; } elements.cardsView.replaceChildren(...cards.map(card => { const node = document.createElement("button"); node.className = "flashcard"; node.innerHTML = `<div class="front">${card.text}<small>World-supported hypothesis</small></div><div class="back"><b>${escapeHtml(card.guess)}</b><small>${card.distinctContexts} contexts · ${escapeHtml(card.confidence)}</small></div>`; node.addEventListener("click", () => node.classList.toggle("is-flipped")); return node; })); }
 function activateTab(tab) { document.querySelectorAll(".tab-button").forEach(button => button.classList.toggle("is-active", button.dataset.tab === tab)); const cards = tab === "cards"; elements.journalView.hidden = cards; elements.cardsView.hidden = !cards; elements.notebookKicker.textContent = cards ? "WORLD-SUPPORTED DECK" : "FIELD NOTES"; elements.notebookHeading.textContent = cards ? "Your flashcards" : "Words encountered"; elements.notebookIntro.textContent = cards ? "These cards preserve hypotheses supported by world actions; no translation is revealed." : "Seen words are recorded automatically."; cards ? renderCards() : renderJournal(); }
 
-function closeChapter() { if (state.current === GAME_STATE.CHAPTER) { state.reset(GAME_STATE.EXPLORING); requestAnimationFrame(() => elements.game.focus()); } }
-function closeCurrentOverlay() { if (state.current === GAME_STATE.EXPLORING) { state.push(GAME_STATE.PAUSED); return; } if (state.current === GAME_STATE.PAUSED) { state.pop(); return; } if (state.current === GAME_STATE.HELP) state.pop(); else if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if (state.current === GAME_STATE.DIALOGUE) closeDialogue(); else if (state.current === GAME_STATE.CHAPTER) closeChapter(); }
+function closeCurrentOverlay() { if (state.current === GAME_STATE.EXPLORING) { state.push(GAME_STATE.PAUSED); return; } if (state.current === GAME_STATE.PAUSED) { state.pop(); return; } if (state.current === GAME_STATE.HELP) state.pop(); else if (state.current === GAME_STATE.NOTEBOOK) closeNotebook(); else if (state.current === GAME_STATE.DIALOGUE) closeDialogue(); }
 function updateInterface() {
   game.carryingWater = journal.inventory.includes("water-bowl") && journal.quest !== "resolved";
   $("#inventory-chip").hidden = !game.carryingWater;
@@ -236,8 +235,7 @@ $("#replay-opening").addEventListener("click",()=>{
   previewTown=false; restoreJourney(progressStore.beginReplay()); startGame();
 });
 $("#start-btn").addEventListener("click", startGame); $("#how-btn").addEventListener("click", () => state.push(GAME_STATE.HELP)); $("[data-close='how-screen']").addEventListener("click", () => state.pop());
-$("#enter-town").addEventListener("click",()=>{if(state.current===GAME_STATE.CHAPTER&&game.enterTown()){state.reset(GAME_STATE.EXPLORING);requestAnimationFrame(()=>elements.game.focus());}});
-$("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
+$("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive);
 document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; elements.sound.setAttribute("aria-pressed", String(!muted)); });
 
 $('#resume-btn').addEventListener('click', () => state.pop());

@@ -1,7 +1,7 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-journey-v1';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-journey-v1';
+import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-world-v1';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-world-v1';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
 const materials=new Map();
@@ -133,9 +133,7 @@ export function createTownWorld(makeActor,bake) {
  for(const side of [-1,1]){const arch=mesh(bridge,new T.TorusGeometry(2.5,.11,6,40,Math.PI),0x788b83,0,-.16,side*.70);arch.scale.y=.14;}
  box(scene,9.2,.38,5.6,0xa8aa96,2.6,.19,-10.3);for(let i=0;i<7;i++){const h=.38*(i+1)/7,y=1010-(i+.5)*160/7;box(scene,7.8,h,160/700,P.stone,2.6,h/2,(y-1600)/100);}
  const roofs=[];const shops=new Map();for(const s of SHOPS)shops.set(s.id,building(scene,s,roofs,true));for(const h of HOUSES)building(scene,h,roofs,false);
- // South gate: an open visual continuation of the saved courtyard entrance.
- const entrance=group(scene,...townPoint(1700,2920));for(const side of [-1,1]){box(entrance,.32,2.5,.42,P.wood,side*1.15,1.25);box(entrance,.52,.18,.6,P.stone,side*1.15,.09);lantern(entrance,side*1.55,1.6,.15);box(entrance,9,.95,.27,0x8e9a8c,side*5.8,.45);}
- roofs.push({root:roof(entrance,3.0,1.3,2.4,0x315459),site:{id:"south-gate",x:1700,y:2920,width:300,depth:130}});
+ // The original courtyard gate is the single physical entrance to the connected world.
  const well=group(scene,...townPoint(1780,2260));mesh(well,new T.LatheGeometry([new T.Vector2(.43,0),new T.Vector2(.5,.5),new T.Vector2(.40,.5),new T.Vector2(.38,.15)],20),0x929b8e);mesh(well,new T.TorusGeometry(.45,.075,6,24),P.stone,0,.50).rotation.x=Math.PI/2;cylinder(well,.38,.38,.01,P.water,0,.36);for(const side of [-1,1])box(well,.07,1.6,.08,P.wood,side*.65,.8);beam(well,[-.7,1.6,0],[.7,1.6,0],.045,P.wood);barrel(well,.9,.25,.65);
  // The bookshop court has low walls, a moon gate, stone seats and flowering planters.
  const court=group(scene,...townPoint(2380,1880));box(court,5.4,.06,2.45,0xb5b6a0,0,-.015);for(const side of [-1,1])box(court,.16,.65,2.5,0xb7b9a3,side*2.7,.30);for(const side of [-1,1])box(court,1.9,.65,.16,0xb7b9a3,side*1.8,.30,1.3);
@@ -184,7 +182,7 @@ export function updateTownWorld(world,game,poseActor){
   else{m.position.set(x+Math.cos(a)*.32,y+1.24+Math.sin(a*2)*.19,z+Math.sin(a)*.32);m.scale.setScalar(.75);}
   m.rotation.set(a*.3,a,0);
  }
- for(const [id,a] of world.actors){const data=id===TOWN_TRAVELLER.id?TOWN_TRAVELLER:TOWN_RESIDENTS.find(r=>r.id===id);if(id===TOWN_TRAVELLER.id){a.root.visible=awake;if(!awake)continue;}const focused=game.townFocus?.actorId===id;let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
+ for(const [id,a] of world.actors){if(id==='player'&&world.sharedPlayer)continue;const data=id===TOWN_TRAVELLER.id?TOWN_TRAVELLER:TOWN_RESIDENTS.find(r=>r.id===id);if(id===TOWN_TRAVELLER.id){a.root.visible=awake;if(!awake)continue;}const focused=game.townFocus?.actorId===id;let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
   if(data?.path&&!game.reducedMotion){const p=(game.time*.035)%data.path.length,i=Math.floor(p),t=p-i,from=data.path[i],to=data.path[(i+1)%data.path.length];position={x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t};angle=Math.atan2(to[0]-from[0],to[1]-from[1]);moving=true;}
   if(focused)angle=Math.atan2(game.player.x-position.x,game.player.y-position.y);
   a.root.position.set(...townPoint(position.x,position.y));a.root.position.y=townElevation(position.x,position.y);a.root.rotation.y=angle;
@@ -195,7 +193,7 @@ export function updateTownWorld(world,game,poseActor){
  world.scene.updateMatrixWorld(true);
  const [px,,pz]=townPoint(game.player.x,game.player.y),up=12/Math.sqrt(265),forward=11/Math.sqrt(265),bodyY=(townElevation(game.player.x,game.player.y)+.85)*up-pz*forward;
  for(const entry of world.roofs){const {root,site}=entry,near=Math.abs(game.player.x-site.x)<site.width/2+90&&Math.abs(game.player.y-site.y)<site.depth/2+110;
-  const bounds=entry.bounds??=new T.Box3().setFromObject(root),low=bounds.min.y*up-bounds.max.z*forward,high=bounds.max.y*up-bounds.min.z*forward;
+  const bounds=entry.bounds??=new T.Box3().setFromObject(root).applyMatrix4(world.root?new T.Matrix4().copy(world.root.matrixWorld).invert():new T.Matrix4()),low=bounds.min.y*up-bounds.max.z*forward,high=bounds.max.y*up-bounds.min.z*forward;
   const occludes=bounds.max.z>=pz&&px+.22>=bounds.min.x&&px-.22<=bounds.max.x&&bodyY>=low&&bodyY<=high,cutaway=near||occludes;
   root.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=cutaway?.20:1;m.material.depthWrite=!cutaway;}});
  }

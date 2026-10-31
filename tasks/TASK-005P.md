@@ -1,0 +1,10 @@
+# TASK-005P — Full 3D scene/model quality audit
+
+User requires all 3D and actual confirmation against graphical corruption and odd modeling. Audit real geometry, camera/occlusion, surfaces/foot alignment, boundaries, stores, bridge/river/pavilion and transitions. No sprites or billboard scene substitutes. Use actual rendered samples and mesh validity checks, not test pass alone. Existing full 3D styles and non-textual clues remain.
+
+Initial screenshot/source review identifies entrance roof potentially occluding the spawn player (not registered for cutaway), a constant floor/character height offset in stores, stair geometry not exactly matching the height function, and stretched single-polyhedron backdrop rocks with weak cliff form. Reproduce via focused tests before fixes. Preserve gameplay, notes/saves, product/linguistic boundaries and frozen Godot. Publish checked changes through the authorized workflow; do not claim all possible camera/hardware configurations are defect-free.
+
+Implemented roof cutaways including projected body overlap, flush wooden floors, exact seven-step geometry/elevation agreement and grounded layered cliff columns. Actual isolated Chromium samples reviewed: overview, entry, gate outside, all three shops, shop rear approaches, river bank, bridge and north terrace, moon gate. 287 runtime mesh objects; zero sprites, nonfinite transforms/positions or invalid indices. No renderer errors. Roof transparency is intentional cutaway; rear building walls still naturally occlude a character behind a solid wall. These are checked viewpoints, not a guarantee for untested hardware/cameras.
+
+Validation: npm run check 75/75; isolated town review passes (290 calls, 69,548 triangles), plea progression review passes, Windows native smoke rendered/WebGL enabled with errors[]. Desktop ZIP SHA256: 8C6D785C353CD7666C0B7437B8689AE8D1B1EC1FD010710CFA68C4B01AAFA7FB. Artifacts are under ignored dist/.
+

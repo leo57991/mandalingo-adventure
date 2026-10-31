@@ -39,7 +39,8 @@ export function riverX(y){let i=0;while(i<river.length-2&&y>river[i+1][0])i++;co
 const inside=(x,y,[a,b,w,h])=>x>=a&&y>=b&&x<=a+w&&y<=b+h;
 export function townElevation(x,y){
  if(inside(x,y,TOWN.bridge)){const t=(x-TOWN.bridge[0])/TOWN.bridge[2];return .04+Math.sin(Math.PI*t)*.27;}
- if(x>=1400&&x<=2320&&y<1010)return .38*Math.max(0,Math.min(1,(1010-y)/160));
+ if(x>=1400&&x<=2320&&y<=850)return .38;
+ if(x>=1470&&x<=2250&&y<1010)return .38*Math.min(7,Math.ceil((1010-y)/(160/7)))/7;
  return 0;
 }
 export function isTownWalkable(x,y,radius=18){

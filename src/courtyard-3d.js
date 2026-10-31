@@ -1,12 +1,13 @@
-import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=courtyard-water-v1";
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-water-v1";
+import { createTownWorld, frameTownCamera, updateTownWorld } from "./town-3d.js?v=wuyin-town-v1";
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-town-v1";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-town-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=courtyard-water-v1";
+} from "./lessons.js?v=wuyin-town-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -760,11 +761,19 @@ export class Courtyard3D {
     canvas.parentElement.append(panel);
     retry.focus();
   }
+  renderTown(game) {
+    if (!this.townWorld) this.townWorld=createTownWorld(createActor,batchScenery);
+    const w=Math.max(1,game.viewWidth),h=Math.max(1,game.viewHeight);
+    if(this.width!==w||this.height!==h){this.renderer.setSize(w,h,false);this.width=w;this.height=h;}
+    frameTownCamera(this.camera,w,h,game.player);updateTownWorld(this.townWorld,game,poseActor);this.label.hidden=true;
+    this.renderer.render(this.townWorld.scene,this.camera);
+  }
   render(game) {
     if (this.failed) {
       game.setInputEnabled(false);
       return;
     }
+    if (game.location === "town") { this.renderTown(game); return; }
     const { renderer, camera, world } = this,
       w = Math.max(1, game.viewWidth),
       h = Math.max(1, game.viewHeight);

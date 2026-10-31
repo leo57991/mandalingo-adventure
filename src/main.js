@@ -1,15 +1,15 @@
-import { JourneyStore } from "./journey-store.js?v=courtyard-water-v1";
-import { observationCue } from "./evidence-vfx.js?v=courtyard-water-v1";
-import { Soundscape } from "./audio.js?v=courtyard-water-v1";
-import { MandalingoGame } from "./game.js?v=courtyard-water-v1";
+import { JourneyStore } from "./journey-store.js?v=wuyin-town-v1";
+import { observationCue } from "./evidence-vfx.js?v=wuyin-town-v1";
+import { Soundscape } from "./audio.js?v=wuyin-town-v1";
+import { MandalingoGame } from "./game.js?v=wuyin-town-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=courtyard-water-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=courtyard-water-v1";
-import { InputRouter } from "./input.js?v=courtyard-water-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=courtyard-water-v1";
+} from "./lessons.js?v=wuyin-town-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=wuyin-town-v1";
+import { InputRouter } from "./input.js?v=wuyin-town-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=wuyin-town-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -23,14 +23,16 @@ const elements = {
   pause: $("#pause-panel"), sound: $("#sound-btn")
 };
 
-const progressStore = new JourneyStore(() => localStorage.getItem(STORAGE_KEY), value => localStorage.setItem(STORAGE_KEY, value), {replay:new URLSearchParams(location.search).get("replay") === "opening"});
-const saved = progressStore.load();
+let previewTown = new URLSearchParams(location.search).get("replay") === "town";
+const progressStore = new JourneyStore(() => localStorage.getItem(STORAGE_KEY), value => localStorage.setItem(STORAGE_KEY, value), {replay:["opening","town"].includes(new URLSearchParams(location.search).get("replay"))});
+const saved = previewTown ? {journal:{quest:"resolved"},session:{resolved:true}} : progressStore.load();
 let journal = createJournal(saved.journal), tutorialSession = createTutorialSession({ ...saved.session, resolved: saved.journal?.quest === "resolved" || saved.session?.resolved });
 let activeEntity = null, activeLines = [], lineIndex = 0, toastTimer = null;
 const sound = new Soundscape();
 const focusManager = new ModalFocusManager(document, elements.game);
 const state = new GameStateController(GAME_STATE.TITLE, syncUiState);
 const game = new MandalingoGame(elements.game, {
+  onLocationChange: updateLocationLabel,
   onEvidence: kind => sound.evidence(kind),
   onNearby: updateInteractionPrompt,
   onInteract: openDialogue,
@@ -70,9 +72,17 @@ function syncUiState() {
 
 function startGame() {
   if (state.current !== GAME_STATE.TITLE) return; sound.ensure(); game.start({ resolved: tutorialSession.resolved }); state.reset(GAME_STATE.EXPLORING);
+  if (previewTown && progressStore.replay) game.enterTown();
+  updateLocationLabel();
   requestAnimationFrame(() => elements.game.focus());
 }
 
+function updateLocationLabel() {
+  const town = game.location === "town";
+  $("#location-english").textContent = town ? "Wuyin Town" : "South Gate Courtyard";
+  $("#control-location").textContent = town ? "WUYIN TOWN · AUTUMN · 3D" : "SOUTH GATE · AUTUMN · 3D";
+  elements.game.setAttribute("aria-label",town ? "Wuyin town. Move with WASD or arrow keys; N for notebook; E at the south gate to return." : "South Gate courtyard. Move with WASD or arrow keys; E to interact; N for notebook.");
+}
 function updateInteractionPrompt(entity) {
   if (state.current !== GAME_STATE.EXPLORING || !entity) { elements.prompt.classList.remove("is-visible"); return; }
   elements.promptAction.textContent = entity.action; elements.promptLabel.textContent = entity.label; elements.prompt.classList.add("is-visible");
@@ -189,9 +199,13 @@ $("#collect-bowl").addEventListener("click", () => {
 });
 function configureJourneyTitle() {
   if (tutorialSession.resolved) journal.quest = "resolved";
-  $("#start-btn span").textContent = tutorialSession.resolved ? "Return to the courtyard" : "Enter the courtyard";
+  $("#start-btn span").textContent = previewTown && progressStore.replay ? "Explore Wuyin Town" : tutorialSession.resolved ? "Return to the courtyard" : "Enter the courtyard";
   $("#replay-opening").hidden = progressStore.replay;
   $("#replay-chip").hidden = !progressStore.replay;
+  $("#replay-chip").textContent = previewTown ? "Town preview · Progress kept" : "Opening replay · Progress kept";
+  $("#replay-description").textContent = previewTown ? "Town preview. Your saved journey and notes are kept." : "Opening replay. Your saved journey and notes are kept.";
+  $("#title-screen .intro").textContent = previewTown ? "Wuyin Town · An autumn market town." : "The city gate is barred.";
+  $("#title-screen .chapter-name").textContent = previewTown ? "WUYIN TOWN" : "THE SOUTH GATE";
   $("#return-title-btn").textContent = progressStore.replay ? "Return to saved journey" : "Return to title";
   $("#replay-description").hidden = !progressStore.replay;
   $("#pause-save-note").textContent = progressStore.replay ? "Your saved journey is kept. This replay does not replace it." : "Your notes and discoveries are saved automatically.";
@@ -204,9 +218,10 @@ function restoreJourney(progress) {
 configureJourneyTitle();
 $("#replay-opening").addEventListener("click",()=>{
   if (state.current !== GAME_STATE.TITLE) return;
-  restoreJourney(progressStore.beginReplay()); startGame();
+  previewTown=false; restoreJourney(progressStore.beginReplay()); startGame();
 });
 $("#start-btn").addEventListener("click", startGame); $("#how-btn").addEventListener("click", () => state.push(GAME_STATE.HELP)); $("[data-close='how-screen']").addEventListener("click", () => state.pop());
+$("#enter-town").addEventListener("click",()=>{if(state.current===GAME_STATE.CHAPTER&&game.enterTown()){state.reset(GAME_STATE.EXPLORING);requestAnimationFrame(()=>elements.game.focus());}});
 $("#notebook-btn").addEventListener("click", () => openNotebook()); $("#dialogue-notes").addEventListener("click", () => openNotebook()); $("#close-notebook").addEventListener("click", closeNotebook); $("#dialogue-next").addEventListener("click", advanceDialogue); elements.useWater.addEventListener("click", useWaterOnActive); $("#continue-town").addEventListener("click", closeChapter);
 document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab))); elements.sound.addEventListener("click", () => { const muted = sound.toggle(); elements.sound.textContent = muted ? "×" : "♫"; elements.sound.setAttribute("aria-pressed", String(!muted)); });
 
@@ -217,7 +232,7 @@ $('#fullscreen-btn').addEventListener('click', async () => {
 });
 $('#return-title-btn').addEventListener('click', () => {
   saveProgress(); game.started = false; state.reset(GAME_STATE.TITLE);
-  if (progressStore.replay) restoreJourney(progressStore.endReplay());
+  if (progressStore.replay) { previewTown=false; restoreJourney(progressStore.endReplay()); }
   configureJourneyTitle(); updateInterface();
   requestAnimationFrame(() => $('#start-btn').focus());
 });

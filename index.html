@@ -8,7 +8,7 @@
     <meta name="description" content="Mandalingo is a contextual Mandarin exploration game in a real-time 3D wuxia courtyard for desktop play." />
     <title>Mandalingo — The South Gate</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=courtyard-water-v1" />
+    <link rel="stylesheet" href="styles.css?v=wuyin-town-v1" />
   </head>
   <body>
     <main id="app">
@@ -80,6 +80,7 @@
 
       <section id="chapter-banner" class="chapter-banner" role="dialog" aria-hidden="true" aria-labelledby="chapter-title">
         <p>THE GATE OPENS</p><h2 id="chapter-title">A Way Into Town</h2><span>The traveller drank, recovered, and spoke for you. The gatekeeper understood.</span>
+        <button id="enter-town" class="primary-small">Enter Wuyin Town</button>
         <button id="continue-town" class="primary-small">Review the courtyard</button>
       </section>
 
@@ -91,9 +92,9 @@
           <small>WASD / Arrows · Move　 Shift · Run<br>E · Interact　 N · Notebook</small>
         </div>
       </section>
-      <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><span><kbd>Esc</kbd> Pause</span><small>SOUTH GATE · AUTUMN · 3D</small></footer>
+      <footer class="control-legend"><span><kbd>W A S D</kbd> Move</span><span><kbd>Shift</kbd> Run</span><span><kbd>E</kbd> Observe</span><span><kbd>N</kbd> Notes</span><span><kbd>Esc</kbd> Pause</span><small id="control-location">SOUTH GATE · AUTUMN · 3D</small></footer>
       <div id="scene-fade" class="scene-fade" aria-hidden="true"></div>
     </main>
-    <script type="module" src="src/main.js?v=courtyard-water-v1"></script>
+    <script type="module" src="src/main.js?v=wuyin-town-v1"></script>
   </body>
 </html>

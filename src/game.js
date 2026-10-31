@@ -1,7 +1,8 @@
-import { isGateWalkable } from "./gate-geometry.js?v=courtyard-water-v1";
-import { EvidenceEffects } from "./evidence-vfx.js?v=courtyard-water-v1";
-import { Courtyard3D } from "./courtyard-3d.js?v=courtyard-water-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=courtyard-water-v1";
+import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-town-v1";
+import { isGateWalkable } from "./gate-geometry.js?v=wuyin-town-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-town-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-town-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-town-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -33,7 +34,7 @@ export const selectInteractionTarget = (player, entities = ENTITIES) => entities
 
 export class MandalingoGame {
   constructor(canvas, callbacks = {}) {
-    this.canvas = canvas; this.callbacks = callbacks;
+    this.canvas = canvas; this.callbacks = callbacks; this.location = "courtyard";
     this.keys = new Set(); this.mobileVector = { x: 0, y: 0 }; this.time = 0; this.lastTime = performance.now();
     this.started = false; this.inputEnabled = false; this.debugCollisions = false; this.nearby = null; this.questResolved = false; this.gateOpenProgress = 0; this.gateApproachTriggered = false;
     this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false;
@@ -50,12 +51,33 @@ export class MandalingoGame {
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
 
-  start({ resolved = false } = {}) { this.evidence = new EvidenceEffects(); this.travellerKneeling = resolved ? 0 : 1; this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
+  start({ resolved = false } = {}) { this.location = "courtyard"; this.evidence = new EvidenceEffects(); this.travellerKneeling = resolved ? 0 : 1; this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
     if (resolved) {
       this.questResolved = true; this.gateOpenProgress = 1; this.gateApproachTriggered = true;
       this.actorPositions["thirsty-traveller"] = { x: 735, y: 405 };
       this.setActorCue("thirsty-traveller", {pose:"idle", expression:"relieved", prop:null});
     }
+  }
+  enterTown() {
+    if (!this.questResolved) return false;
+    this.location="town";this.resolution=null;this.resolutionPhase=null;this.dialogueActor=null;this.dialogueText=null;this.nearby=null;this.clearKeys();this.moving=false;
+    this.player={...this.player,...TOWN.spawn,lookX:0,lookY:-1};this.callbacks.onNearby?.(null);this.callbacks.onLocationChange?.("town");return true;
+  }
+  leaveTown() {
+    this.location="courtyard";this.resetActorCues();this.nearby=null;this.clearKeys();this.moving=false;this.player={...this.player,x:800,y:345,lookX:0,lookY:1};this.callbacks.onNearby?.(null);this.callbacks.onLocationChange?.("courtyard");
+  }
+  updateTown(dt) {
+    if (!this.inputEnabled) {this.moving=false;return;}
+    let x=Number(this.keys.has("d")||this.keys.has("arrowright"))-Number(this.keys.has("a")||this.keys.has("arrowleft")),y=Number(this.keys.has("s")||this.keys.has("arrowdown"))-Number(this.keys.has("w")||this.keys.has("arrowup"));
+    const length=Math.hypot(x,y);if(length>1){x/=length;y/=length;}
+    const ox=this.player.x,oy=this.player.y,run=this.keys.has("shift");
+    if(x||y){this.player.lookX=x;this.player.lookY=y;}
+    const nx=ox+x*(run?PLAYER_SPEED.runX:PLAYER_SPEED.walkX)*dt,ny=oy+y*(run?PLAYER_SPEED.runY:PLAYER_SPEED.walkY)*dt;
+    if(isTownWalkable(nx,oy))this.player.x=nx;if(isTownWalkable(this.player.x,ny))this.player.y=ny;
+    const travelled=Math.hypot(this.player.x-ox,this.player.y-oy);this.stride+=travelled/13;this.moving=travelled>.01;
+    const exit={id:"town-exit",x:1700,y:2890,label:"South Gate",action:"Return",interactionRadius:145};
+    this.nearby=selectInteractionTarget(this.player,[exit]);this.callbacks.onNearby?.(this.nearby);
+    if(this.player.y>2890&&Math.abs(this.player.x-1700)<65)this.leaveTown();
   }
   playEvidence(cue) { const played = this.evidence?.play(cue) || false; if (played) this.callbacks.onEvidence?.(cue.kind); return played; }
   setInputEnabled(enabled) { this.inputEnabled = enabled; if (!enabled) this.clearKeys(); }
@@ -86,12 +108,13 @@ export class MandalingoGame {
     if (!this.resolutionCompleted && elapsed >= 9.4 && this.gateOpenProgress >= .9) { this.resolutionCompleted = true; this.callbacks.onResolutionComplete?.(); }
   }
   toggleCollisionDebug() { this.debugCollisions = !this.debugCollisions; return this.debugCollisions; }
-  interact() { if (this.inputEnabled && this.nearby) this.callbacks.onInteract?.(this.nearby); }
+  interact() { if(this.inputEnabled&&this.location==="town"&&this.nearby?.id==="town-exit"){this.leaveTown();return;} if (this.inputEnabled && this.nearby) this.callbacks.onInteract?.(this.nearby); }
 
   loop(now) { const dt = Math.min((now - this.lastTime) / 1000, .04); this.lastTime = now; if (!this.presentationPaused) this.time += dt; if (this.started) this.update(dt); this.draw(); requestAnimationFrame(this.loop); }
   update(dt) {
     this.evidence?.advance(dt, this.presentationPaused);
     if (this.presentationPaused) return;
+    if (this.location === "town") { this.updateTown(dt); return; }
     if (this.resolution) this.updateResolution(dt);
     if (this.questResolved) this.gateOpenProgress = Math.min(1, this.gateOpenProgress + dt * 1.25);
     let x = this.mobileVector.x, y = this.mobileVector.y;
@@ -110,6 +133,7 @@ export class MandalingoGame {
     const travelled = Math.hypot(this.player.x - oldX, this.player.y - oldY);
     this.moving = travelled > .01; this.stride += travelled / 13;
     if (!this.gateApproachTriggered && !this.questResolved && this.player.y < 480) { this.gateApproachTriggered = true; this.callbacks.onGateApproach?.(NPCS.find(npc => npc.id === "gatekeeper")); }
+    if(this.inputEnabled&&this.questResolved&&this.gateOpenProgress>=.95&&this.player.y<320&&Math.abs(this.player.x-800)<55){this.enterTown();return;}
     const interactionEntities = (this.questResolved ? ENTITIES.filter(entity => entity.id !== "gate") : ENTITIES).map(entity => this.worldEntity(entity));
     const nextNearby = selectInteractionTarget(this.player, interactionEntities);
     if (nextNearby !== this.nearby) { this.nearby = nextNearby; this.callbacks.onNearby?.(nextNearby); }

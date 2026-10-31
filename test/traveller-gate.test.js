@@ -42,5 +42,5 @@ test('closed gate blocks forward movement across its span and open centre admits
  }
  const g=game();g.questResolved=true;g.gateOpenProgress=1;Object.assign(g.player,{x:800,y:350});g.setKey('w',true);
  for(let i=0;i<30;i++)g.update(.04);
- assert.ok(g.player.y<310,'cleared opening is traversable within existing room bounds');
+ assert.equal(g.location,'town','cleared opening now leads into the town');
 });

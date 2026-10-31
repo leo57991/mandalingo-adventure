@@ -1,11 +1,11 @@
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-discovery-v1";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-plea-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=courtyard-discovery-v1";
+} from "./lessons.js?v=courtyard-plea-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -178,7 +178,13 @@ export function createActor(color, role = "player") {
   for (const s of [-1, 1]) {
     const arm = group(body, s * 0.26, 1.02);
     box(arm, 0.16, 0.34, 0.18, color, 0, -0.13);
-    mesh(arm, new T.SphereGeometry(0.075, 8, 6), P.skin, 0, -0.34);
+    const hand = mesh(arm, new T.SphereGeometry(0.075, 8, 6), P.skin, 0, -0.34);
+    if (role === "traveller") {
+      const forearm = group(arm, 0, -.3);
+      box(forearm, .14, .23, .15, color, 0, -.1);
+      forearm.add(hand); hand.position.set(0, -.23, 0);
+      limbs[s < 0 ? "leftForearm" : "rightForearm"] = forearm;
+    }
     const leg = group(root, s * 0.105, 0.45);
     box(leg, 0.13, 0.31, 0.14, 0x3a3b36, 0, -0.15);
     box(leg, 0.15, 0.11, 0.24, P.dark, 0, -0.39, 0.045);
@@ -204,8 +210,12 @@ export function poseActor(
     time = 0,
     reducedMotion = false,
     kneeling = 0,
+    pleading = false,
   } = {},
 ) {
+  a.body.rotation.z = 0;
+  a.bowl.rotation.set(0,0,0); a.bowl.scale.setScalar(1);
+  if (a.leftForearm) { a.leftForearm.rotation.x = 0; a.rightForearm.rotation.x = 0; }
   const kneel = Math.max(0, Math.min(1, kneeling));
   a.body.scale.y = 1 - kneel * .2;
   a.body.rotation.x = kneel * .18;
@@ -241,6 +251,28 @@ export function poseActor(
   if (pose === "question" || pose === "confused") {
     a.leftArm.rotation.x = -0.85;
     a.leftArm.rotation.z = -0.3;
+  }
+  if (a.leftForearm && pose === "drink-water") {
+    a.leftArm.rotation.x = a.rightArm.rotation.x = -1.1;
+    a.leftForearm.rotation.x = a.rightForearm.rotation.x = -1.6;
+  }
+  if (pleading && emptyBowl && kneel === 1 && !moving && pose !== "drink-water") {
+    // Slow effort, a short hold, then tired withdrawal. This never changes world state.
+    const cycle = ((time % 5.4) + 5.4) % 5.4;
+    const smooth = value => { const t = Math.max(0,Math.min(1,value)); return t*t*(3-2*t); };
+    const reach = reducedMotion ? 1 : cycle < 1.6 ? smooth(cycle/1.6) : cycle < 2.6 ? 1 : cycle < 4 ? smooth((4-cycle)/1.4) : 0;
+    a.bowl.visible = true; a.bowl.scale.setScalar(1.18);
+    a.bowl.position.set(0,.78+reach*.18,.37+reach*.29);
+    a.bowl.rotation.x = .12 + reach*.2;
+    a.bowl.rotation.z = reducedMotion ? 0 : Math.sin(time*19)*.012*reach;
+    a.leftArm.rotation.x = a.rightArm.rotation.x = -.85 - reach*.4;
+    a.leftArm.rotation.z = .2; a.rightArm.rotation.z = -.2;
+    if (a.leftForearm) a.leftForearm.rotation.x = a.rightForearm.rotation.x = -.25;
+    a.head.rotation.x = .34 - reach*.16;
+    if (!reducedMotion) {
+      a.body.rotation.z = Math.sin(time*1.4)*.025;
+      a.body.position.y += Math.sin(time*1.6)*.008;
+    }
   }
 }
 
@@ -770,7 +802,12 @@ export class Courtyard3D {
           target.y - position.y,
         );
       }
+      const pleading = id === "thirsty-traveller" && game.travellerKneeling === 1 && cue.prop === "empty-bowl" && !game.resolution;
+      if (pleading && Math.hypot(game.player.x-position.x,game.player.y-position.y) < 220) {
+        a.root.rotation.y = Math.atan2(game.player.x-position.x,game.player.y-position.y);
+      }
       poseActor(a, {
+        pleading,
         stride: player ? game.stride : game.time * 6,
         moving: player
           ? game.moving

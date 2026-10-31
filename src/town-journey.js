@@ -1,4 +1,4 @@
-import {SHOPS,TOWN} from './town-layout.js?v=wuyin-journey-v1';
+import {SHOPS,TOWN} from './town-layout.js?v=wuyin-world-v1';
 
 // Story discoveries are separate from Mandarin evidence and never authorize language actions.
 const shopIds=SHOPS.map(s=>s.id);
@@ -22,7 +22,7 @@ export function townEntities(journey){
  const entities=SHOPS.map(s=>({id:`town-${s.id}`,shopId:s.id,actorId:`${s.id==='lingxi-books'?'books':s.id}-vendor`,x:s.x,y:s.y+s.depth/2+15,label:s.name,action:'Visit',interactionRadius:120,type:'town'}));
  entities.push({id:'town-jade',x:2350,y:1790,label:'Jade lantern',action:'Observe',interactionRadius:175,type:'town'});
  if(townSignalAwake(journey))entities.push({...TOWN_TRAVELLER,actorId:TOWN_TRAVELLER.id,label:'Familiar traveller',action:'Talk',interactionRadius:135,type:'town'});
- entities.push({id:'town-exit',x:1700,y:2890,label:'South Gate',action:'Return',interactionRadius:145});return entities;
+ return entities;
 }
 export function townObservation(entity,journey){
  const common={...entity,type:'town'},descriptions={

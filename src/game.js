@@ -1,9 +1,10 @@
-import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-journey-v1";
-import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=wuyin-journey-v1';
-import { isGateWalkable } from "./gate-geometry.js?v=wuyin-journey-v1";
-import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-journey-v1";
-import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-journey-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-journey-v1";
+import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-world-v1";
+import {toTownPoint,fromTownPoint,isConnectedWalkable} from './world-layout.js?v=wuyin-world-v1';
+import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=wuyin-world-v1';
+import { isGateWalkable } from "./gate-geometry.js?v=wuyin-world-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-world-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-world-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-world-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -74,6 +75,11 @@ export class MandalingoGame {
     this.townJourney={...this.townJourney,location:'courtyard',checkpoint:'gate'};this.townFocus=null;
     this.location="courtyard";this.resetActorCues();this.nearby=null;this.clearKeys();this.moving=false;this.player={...this.player,x:800,y:345,lookX:0,lookY:1};this.callbacks.onNearby?.(null);this.callbacks.onLocationChange?.("courtyard");
   }
+  movementColliders(){return COLLIDERS.filter(e=>e.id!=='gate'&&!(e.id==='thirsty-traveller'&&townSignalAwake(this.townJourney))).map(e=>this.worldEntity(e));}
+  changeWalkingRegion(next){
+    if(this.location===next)return;this.player=next==='town'?toTownPoint(this.player):fromTownPoint(this.player);this.location=next;
+    this.townJourney={...this.townJourney,location:next,checkpoint:next==='town'?'entry':'gate'};this.callbacks.onLocationChange?.(next);
+  }
   updateTown(dt) {
     if (!this.inputEnabled) {this.moving=false;return;}
     let x=Number(this.keys.has("d")||this.keys.has("arrowright"))-Number(this.keys.has("a")||this.keys.has("arrowleft")),y=Number(this.keys.has("s")||this.keys.has("arrowdown"))-Number(this.keys.has("w")||this.keys.has("arrowup"));
@@ -81,11 +87,12 @@ export class MandalingoGame {
     const ox=this.player.x,oy=this.player.y,run=this.keys.has("shift");
     if(x||y){this.player.lookX=x;this.player.lookY=y;}
     const nx=ox+x*(run?PLAYER_SPEED.runX:PLAYER_SPEED.walkX)*dt,ny=oy+y*(run?PLAYER_SPEED.runY:PLAYER_SPEED.walkY)*dt;
-    const blockers=townExtraColliders(this.townJourney);
-    if(isTownWalkable(nx,oy,18,blockers))this.player.x=nx;if(isTownWalkable(this.player.x,ny,18,blockers))this.player.y=ny;
+    const blockers=townExtraColliders(this.townJourney),colliders=this.movementColliders();
+    let p=fromTownPoint({x:nx,y:oy});if(isConnectedWalkable(p.x,p.y,18,this.gateOpenProgress,colliders,blockers))this.player.x=nx;
+    p=fromTownPoint({x:this.player.x,y:ny});if(isConnectedWalkable(p.x,p.y,18,this.gateOpenProgress,colliders,blockers))this.player.y=ny;
     const travelled=Math.hypot(this.player.x-ox,this.player.y-oy);this.stride+=travelled/13;this.moving=travelled>.01;
     this.nearby=selectInteractionTarget(this.player,townEntities(this.townJourney));this.callbacks.onNearby?.(this.nearby);
-    if(this.player.y>2890&&Math.abs(this.player.x-1700)<65)this.leaveTown();
+    if(this.player.y>=2880)this.changeWalkingRegion('courtyard');
   }
   beginTownObservation(id){
     if(this.location!=='town')return null;const entity=townEntities(this.townJourney).find(e=>e.id===id&&e.type==='town');if(!entity)return null;
@@ -145,15 +152,15 @@ export class MandalingoGame {
       this.player.lookX = x; this.player.lookY = y; if (Math.abs(x) > .1) this.player.facing = Math.sign(x);
       const running = this.keys.has("shift"), speedX = running ? PLAYER_SPEED.runX : PLAYER_SPEED.walkX, speedY = running ? PLAYER_SPEED.runY : PLAYER_SPEED.walkY;
       const nextX = this.player.x + x * speedX * dt, nextY = this.player.y + y * speedY * dt;
-      const activeColliders = COLLIDERS.filter(entity => entity.id !== "gate").map(entity => this.worldEntity(entity));
-      if (isPlayerWalkable(nextX, this.player.y, PLAYER_COLLISION_RADIUS, activeColliders) && isGateWalkable(nextX,this.player.y,PLAYER_COLLISION_RADIUS,this.gateOpenProgress)) this.player.x = nextX;
-      if (isPlayerWalkable(this.player.x, nextY, PLAYER_COLLISION_RADIUS, activeColliders) && isGateWalkable(this.player.x,nextY,PLAYER_COLLISION_RADIUS,this.gateOpenProgress)) this.player.y = nextY;
+      const activeColliders=this.movementColliders(),extra=townExtraColliders(this.townJourney);
+      if(isConnectedWalkable(nextX,this.player.y,PLAYER_COLLISION_RADIUS,this.gateOpenProgress,activeColliders,extra))this.player.x=nextX;
+      if(isConnectedWalkable(this.player.x,nextY,PLAYER_COLLISION_RADIUS,this.gateOpenProgress,activeColliders,extra))this.player.y=nextY;
     }
     const travelled = Math.hypot(this.player.x - oldX, this.player.y - oldY);
     this.moving = travelled > .01; this.stride += travelled / 13;
     if (!this.gateApproachTriggered && !this.questResolved && this.player.y < 480) { this.gateApproachTriggered = true; this.callbacks.onGateApproach?.(NPCS.find(npc => npc.id === "gatekeeper")); }
-    if(this.inputEnabled&&this.questResolved&&this.gateOpenProgress>=.95&&this.player.y<320&&Math.abs(this.player.x-800)<55){this.enterTown();return;}
-    const interactionEntities = (this.questResolved ? ENTITIES.filter(entity => entity.id !== "gate") : ENTITIES).map(entity => this.worldEntity(entity));
+    if(this.inputEnabled&&this.questResolved&&this.player.y<245){this.changeWalkingRegion('town');return;}
+    const interactionEntities = ENTITIES.filter(e=>(!this.questResolved||e.id!=='gate')&&!(e.id==='thirsty-traveller'&&townSignalAwake(this.townJourney))).map(entity => this.worldEntity(entity));
     const nextNearby = selectInteractionTarget(this.player, interactionEntities);
     if (nextNearby !== this.nearby) { this.nearby = nextNearby; this.callbacks.onNearby?.(nextNearby); }
   }

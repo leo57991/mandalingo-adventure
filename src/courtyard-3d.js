@@ -1,13 +1,16 @@
-import { createTownWorld, frameTownCamera, updateTownWorld } from "./town-3d.js?v=wuyin-journey-v1";
-import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-journey-v1";
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-journey-v1";
+import { createTownWorld, updateTownWorld } from "./town-3d.js?v=wuyin-world-v1";
+import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=wuyin-world-v1';
+import {townElevation} from './town-layout.js?v=wuyin-world-v1';
+import {townSignalAwake} from './town-journey.js?v=wuyin-world-v1';
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-world-v1";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-world-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=wuyin-journey-v1";
+} from "./lessons.js?v=wuyin-world-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -315,17 +318,18 @@ export function buildCourtyard() {
   sun.position.set(-5, 10, 6);
   sun.castShadow = true;
   Object.assign(sun.shadow.camera, {
-    left: -10,
-    right: 10,
-    top: 9,
-    bottom: -9,
+    left: -27,
+    right: 27,
+    top: 32,
+    bottom: -17,
     near: 0.1,
-    far: 35,
+    far: 85,
   });
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.025;
   scene.add(sun);
+  sun.position.set(-9,22,10);sun.target.position.set(0,0,-12);scene.add(sun.target);
   box(scene, 200, 0.2, 200, 0x81978c, 0, -0.85);
   box(scene, 11.5, 0.65, 6.5, 0x62756f, 0, -0.45, 0.35);
   box(scene, 11.3, 0.15, 6.3, 0xb4b29c, 0, -0.09, 0.35);
@@ -378,10 +382,10 @@ export function buildCourtyard() {
     box(gatehouse, 0.25, 2.25, 0.4, P.wood, s * GATE.postOffset/100, 1.125);
     box(gatehouse, 0.4, 0.2, 0.55, P.stone, s * GATE.postOffset/100, 0.1);
   }
-  box(gatehouse, 2.7, 0.27, 0.5, P.wood, 0, 2.02);
-  roof(gatehouse, 3, 1.7, 2.28);
-  box(gatehouse, 0.9, 0.32, 0.075, P.dark, 0, 2.06, 0.3);
-  box(gatehouse, 0.65, 0.045, 0.08, P.gold, 0, 2.06, 0.35);
+  const gateRoof=group(gatehouse);box(gateRoof,2.7,.27,.5,P.wood,0,2.02);roof(gateRoof,3,1.7,2.28);
+  box(gateRoof,.9,.32,.075,P.dark,0,2.06,.3);box(gateRoof,.65,.045,.08,P.gold,0,2.06,.35);
+  const roofBatches=new Map();for(const m of [...gateRoof.children]){m.updateMatrix();const geo=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();geo.applyMatrix4(m.matrix);if(!roofBatches.has(m.material))roofBatches.set(m.material,[]);roofBatches.get(m.material).push(geo);gateRoof.remove(m);m.geometry.dispose();}
+  for(const [source,geometries] of roofBatches){const m=new T.Mesh(mergeGeometries(geometries),source.clone());m.castShadow=m.receiveShadow=true;gateRoof.add(m);geometries.forEach(g=>g.dispose());}
   const doors = [];
   for (const s of [-1, 1]) {
     const hinge = group(scene, (GATE.centerX-800+s*GATE.halfWidth)/100, 0, (GATE.hingeY-450)/100);
@@ -410,16 +414,7 @@ export function buildCourtyard() {
     );
   }
   box(scene, 2.1, 0.03, 12, 0xb1b3a0, 0, -0.15, -8);
-  for (let i = 0; i < 6; i++) {
-    const g = group(
-      scene,
-      (i % 2 ? 1 : -1) * (5 + i * 0.6),
-      -0.3,
-      -6 - i * 1.7,
-    );
-    box(g, 2.8, 1.8, 2.3, 0x9daba0, 0, 0.9);
-    roof(g, 3, 2.6, 1.8);
-  }
+  for(const [x,y,w,d] of CITY_WALL_EXTENSIONS){const wall=group(scene,...worldPoint(x+w/2,y+d/2));box(wall,w/100,1.6,.32,P.plaster,0,.8);box(wall,w/100,.22,.4,P.stone,0,.12);roof(wall,w/100,.67,1.6);}
   const props = new Map();
   for (const item of RENDER_OBJECTS.filter(
     (o) =>
@@ -596,7 +591,7 @@ export function buildCourtyard() {
     leaves.setMatrixAt(i, dummy.matrix);
   }
   scene.add(leaves);
-  batchScenery(scene, doors);
+  batchScenery(scene, [...doors,gateRoof]);
   const jarWater = createJarWater(props.get("water-jar"));
   const actors = new Map();
   for (const [id, color, role] of [
@@ -632,7 +627,16 @@ export function buildCourtyard() {
     collisionDebug.add(m);
   }
   collisionDebug.visible = false;
-  return { scene, actors, doors, props, marker, sun, collisionDebug, jarWater };
+  return { scene, actors, doors, props, marker, sun, collisionDebug, jarWater,gateRoof };
+}
+export function connectTownWorld(courtyard,town){
+ const root=new T.Group();root.name='wuyin-connected-town';root.position.set(...worldPoint(1600+TOWN_WORLD_OFFSET.x,1600+TOWN_WORLD_OFFSET.y));
+ for(const child of [...town.scene.children])if(!child.isLight)root.add(child);
+ courtyard.scene.add(root);town.root=root;town.scene=courtyard.scene;town.sharedPlayer=courtyard.actors.get('player');town.actors.get('player').root.visible=false;return root;
+}
+export function frameConnectedCamera(camera,width,height,focus){
+ const span=Math.max(10.3,16/(width/height)),[x,,z]=worldPoint(focus.x,focus.y);camera.left=-span*width/height/2;camera.right=-camera.left;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();
+ const target=new T.Vector3(T.MathUtils.clamp(x,-12,13),.3,T.MathUtils.clamp(z,-26,.55));camera.position.copy(target).add(new T.Vector3(0,11,12));camera.lookAt(target);camera.updateMatrixWorld();
 }
 
 // Fixed-size presentation pool: clues never own inventory, guesses or quest state.
@@ -696,6 +700,7 @@ export class Courtyard3D {
       return;
     }
     this.world = buildCourtyard();
+    this.townWorld=createTownWorld(createActor,batchScenery);connectTownWorld(this.world,this.townWorld);
     this.gateDebug = new T.Group();
     this.world.scene.add(this.gateDebug);
     for (const side of [-1,1]) {
@@ -761,19 +766,11 @@ export class Courtyard3D {
     canvas.parentElement.append(panel);
     retry.focus();
   }
-  renderTown(game) {
-    if (!this.townWorld) this.townWorld=createTownWorld(createActor,batchScenery);
-    const w=Math.max(1,game.viewWidth),h=Math.max(1,game.viewHeight);
-    if(this.width!==w||this.height!==h){this.renderer.setSize(w,h,false);this.width=w;this.height=h;}
-    frameTownCamera(this.camera,w,h,game.player);updateTownWorld(this.townWorld,game,poseActor);this.label.hidden=true;
-    this.renderer.render(this.townWorld.scene,this.camera);
-  }
   render(game) {
     if (this.failed) {
       game.setInputEnabled(false);
       return;
     }
-    if (game.location === "town") { this.renderTown(game); return; }
     const { renderer, camera, world } = this,
       w = Math.max(1, game.viewWidth),
       h = Math.max(1, game.viewHeight);
@@ -785,14 +782,19 @@ export class Courtyard3D {
     const focus =
       game.resolution && !game.resolutionCompleted
         ? game.actorPositions["thirsty-traveller"]
-        : game.dialogueActor || game.player;
-    frameCamera(camera, w, h, focus);
+        : worldPlayerPoint(game);
+    frameConnectedCamera(camera,w,h,focus);
+    const townPlayer=game.location==='town'?game.player:toTownPoint(game.player);updateTownWorld(this.townWorld,{...game,player:townPlayer},poseActor);
+    const cutaway=Math.abs(worldPlayerPoint(game).x-800)<210&&worldPlayerPoint(game).y<480&&worldPlayerPoint(game).y>0;
+    world.gateRoof.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=cutaway?.2:1;m.material.depthWrite=!cutaway;}});
     for (const [id, a] of world.actors) {
       const player = id === "player",
         npc = NPCS.find((n) => n.id === id),
-        position = player ? game.player : game.actorPositions[id] || npc,
+        position = player ? worldPlayerPoint(game) : game.actorPositions[id] || npc,
         cue = game.actorCues[id] || {};
       a.root.position.set(...worldPoint(position.x, position.y));
+      a.root.visible=!(id==='thirsty-traveller'&&townSignalAwake(game.townJourney));
+      if(player&&game.location==='town')a.root.position.y=townElevation(game.player.x,game.player.y);
       if (player)
         a.root.rotation.y = Math.atan2(game.player.lookX, game.player.lookY);
       else if (id === "thirsty-traveller")
@@ -833,7 +835,7 @@ export class Courtyard3D {
     setGateOpening(world.doors, game.gateOpenProgress);
     world.marker.visible = !!game.nearby && game.inputEnabled;
     if (game.nearby) {
-      const [x, , z] = worldPoint(game.nearby.x, game.nearby.y);
+      const nearby=game.location==='town'?fromTownPoint(game.nearby):game.nearby,[x,,z]=worldPoint(nearby.x,nearby.y);
       world.marker.position.set(x, 0.045, z);
     }
     this.gateDebug.visible = game.debugCollisions;

@@ -4,11 +4,10 @@ import * as T from '../src/vendor/three.module.js';
 import {createTownWorld,updateTownWorld} from '../src/town-3d.js';
 import {createActor,poseActor,buildCourtyard} from '../src/courtyard-3d.js';
 import {TOWN,townElevation} from '../src/town-layout.js';
-test('spawn entrance roof supports cutaway rather than obscuring the arriving player',()=>{
- const world=createTownWorld(createActor,()=>{}),entry=world.roofs.find(r=>r.site.id==='south-gate');
- assert.ok(entry,'entrance is part of the same occlusion system as shops');
- const g={player:{...TOWN.spawn,lookX:0,lookY:-1},time:0,stride:0,moving:false,reducedMotion:true,debugCollisions:false};updateTownWorld(world,g,poseActor);
- entry.root.traverse(m=>{if(m.isMesh)assert.ok(m.material.opacity<=.25);});
+test('the original shared gate roof has private materials and no duplicate town gate',()=>{
+ const world=createTownWorld(createActor,()=>{}),court=buildCourtyard();assert.equal(world.roofs.some(r=>r.site.id==='south-gate'),false);assert.ok(court.gateRoof);
+ const roofMaterials=new Set();court.gateRoof.traverse(m=>{if(m.isMesh)roofMaterials.add(m.material);});
+ court.scene.traverse(m=>{for(let p=m;p;p=p.parent)if(p===court.gateRoof)return;if(m.isMesh)assert.equal(roofMaterials.has(m.material),false);});
 });
 test('rendered wooden floors align with actor feet and pavilion steps agree with elevation data',()=>{
  const world=createTownWorld(createActor,()=>{});world.scene.updateMatrixWorld(true);

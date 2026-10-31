@@ -1,8 +1,8 @@
-import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-shops-v2";
-import { isGateWalkable } from "./gate-geometry.js?v=wuyin-shops-v2";
-import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-shops-v2";
-import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-shops-v2";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-shops-v2";
+import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-wuxia-v1";
+import { isGateWalkable } from "./gate-geometry.js?v=wuyin-wuxia-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-wuxia-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-wuxia-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-wuxia-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));

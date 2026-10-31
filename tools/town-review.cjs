@@ -20,7 +20,7 @@ app.whenReady().then(async()=>{try{
  await shot('town-entry');
  await shot('town-overview','review.game.player.x=1600;review.game.player.y=1630;review.game.view.camera.zoom=.34');
  await run('review.game.view.camera.zoom=1');
- for(const [id,x,y] of [['guardians',1700,2780],['jade',2300,1920],['forge',430,1690],['produce',370,2500],['scroll-display',2790,1690],['river-seat',1760,1600],['gate-inside',1700,2740],['gate-outside',1700,2850],['weapons-rear',760,1160],['grocer-side',1070,2360],['books-rear',2380,1140],['river-bank',1640,2100],['north-terrace',1840,810],['moon-gate',2380,2070],['weapons',760,1695],['grocer',740,2520],['books',2380,1740],['bridge',1410,1870],['pavilion',1840,940]]){
+ for(const [id,x,y] of [['guardians',1700,2780],['jade',2300,1920],['forge',430,1690],['produce',370,2500],['scroll-display',2790,1690],['river-seat',1760,1600],['gate-inside',1700,2740],['gate-outside',1700,2850],['weapons-rear',760,1160],['grocer-side',1070,2360],['books-rear',2380,1140],['river-bank',1640,2100],['north-terrace',1840,810],['moon-gate',2380,2070],['weapons',760,1695],['grocer',740,2520],['books',2380,1715],['bridge',1410,1870],['pavilion',1840,940]]){
   await shot('town-'+id,`review.game.player.x=${x};review.game.player.y=${y};review.game.player.lookX=0;review.game.player.lookY=-1`);
  }
  performance=await run('({calls:review.game.view.renderer.info.render.calls,triangles:review.game.view.renderer.info.render.triangles,shops:review.game.view.townWorld.shops.size,actors:review.game.view.townWorld.actors.size,goal:!!document.querySelector("#objective-text")})');

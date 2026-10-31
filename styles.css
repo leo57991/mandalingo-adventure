@@ -54,6 +54,9 @@ kbd { display: inline-flex; min-width: 1.8em; height: 1.8em; align-items: center
 
 .dialogue-panel { position: absolute; z-index: 31; left: 50%; bottom: 26px; width: min(1120px, calc(100vw - 44px)); min-height: 245px; display: grid; grid-template-columns: 230px 1fr; border: 1px solid rgba(229,204,133,.48); background: linear-gradient(110deg, rgba(11,22,28,.98), rgba(21,35,39,.96)); box-shadow: 0 20px 55px rgba(0,0,0,.55); opacity: 0; transform: translate(-50%, 35px); pointer-events: none; transition: .25s; }
 .dialogue-panel.is-visible { opacity: 1; transform: translate(-50%,0); pointer-events: auto; }
+.dialogue-panel.is-town { grid-template-columns:1fr; min-height:0; }
+.dialogue-panel.is-town .portrait-stage { display:none; }
+.dialogue-panel.is-town .dialogue-text { font:18px/1.65 Georgia,serif; color:#eee6ce; margin:12px 0 20px; }
 .portrait-stage { position: relative; min-height: 245px; overflow: hidden; border-right: 1px solid var(--line); background: radial-gradient(circle at 50% 35%, rgba(111,145,135,.28), rgba(4,12,16,.88)); }
 .portrait-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 10px 12px rgba(0,0,0,.48)); transition: opacity .16s; }
 .dialogue-copy { display: flex; min-width: 0; flex-direction: column; padding: 18px 22px 16px; }.context-strip { display: flex; gap: 11px; align-items: flex-start; padding-bottom: 11px; border-bottom: 1px solid rgba(255,255,255,.08); color: #b7c5c0; }.context-strip p { margin: 0; font: italic 13px/1.45 Georgia, serif; }.eye-icon { color: var(--gold); }

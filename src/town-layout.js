@@ -11,7 +11,7 @@ export const HOUSES=Object.freeze([
  {id:'east-cottage',x:2560,y:860,width:350,depth:280,roof:0x435d59},
  {id:'north-pavilion',x:1840,y:550,width:700,depth:400,roof:0x314e52}
 ]);
-export const TOWN_TREES=Object.freeze([[300,420],[460,500],[1000,420],[1120,1100],[350,1770],[400,2100],[360,2650],[1020,2770],[1300,2800],[2060,2680],[2770,2750],[2900,2450],[2870,1900],[2600,1870],[2170,1880],[2940,1200],[2860,670],[2410,420],[2130,390],[1120,2480],[2070,1120]].map(([x,y],i)=>({x,y,color:[0xb77b39,0xc89947,0x537658,0x71864f][i%4],size:.85+(i%3)*.16})));
+export const TOWN_TREES=Object.freeze([[300,420],[460,500],[1000,420],[1120,1100],[300,1930],[400,2100],[290,2820],[1020,2770],[1300,2800],[2060,2680],[2770,2750],[2900,2450],[2940,2100],[2600,1870],[2170,1880],[2940,1200],[2860,670],[2410,420],[2130,390],[1120,2480],[2070,1120]].map(([x,y],i)=>({x,y,color:[0xb77b39,0xc89947,0x537658,0x71864f][i%4],size:.85+(i%3)*.16})));
 export const TOWN_RESIDENTS=Object.freeze([
  {id:'weapons-vendor',x:760,y:1420,shop:'weapons',color:0x79604b},
  {id:'grocer-vendor',x:740,y:2270,shop:'grocer',color:0x7d7656},
@@ -21,7 +21,18 @@ export const TOWN_RESIDENTS=Object.freeze([
 ]);
 const walls=s=>{const x=s.x-s.width/2,y=s.y-s.depth/2,w=s.width,d=s.depth;return [[x,y,w,32],[x,y,28,d],[x+w-28,y,28,d]];};
 export const TOWN_LAMPS=Object.freeze([[1580,2540],[1990,2540],[1100,1760],[1690,1790],[2060,1110],[2380,1730]]);
+// Rendered solid props and collision share one footprint, in map units.
+export const TOWN_PROPS=Object.freeze([
+ {id:'smith-forge',type:'forge',x:390,y:1550,width:120,depth:80},
+ {id:'smith-rack',type:'weapon-rack',x:400,y:1330,width:100,depth:44},
+ {id:'market-produce',type:'produce',x:370,y:2390,width:130,depth:70},
+ {id:'books-scroll-display',type:'scrolls',x:2790,y:1580,width:90,depth:70},
+ {id:'river-bench',type:'bench',x:1650,y:1550,width:55,depth:120},
+ {id:'pavilion-west-bench',type:'bench',x:1650,y:650,width:120,depth:45},
+ {id:'pavilion-east-bench',type:'bench',x:2030,y:650,width:120,depth:45}
+]);
 export const TOWN_COLLIDERS=Object.freeze([
+ ...TOWN_PROPS.map(p=>[p.x-p.width/2,p.y-p.depth/2,p.width,p.depth]),
  [1150,1779,520,14],[1150,1947,520,14],
  ...SHOPS.flatMap(s=>[...walls(s),[s.x-s.width/2+70,s.y+40,s.width-140,65],...[-1,1].map(side=>[s.x+side*s.width*.39-4,s.y+s.depth/2+81,8,8])]),
  ...HOUSES.flatMap(s=>s.id==='north-pavilion'?walls(s):[[s.x-s.width/2,s.y-s.depth/2,s.width,s.depth]]),
@@ -30,7 +41,7 @@ export const TOWN_COLLIDERS=Object.freeze([
  [490,1660,115,50],[488,2518,44,44],[566,2491,48,48],[916,2416,38,38],[527,2217,46,46],[902,1287,76,76],
  ...TOWN_LAMPS.map(([x,y])=>[x-4,y-4,8,8]),
  [670,2906,900,28],[1830,2906,900,28],[1569,2899,32,42],[1799,2899,32,42],
- [2102,1755,16,250],[2642,1755,16,250],[2105,2002,190,16],[2465,2002,190,16],[2299,2002,31,16],[2430,2002,31,16],
+ [2102,1755,16,250],[2642,1755,16,250],[2105,2002,190,16],[2465,2002,190,16],[2267,1995,30,30],[2463,1995,30,30],
  [2428,1838,84,84],[2404,1864,32,32],[2504,1864,32,32],[2454,1929,32,32],
  [2020,2275,130,75], [1725,2205,110,110], [2130,1550,75,75], [2660,1520,75,75]
 ]);

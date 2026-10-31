@@ -1,13 +1,13 @@
-import { createTownWorld, frameTownCamera, updateTownWorld } from "./town-3d.js?v=wuyin-model-qa-v1";
-import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-model-qa-v1";
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-model-qa-v1";
+import { createTownWorld, frameTownCamera, updateTownWorld } from "./town-3d.js?v=wuyin-shops-v2";
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-shops-v2";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-shops-v2";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=wuyin-model-qa-v1";
+} from "./lessons.js?v=wuyin-shops-v2";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];

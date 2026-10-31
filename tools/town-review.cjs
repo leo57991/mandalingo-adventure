@@ -12,14 +12,23 @@ app.whenReady().then(async()=>{try{
  async function shot(name,code=''){await run(code+';review.game.draw();new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');fs.writeFileSync(path.join(out,name+'.png'),(await win.webContents.capturePage()).toPNG());}
  geometryAudit=await run(`(()=>{const world=review.game.view.townWorld;let meshes=0,sprites=0,invalid=0;const seen=new Set();world.scene.updateMatrixWorld(true);world.scene.traverse(o=>{if(o.isSprite)sprites++;if(!o.matrixWorld.elements.every(Number.isFinite))invalid++;if(o.isMesh){meshes++;const g=o.geometry;if(!seen.has(g)){seen.add(g);const p=g.getAttribute('position');if(!p||![...p.array].every(Number.isFinite))invalid++;if(g.index)for(const i of g.index.array)if(i<0||i>=p.count)invalid++;}}});return{meshes,sprites,invalid,geometries:seen.size};})()`);
  assert.equal(geometryAudit.sprites,0);assert.equal(geometryAudit.invalid,0);
+ const chimneyBase=await run("(()=>{const m=review.game.view.townWorld.scene.children.find(o=>o.isMesh&&o.material?.color?.getHex()===0x785949);m.geometry.computeBoundingBox();return m.geometry.boundingBox.min.y;})()");
+ assert.ok(chimneyBase<.01,'forge chimney is grounded in the rendered build');
  await shot('town-entry');
  await shot('town-overview','review.game.player.x=1600;review.game.player.y=1630;review.game.view.camera.zoom=.34');
  await run('review.game.view.camera.zoom=1');
- for(const [id,x,y] of [['gate-inside',1700,2740],['gate-outside',1700,2850],['weapons-rear',760,1160],['grocer-side',1070,2360],['books-rear',2380,1140],['river-bank',1640,2100],['north-terrace',1840,810],['moon-gate',2380,2070],['weapons',760,1695],['grocer',740,2520],['books',2380,1740],['bridge',1410,1870],['pavilion',1840,940]]){
+ for(const [id,x,y] of [['forge',430,1690],['produce',370,2500],['scroll-display',2790,1690],['river-seat',1760,1600],['gate-inside',1700,2740],['gate-outside',1700,2850],['weapons-rear',760,1160],['grocer-side',1070,2360],['books-rear',2380,1140],['river-bank',1640,2100],['north-terrace',1840,810],['moon-gate',2380,2070],['weapons',760,1695],['grocer',740,2520],['books',2380,1740],['bridge',1410,1870],['pavilion',1840,940]]){
   await shot('town-'+id,`review.game.player.x=${x};review.game.player.y=${y};review.game.player.lookX=0;review.game.player.lookY=-1`);
  }
  performance=await run('({calls:review.game.view.renderer.info.render.calls,triangles:review.game.view.renderer.info.render.triangles,shops:review.game.view.townWorld.shops.size,actors:review.game.view.townWorld.actors.size,goal:!!document.querySelector("#objective-text")})');
  assert.equal(performance.shops,3);assert.equal(performance.goal,false);assert.ok(performance.calls<500);
+ // Approach the new solid props using the actual movement/collision loop.
+ for(const [x,y,edge] of [[430,1690,1590],[370,2500,2425],[2790,1690,1615]]){
+  const stopped=await run(`review.game.presentationPaused=false;review.game.player.x=${x};review.game.player.y=${y};review.game.clearKeys();review.game.setKey('w',true);for(let i=0;i<100;i++)review.game.update(.02);review.game.clearKeys();review.game.presentationPaused=true;review.game.player.y`);
+  assert.ok(stopped>=edge+18&&stopped<edge+28,`solid prop blocked approach at ${stopped}`);
+ }
+ const gardenY=await run("review.game.presentationPaused=false;review.game.player.x=2380;review.game.player.y=2070;review.game.setKey('w',true);for(let i=0;i<45;i++)review.game.update(.02);review.game.clearKeys();review.game.presentationPaused=true;review.game.player.y");
+ assert.ok(gardenY<1980,'the arch admits the player into the garden');await shot('town-garden-entered');
  await run("review.game.presentationPaused=false;window.dispatchEvent(new KeyboardEvent('keydown',{key:'n'}));");assert.equal(await run('review.state.current'),'NOTEBOOK');
  await run("window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));");assert.equal(await run('review.state.current'),'PAUSED');
  const paused=await run('review.game.player.y');await run("review.game.setKey('w',true);review.game.update(.1)");assert.equal(await run('review.game.player.y'),paused);

@@ -1,6 +1,6 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,riverX,townElevation} from './town-layout.js?v=wuyin-town-v1';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,riverX,townElevation} from './town-layout.js?v=wuyin-model-qa-v1';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
 const materials=new Map();
@@ -24,7 +24,7 @@ function sword(p,x,y,z,tilt=0){const g=group(p,x,y,z);g.rotation.z=tilt;box(g,.0
 function barrel(p,x,z,size=1){const g=group(p,x,0,z);cylinder(g,.22*size,.19*size,.45*size,0x997448,0,.23*size);for(const y of [.1,.36])mesh(g,new T.TorusGeometry(.22*size,.018,4,12),P.dark,0,y*size).rotation.x=Math.PI/2;return g;}
 function basket(p,x,z,color){const g=group(p,x,.08,z);cylinder(g,.24,.16,.18,0xa17c4a,0,.1);for(let i=0;i<8;i++)mesh(g,new T.DodecahedronGeometry(.075,0),color,Math.sin(i*2.4)*.14,.23+(i%2)*.05,Math.cos(i*2.4)*.14);}
 function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(scene,x,townElevation(s.x,s.y),z),w=s.width/100,d=s.depth/100,h=s.id==='north-pavilion'?2.8:2.35;
- box(g,w+.2,.10,d+.2,P.stone,0,-.055);box(g,w,.075,d,0x9e8a68,0,-.008);
+ box(g,w+.2,.10,d+.2,P.stone,0,-.055);box(g,w,.075,d,0x9e8a68,0,-.0375);
  box(g,w,h,.22,P.plaster,0,h/2,-d/2+.11);for(const side of [-1,1]){box(g,.22,h,d,P.plaster,side*(w/2-.11),h/2);for(const zz of [-d/2+.15,d/2-.12])box(g,.14,h+.10,.15,P.wood,side*(w/2-.16),h/2,zz);}
  box(g,w,.18,.18,P.wood,0,h-.03,d/2-.08);for(const side of [-1,1]){box(g,w*.32,.63,.045,P.dark,side*w*.25,1.3,-d/2+.24);for(let i=0;i<4;i++)box(g,.035,.60,.055,0xb7a77e,side*w*.25-w*.13+i*w*.085,1.3,-d/2+.27);}
  const r=roof(g,w,d,h,s.roof);roofs.push({root:r,site:s});
@@ -66,18 +66,24 @@ export function createTownWorld(makeActor,bake) {
  for(let y=380;y<2850;y+=140)for(const side of [-1,1]){const [x,,z]=townPoint(riverX(y)+side*112,y);for(let i=0;i<3;i++){const reed=box(scene,.027,.25+(i%2)*.12,.04,0x6c875d,x+i*.045,.13,z+i*.035);reed.rotation.z=(i-1)*.17;}}
  const bridge=group(scene,...townPoint(1410,1870));for(let i=0;i<14;i++){const x=1150+(i+.5)*520/14,h=townElevation(x,1870);box(bridge,520/1400+.02,.14,1.80,P.stone,(x-1410)/100,h-.07,0);for(const side of [-1,1]){box(bridge,.35,.27,.14,0x8b968a,(x-1410)/100,h+.15,side*.84);}}
  for(const side of [-1,1]){const arch=mesh(bridge,new T.TorusGeometry(2.5,.11,6,40,Math.PI),0x788b83,0,-.16,side*.70);arch.scale.y=.14;}
- box(scene,9.2,.38,5.6,0xa8aa96,2.6,.19,-10.3);for(let i=0;i<7;i++)box(scene,7.8,.055*(i+1),.23,P.stone,2.6,.055*(i+1)/2,-5.9-i*.23);
+ box(scene,9.2,.38,5.6,0xa8aa96,2.6,.19,-10.3);for(let i=0;i<7;i++){const h=.38*(i+1)/7,y=1010-(i+.5)*160/7;box(scene,7.8,h,160/700,P.stone,2.6,h/2,(y-1600)/100);}
  const roofs=[];const shops=new Map();for(const s of SHOPS)shops.set(s.id,building(scene,s,roofs,true));for(const h of HOUSES)building(scene,h,roofs,false);
  // South gate: an open visual continuation of the saved courtyard entrance.
  const entrance=group(scene,...townPoint(1700,2920));for(const side of [-1,1]){box(entrance,.32,2.5,.42,P.wood,side*1.15,1.25);box(entrance,.52,.18,.6,P.stone,side*1.15,.09);lantern(entrance,side*1.55,1.6,.15);box(entrance,9,.95,.27,0x8e9a8c,side*5.8,.45);}
- roof(entrance,3.0,1.3,2.4,0x315459);
+ roofs.push({root:roof(entrance,3.0,1.3,2.4,0x315459),site:{id:"south-gate",x:1700,y:2920,width:300,depth:130}});
  const well=group(scene,...townPoint(1780,2260));mesh(well,new T.LatheGeometry([new T.Vector2(.43,0),new T.Vector2(.5,.5),new T.Vector2(.40,.5),new T.Vector2(.38,.15)],20),0x929b8e);mesh(well,new T.TorusGeometry(.45,.075,6,24),P.stone,0,.50).rotation.x=Math.PI/2;cylinder(well,.38,.38,.01,P.water,0,.36);for(const side of [-1,1])box(well,.07,1.6,.08,P.wood,side*.65,.8);beam(well,[-.7,1.6,0],[.7,1.6,0],.045,P.wood);barrel(well,.9,.25,.65);
  // The bookshop court has low walls, a moon gate, stone seats and flowering planters.
  const court=group(scene,...townPoint(2380,1880));box(court,5.4,.06,2.45,0xb5b6a0,0,-.015);for(const side of [-1,1])box(court,.16,.65,2.5,0xb7b9a3,side*2.7,.30);for(const side of [-1,1])box(court,1.9,.65,.16,0xb7b9a3,side*1.8,.30,1.3);
  mesh(court,new T.TorusGeometry(.68,.13,6,36),P.plaster,0,.72,1.3);cylinder(court,.42,.40,.12,P.stone,.9,.65);cylinder(court,.16,.19,.59,P.stone,.9,.29);for(const [x,z] of [[.4,0],[1.4,0],[.9,.65]])cylinder(court,.16,.15,.3,0x929c8a,x,.15,z);
  for(const [x,y] of [[2167,1587],[2697,1557]]){const g=group(scene,...townPoint(x,y));box(g,.75,.42,.75,0x8c927b,0,.21);for(let i=0;i<8;i++)mesh(g,new T.IcosahedronGeometry(.14,0),i%2?0xc5a278:0x81945a,Math.sin(i)*.22,.55,Math.cos(i)*.22);}
  for(const t of TOWN_TREES){const [x,,z]=townPoint(t.x,t.y),g=group(scene,x,townElevation(t.x,t.y),z);cylinder(g,.11,.17,1.85,0x6d543a,0,.92);for(let i=0;i<3;i++){const leaf=mesh(g,new T.DodecahedronGeometry(.68*t.size,0),t.color,(i-1)*.4,1.85+(i%2)*.45,Math.sin(i*2)*.23);leaf.scale.set(1,1.08,.85);}}
- for(let i=0;i<18;i++){const angle=i*Math.PI*2/18;if(Math.sin(angle)>.32)continue;const radius=21+(i%3),g=mesh(scene,new T.DodecahedronGeometry(2.4+(i%3),0),[0x718c86,0x7e928b,0x8b9f94][i%3],Math.cos(angle)*radius,1.7,Math.sin(angle)*radius);g.scale.set(1,1.8+(i%2)*.7,1);}
+ // Closed, grounded rock columns with varied shoulders replace stretched single polyhedra.
+ for(let i=0;i<18;i++){const angle=i*Math.PI*2/18;if(Math.sin(angle)>.32)continue;const radius=21+(i%3),g=group(scene,Math.cos(angle)*radius,-.15,Math.sin(angle)*radius),h=5.6+(i%3)*1.1;
+  const c=[0x758b84,0x81948d,0x8a9e95][i%3];cylinder(g,1.25,2.5,h,c,0,h/2,0,7).rotation.y=i*.37;
+  for(const side of [-1,1]){const height=h*(side<0?.58:.72);cylinder(g,.95,1.6,height,c,side*1.45,height/2,side*.55,6).rotation.y=i*.23;}
+  for(const x of [-.55,.5]){cylinder(g,.045,.07,.65,P.wood,x,h+.28,0);mesh(g,new T.ConeGeometry(.36,1.15,7),0x48634f,x,h+.78,0);}
+ }
+
  for(const [x,y] of TOWN_LAMPS){const [xx,,zz]=townPoint(x,y),g=group(scene,xx,0,zz);box(g,.06,1.8,.07,P.wood,0,.9);beam(g,[0,1.8,0],[.28,1.8,0],.025,P.wood);lantern(g,.28,1.65,0);}
  const cart=group(scene,...townPoint(2080,2310));box(cart,1.0,.10,.65,P.wood,0,.42);for(const side of [-1,1]){const wheel=mesh(cart,new T.TorusGeometry(.20,.035,5,12),P.dark,side*.55,.22);wheel.rotation.y=Math.PI/2;}for(const z of [-.30,.30])box(cart,1.0,.20,.045,0x96764c,0,.56,z);barrel(cart,-.2,0,.75);box(cart,.36,.3,.34,0xb6a17c,.27,.62);beam(cart,[.48,.43,.22],[1.15,.6,.22],.025,P.wood);
  const excluded=[...roofs.map(r=>r.root),riverMesh];bake(scene,excluded);
@@ -97,6 +103,12 @@ export function updateTownWorld(world,game,poseActor){
   poseActor(a,{moving,stride:id==='player'?game.stride:game.time*4.5,time:game.time,reducedMotion:game.reducedMotion});
   if(data?.shop==='weapons'&&!game.reducedMotion)a.rightArm.rotation.x=-.7+Math.sin(game.time*2.3)*.25;
  }
- for(const {root,site} of world.roofs){const near=Math.abs(game.player.x-site.x)<site.width/2+90&&Math.abs(game.player.y-site.y)<site.depth/2+110;root.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=near?.20:1;m.material.depthWrite=!near;}});}
+ world.scene.updateMatrixWorld(true);
+ const [px,,pz]=townPoint(game.player.x,game.player.y),up=12/Math.sqrt(265),forward=11/Math.sqrt(265),bodyY=(townElevation(game.player.x,game.player.y)+.85)*up-pz*forward;
+ for(const entry of world.roofs){const {root,site}=entry,near=Math.abs(game.player.x-site.x)<site.width/2+90&&Math.abs(game.player.y-site.y)<site.depth/2+110;
+  const bounds=entry.bounds??=new T.Box3().setFromObject(root),low=bounds.min.y*up-bounds.max.z*forward,high=bounds.max.y*up-bounds.min.z*forward;
+  const occludes=bounds.max.z>=pz&&px+.22>=bounds.min.x&&px-.22<=bounds.max.x&&bodyY>=low&&bodyY<=high,cutaway=near||occludes;
+  root.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=cutaway?.20:1;m.material.depthWrite=!cutaway;}});
+ }
  world.glintPositions.forEach((position,i)=>{const m=world.glintDummy;m.position.set(...position);m.position.y=-.061;m.rotation.set(-Math.PI/2,0,i);m.scale.setScalar((.24+(i%3)*.10)/.3*(game.reducedMotion?1:1+Math.sin(game.time*.7+i)*.08));m.updateMatrix();world.waterGlints.setMatrixAt(i,m.matrix);});world.waterGlints.instanceMatrix.needsUpdate=true;world.debug.visible=game.debugCollisions;
 }

@@ -1,0 +1,9 @@
+# TASK-005N — Readable water in the courtyard jar
+
+User requests clearly visible water that can be associated with the traveller's empty bowl, without textual hints. Widen visible opening within existing jar footprint, raise visible water level, use reflective surface/glints, subtle persistent ripples and occasional drips from the ladle, with warm ceramic rim echoing the empty bowl. No new text, automatic inventory, vocabulary, quest or save changes. Reduced motion retains static water highlights and hides falling droplets.
+
+Validate water remains live after static scenery batching, surface bounds/motion/reduced-motion stability, existing gameplay and offline/live visual fixture, native build and authorized PR/Pages deployment. Frozen Godot untouched; human inference effectiveness requires playtests.
+
+Implemented: wider jar opening and higher visible water within existing footprint; warm ceramic rim matches bowl palette. Separate live water mesh survives static batching, with specular finish, pale glints, two gentle ripple rings and an occasional ladle drip. Reduced motion keeps static glints/rings and hides droplet. Existing observation VFX anchor follows water level so it is not occluded. No new text or gameplay mutations.
+
+Validation 2026-10-31: initial geometry/motion and raised-surface feedback tests failed before fixes; npm run check 65 passing, git diff --check clean. Isolated Chromium captures opening overview, jar approach, water detail and reduced motion; asserts water/empty bowl material contrast and no granted inventory. Real collection/offer through recovery/opening reaches CHAPTER, quest=resolved, kneeling=0, errors=[]. Detail inspection uses a test-only close-up camera restored before gameplay. Packaged Windows smoke exit0, rendered=true, errors=[], WebGL enabled; ZIP refreshed. Human association/inference effectiveness remains unmeasured. Frozen Godot export not run per AGENTS.md.

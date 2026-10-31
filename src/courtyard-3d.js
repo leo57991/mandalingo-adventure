@@ -1,11 +1,12 @@
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-plea-v1";
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=courtyard-water-v1";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=courtyard-water-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=courtyard-plea-v1";
+} from "./lessons.js?v=courtyard-water-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -437,20 +438,19 @@ export function buildCourtyard() {
             new T.Vector2(0.22, 0),
             new T.Vector2(0.35, 0.12),
             new T.Vector2(0.39, 0.4),
-            new T.Vector2(0.32, 0.63),
-            new T.Vector2(0.3, 0.68),
-            new T.Vector2(0.26, 0.67),
-            new T.Vector2(0.27, 0.58),
+            new T.Vector2(0.37, 0.63),
+            new T.Vector2(0.36, 0.68),
+            new T.Vector2(0.325, 0.67),
+            new T.Vector2(0.32, 0.58),
           ],
           24,
         ),
         0x34747b,
       );
-      cylinder(g, 0.269, 0.269, 0.015, P.water, 0, 0.6, 0, 32);
       mesh(
         g,
-        new T.TorusGeometry(0.285, 0.035, 8, 32),
-        0x92aaa0,
+        new T.TorusGeometry(0.35, 0.025, 8, 32),
+        P.ivory,
         0,
         0.67,
       ).rotation.x = Math.PI / 2;
@@ -596,6 +596,7 @@ export function buildCourtyard() {
   }
   scene.add(leaves);
   batchScenery(scene, doors);
+  const jarWater = createJarWater(props.get("water-jar"));
   const actors = new Map();
   for (const [id, color, role] of [
     ["player", 0x427e81, "player"],
@@ -630,7 +631,7 @@ export function buildCourtyard() {
     collisionDebug.add(m);
   }
   collisionDebug.visible = false;
-  return { scene, actors, doors, props, marker, sun, collisionDebug };
+  return { scene, actors, doors, props, marker, sun, collisionDebug, jarWater };
 }
 
 // Fixed-size presentation pool: clues never own inventory, guesses or quest state.
@@ -648,7 +649,7 @@ export class EvidenceVFX {
   anchor(id,world,bowl=false) {
     const a=world.actors.get(id);
     if(a){ if(bowl) return a.bowl.getWorldPosition(new T.Vector3()); return a.root.position.clone().add(new T.Vector3(0,1,0)); }
-    if(id==='water-jar') return new T.Vector3(4.15,.64,.5);
+    if(id==='water-jar') return new T.Vector3(4.15,JAR_WATER_LEVEL+.022,.5);
     if(id==='gate') return new T.Vector3(0,1.15,-1.61);
     return null;
   }
@@ -858,6 +859,7 @@ export class Courtyard3D {
       this.label.style.left = `${(p.x * 0.5 + 0.5) * w}px`;
       this.label.style.top = `${(-p.y * 0.5 + 0.5) * h + game.canvas.offsetTop}px`;
     }
+    updateJarWater(world.jarWater, game.time, game.reducedMotion);
     this.evidenceVFX.render(game, world);
     renderer.render(world.scene, camera);
     if (!this.acknowledged) {

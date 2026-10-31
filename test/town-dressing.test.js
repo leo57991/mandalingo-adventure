@@ -29,7 +29,7 @@ test('authored solid prop dimensions enclose their rendered geometry',()=>{
 
 test('shop-side displays remain visible from the fixed playing camera',()=>{
  const world=createTownWorld(createActor,()=>{});world.scene.updateMatrixWorld(true);
- for(const [id,x,y,h] of [['smith-forge',390,1550,.65],['market-produce',370,2390,.78],['books-scroll-display',2790,1580,.78]]){
+ for(const [id,x,y,h] of [['smith-forge',390,1550,.65],['market-produce',370,2390,.78],['books-scroll-display',2790,1580,.78],['garden-jade-lantern',2350,1790,1.24]]){
   const target=new T.Vector3((x-1600)/100,h,(y-1600)/100),direction=new T.Vector3(0,-11,-12).normalize();
   const ray=new T.Raycaster(target.clone().addScaledVector(direction,-18),direction,0,18.1);
   const first=ray.intersectObjects(world.scene.children,true)[0]?.object;

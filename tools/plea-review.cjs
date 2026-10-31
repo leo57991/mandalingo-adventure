@@ -25,7 +25,7 @@ app.whenReady().then(async()=>{let win;
   const reach=await run(`review.game.time=2;review.game.draw();({bowl:review.game.view.world.actors.get('thirsty-traveller').bowl.position.toArray(),facing:review.game.view.world.actors.get('thirsty-traveller').root.rotation.y,quest:review.getJournal().quest,inventory:review.getJournal().inventory})`);
   assert.ok(reach.bowl[2]>.6);assert.ok(Math.abs(reach.facing-Math.PI/2)<.001);assert.deepEqual(reach.inventory,[]);
   await shot('plea-reduced','review.game.reducedMotion=true;review.game.time=2');
-  await run(`(async()=>{review.game.reducedMotion=false;window.lesson=await import('./src/lessons.js?v=wuyin-shops-v2');review.openDialogue(lesson.NPCS.find(n=>n.id==='thirsty-traveller'));})()`);
+  await run(`(async()=>{review.game.reducedMotion=false;window.lesson=await import('./src/lessons.js?v=wuyin-wuxia-v1');review.openDialogue(lesson.NPCS.find(n=>n.id==='thirsty-traveller'));})()`);
   await shot('plea-dialogue','review.game.time=2');
   await run(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));review.openDialogue(lesson.FURNITURE.find(n=>n.id==='water-jar'));document.querySelector('#collect-bowl').click();window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));review.openDialogue(lesson.NPCS.find(n=>n.id==='thirsty-traveller'));document.querySelector('#use-water').click();review.game.presentationPaused=true;`);
   assert.equal(await run('review.state.current'),'CUTSCENE');

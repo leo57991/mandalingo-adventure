@@ -1,6 +1,6 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-shops-v2';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-wuxia-v1';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
 const materials=new Map();
@@ -10,9 +10,16 @@ function mesh(p,geo,c,x=0,y=0,z=0){const m=new T.Mesh(geo,mat(c));m.position.set
 const box=(p,w,h,d,c,x=0,y=0,z=0)=>mesh(p,new T.BoxGeometry(w,h,d),c,x,y,z);
 const cylinder=(p,r,rb,h,c,x=0,y=0,z=0,n=10)=>mesh(p,new T.CylinderGeometry(r,rb,h,n),c,x,y,z);
 function beam(p,a,b,r,c){const start=new T.Vector3(...a),end=new T.Vector3(...b),m=mesh(p,new T.CylinderGeometry(r,r,start.distanceTo(end),8),c);m.position.copy(start).add(end).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),end.sub(start).normalize());return m;}
-function lantern(p,x,y,z){const g=group(p,x,y,z);cylinder(g,.11,.14,.25,0xffc973,0,-.12,0);for(const h of [0,-.25])box(g,.3,.035,.28,P.dark,0,h);beam(g,[0,.15,0],[0,0,0],.012,P.dark);}
+function lantern(p,x,y,z){const g=group(p,x,y,z),red=mat(0x9e4637,{emissive:0xb34d28,emissiveIntensity:.22});
+ const body=cylinder(g,.145,.145,.30,0x9e4637,0,-.15,0,8);body.material=red;
+ for(const h of [0,-.30]){cylinder(g,.18,.18,.035,0x9a7d49,0,h,0,8);}
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(g,[Math.sin(a)*.147,-.02,Math.cos(a)*.147],[Math.sin(a)*.147,-.28,Math.cos(a)*.147],.008,0xc4a267);}
+ beam(g,[0,.15,0],[0,0,0],.012,P.dark);beam(g,[0,-.32,0],[0,-.42,0],.009,0xb99852);cylinder(g,.025,.045,.10,0x9e4637,0,-.46,0,6);
+}
 function roof(p,w,d,h,color){const g=group(p);for(const side of [-1,1])for(let i=0;i<7;i++){const step=(d+.8)/14,m=box(g,w+.65+i*.035,.09,step+.04,color,0,h+.63-i*.078,side*(i+.5)*step);}
- box(g,w+.9,.10,.13,P.dark,0,h+.67);for(const side of [-1,1])beam(g,[side*(w/2+.25),h+.65,0],[side*(w/2+.55),h+.84,0],.055,P.dark);const batches=new Map();
+ box(g,w+.9,.10,.13,P.dark,0,h+.67);box(g,w+.92,.035,.15,0xb19657,0,h+.735);
+ for(const side of [-1,1]){beam(g,[side*(w/2+.25),h+.65,0],[side*(w/2+.55),h+.84,0],.055,P.dark);const curl=mesh(g,new T.TorusGeometry(.13,.027,6,18,Math.PI*1.45),0xb19657,side*(w/2+.55),h+.91);curl.rotation.z=side<0?Math.PI*.3:-Math.PI*.75;}
+ const batches=new Map();
  for(const m of [...g.children]){m.updateMatrix();const geometry=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();geometry.applyMatrix4(m.matrix);if(!batches.has(m.material))batches.set(m.material,[]);batches.get(m.material).push(geometry);g.remove(m);m.geometry.dispose();}
  for(const [source,geometries] of batches){const m=new T.Mesh(mergeGeometries(geometries),source.clone());m.material.transparent=true;m.castShadow=m.receiveShadow=true;g.add(m);geometries.forEach(geo=>geo.dispose());}return g;}
 function sign(p,w,d,type){const g=group(p,-w/2+.55,1.55,d/2+.18);box(g,.69,.81,.10,P.wood);box(g,.54,.65,.12,P.ivory);beam(p,[-w/2+.55,2.6,d/2],[-w/2+.55,1.95,d/2+.18],.025,P.wood);
@@ -25,7 +32,21 @@ function barrel(p,x,z,size=1){const g=group(p,x,0,z);cylinder(g,.22*size,.19*siz
 function basket(p,x,z,color){const g=group(p,x,.08,z);cylinder(g,.24,.16,.18,0xa17c4a,0,.1);for(let i=0;i<8;i++)mesh(g,new T.DodecahedronGeometry(.075,0),color,Math.sin(i*2.4)*.14,.23+(i%2)*.05,Math.cos(i*2.4)*.14);}
 function townProp(scene,p){
  const [x,,z]=townPoint(p.x,p.y),g=group(scene,x,townElevation(p.x,p.y),z),w=p.width/100,d=p.depth/100;g.name=p.id;
- if(p.type==='forge'){
+ if(p.type==='guardian'){
+  box(g,.76,.18,.86,0x78877b,0,.09);box(g,.70,.045,.80,0xaaa78d,0,.20);
+  for(const side of [-1,1]){mesh(g,new T.DodecahedronGeometry(.19,0),0x8d9a89,side*.17,.41,-.16);box(g,.13,.29,.17,0x929e8c,side*.19,.365,.23);mesh(g,new T.SphereGeometry(.065,8,6),0x8d9a89,side*.19,1.14,.10);}
+  const body=mesh(g,new T.DodecahedronGeometry(.27,0),0x929e8c,0,.67,-.07);body.scale.y=1.18;
+  mesh(g,new T.DodecahedronGeometry(.27,0),0x788c80,0,1.0,.08);box(g,.29,.15,.18,0xb0b29a,0,.96,.29);
+  for(const side of [-1,1])mesh(g,new T.SphereGeometry(.026,7,5),0x344c46,side*.09,1.055,.327);
+  box(g,.075,.055,.04,0x52695d,0,.995,.39);box(g,.12,.08,.018,0xb8a269,0,.09,.433);
+  const tail=mesh(g,new T.TorusGeometry(.10,.035,6,16,Math.PI*1.5),0x8d9a89,0,.53,-.29);tail.rotation.y=Math.PI/2;
+ }else if(p.type==='jade-lantern'){
+  box(g,.74,.12,.74,0x78877b,0,.06);box(g,.52,.15,.52,0xa3a78d,0,.195);cylinder(g,.15,.21,.65,0x879681,0,.595);
+  for(const h of [.92,1.56])cylinder(g,.27,.27,.07,0xb2985b,0,h,0,8);
+  for(const side of [-1,1])for(const front of [-1,1])beam(g,[side*.19,.94,front*.19],[side*.19,1.56,front*.19],.015,0x8d784b);
+  const jade=mesh(g,new T.OctahedronGeometry(.23,0),0x67b9a3,0,1.24);jade.scale.set(.7,1.28,.7);jade.material=mat(0x67b9a3,{emissive:0x3a9c84,emissiveIntensity:.55,roughness:.28});
+  mesh(g,new T.ConeGeometry(.29,.15,8),0x536f61,0,1.67);cylinder(g,.025,.025,.14,0xb2985b,0,1.81);
+ }else if(p.type==='forge'){
   box(g,w,.08,d,0x7b8071,0,.04);box(g,1.08,.72,.7,0x7e8274,0,.44);
   box(g,1.15,.12,.76,0x8d7960,0,.86);box(g,.6,.32,.015,0x272e2a,.15,.56,.358);
   box(g,.29,2.04,.30,0x785949,-.36,1.02,-.16);box(g,.39,.10,.4,0x8d7960,-.36,2.09,-.16);
@@ -66,6 +87,10 @@ function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(
   box(g,w-.32,.11,.20,P.wood,0,2.17,d/2-.06);
   for(let i=0;i<9;i++)box(r,w*.8/9-.014,.15,.035,s.awning,(i-4)*w*.8/9,1.94,d/2+.92);
   for(const side of [-1,1])beam(g,[side*(w*.39),1.67,d/2+.83],[side*(w*.39),2.04,d/2+.47],.027,P.wood);
+  const pennant=group(g,w/2-.85,2.10,d/2+.22),cloth=s.id==='weapons'?0x743c32:s.id==='grocer'?0x75673c:0x315763;
+  box(pennant,.31,.46,.045,cloth);for(const side of [-1,1]){box(pennant,.018,.44,.052,0xb69b60,side*.14);box(pennant,.13,.10,.045,cloth,side*.085,-.27);}
+  mesh(pennant,new T.TorusGeometry(.075,.012,5,18),0xc6ad70,0,.06,.035);mesh(pennant,new T.OctahedronGeometry(.046,0),0xb69b60,0,-.08,.045);
+  beam(pennant,[0,.30,-.30],[0,.24,0],.02,P.wood);
   box(g,w-1.4,.83,.65,P.wood,0,.415,.725);box(g,w-1.3,.065,.73,0x9a774c,0,.86,.725);sign(g,w,d,s.id);
   if(s.id==='weapons'){
    box(g,2.9,.1,.2,P.wood,0,1.4,-d/2+.43);for(let i=0;i<5;i++)sword(g,-1.08+i*.54,.68,-d/2+.6,(i%2-.5)*.12);
@@ -129,16 +154,28 @@ export function createTownWorld(makeActor,bake) {
  const cart=group(scene,...townPoint(2080,2310));box(cart,1.0,.10,.65,P.wood,0,.42);for(const side of [-1,1]){const wheel=mesh(cart,new T.TorusGeometry(.20,.035,5,12),P.dark,side*.55,.22);wheel.rotation.y=Math.PI/2;}for(const z of [-.30,.30])box(cart,1.0,.20,.045,0x96764c,0,.56,z);barrel(cart,-.2,0,.75);box(cart,.36,.3,.34,0xb6a17c,.27,.62);beam(cart,[.48,.43,.22],[1.15,.6,.22],.025,P.wood);
  for(const p of TOWN_PROPS)townProp(scene,p);
  const excluded=[...roofs.map(r=>r.root),riverMesh];bake(scene,excluded);
+ // Small solid meshes provide atmospheric depth without billboard sprites or gameplay effects.
+ const ambience=group(scene);ambience.name='town-ambience';
+ for(const p of TOWN_PROPS.filter(p=>p.type==='forge'||p.type==='jade-lantern')){
+  const [x,,z]=townPoint(p.x,p.y),ember=p.type==='forge',count=ember?8:10;
+  for(let i=0;i<count;i++){const m=mesh(ambience,new T.OctahedronGeometry(ember?.022:.027,0),ember?0xe3ab58:0x89cbb4);m.material=mat(ember?0xe3ab58:0x89cbb4,{emissive:ember?0xc56b26:0x549e88,emissiveIntensity:.55});m.castShadow=m.receiveShadow=false;m.userData={origin:[x,townElevation(p.x,p.y),z],ember,phase:i/count};}
+ }
  const actors=new Map();const player=makeActor(0x427e81,'player');actors.set('player',player);scene.add(player.root);
  for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,'clerk');actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}
  const waterGlints=new T.InstancedMesh(new T.TorusGeometry(.3,.008,4,20,1.4),mat(0xb3e1d7),22),glintDummy=new T.Object3D();waterGlints.castShadow=false;scene.add(waterGlints);
  const glintPositions=Array.from({length:22},(_,i)=>{const y=360+i*115;return townPoint(riverX(y),y);});
 
  const debug=new T.Group();scene.add(debug);for(const r of TOWN_COLLIDERS){const [x,y,w,d]=r,m=new T.Mesh(new T.BoxGeometry(w/100,.06,d/100),new T.MeshBasicMaterial({color:0xffbc58,wireframe:true}));m.position.set(...townPoint(x+w/2,y+d/2));m.position.y=townElevation(x+w/2,y+d/2)+.05;debug.add(m);}debug.visible=false;
- return {scene,shops,roofs,actors,river:riverMesh,waterGlints,glintPositions,glintDummy,debug};
+ return {scene,shops,roofs,actors,river:riverMesh,waterGlints,glintPositions,glintDummy,debug,ambience};
 }
 export function frameTownCamera(camera,width,height,focus){const span=Math.max(10.3,16/(width/height));camera.left=-span*width/height/2;camera.right=-camera.left;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();const x=Math.max(850,Math.min(2380,focus.x)),y=Math.max(850,Math.min(2500,focus.y)),target=new T.Vector3(...townPoint(x,y));target.y=.3;camera.position.copy(target).add(new T.Vector3(0,11,12));camera.lookAt(target);camera.updateMatrixWorld();}
 export function updateTownWorld(world,game,poseActor){
+ const time=game.reducedMotion?0:game.time;
+ for(const m of world.ambience.children){const {origin:[x,y,z],ember,phase}=m.userData,a=phase*Math.PI*2+time*.42;
+  if(ember){const t=(phase+time*.16)%1;m.position.set(x+.13+Math.sin(a)*.17,y+.48+t*.55,z+.31+Math.cos(a)*.03);m.scale.setScalar(.45+Math.sin(t*Math.PI)*.55);}
+  else{m.position.set(x+Math.cos(a)*.32,y+1.24+Math.sin(a*2)*.19,z+Math.sin(a)*.32);m.scale.setScalar(.75);}
+  m.rotation.set(a*.3,a,0);
+ }
  for(const [id,a] of world.actors){const data=TOWN_RESIDENTS.find(r=>r.id===id);let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
   if(data?.path&&!game.reducedMotion){const p=(game.time*.035)%data.path.length,i=Math.floor(p),t=p-i,from=data.path[i],to=data.path[(i+1)%data.path.length];position={x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t};angle=Math.atan2(to[0]-from[0],to[1]-from[1]);moving=true;}
   a.root.position.set(...townPoint(position.x,position.y));a.root.position.y=townElevation(position.x,position.y);a.root.rotation.y=angle;

@@ -23,6 +23,9 @@ const walls=s=>{const x=s.x-s.width/2,y=s.y-s.depth/2,w=s.width,d=s.depth;return
 export const TOWN_LAMPS=Object.freeze([[1580,2540],[1990,2540],[1100,1760],[1690,1790],[2060,1110],[2380,1730]]);
 // Rendered solid props and collision share one footprint, in map units.
 export const TOWN_PROPS=Object.freeze([
+ {id:'gate-west-guardian',type:'guardian',x:1490,y:2800,width:80,depth:90},
+ {id:'gate-east-guardian',type:'guardian',x:1910,y:2800,width:80,depth:90},
+ {id:'garden-jade-lantern',type:'jade-lantern',x:2350,y:1790,width:80,depth:80},
  {id:'smith-forge',type:'forge',x:390,y:1550,width:120,depth:80},
  {id:'smith-rack',type:'weapon-rack',x:400,y:1330,width:100,depth:44},
  {id:'market-produce',type:'produce',x:370,y:2390,width:130,depth:70},

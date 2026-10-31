@@ -1,15 +1,15 @@
-import { JourneyStore } from "./journey-store.js?v=wuyin-model-qa-v1";
-import { observationCue } from "./evidence-vfx.js?v=wuyin-model-qa-v1";
-import { Soundscape } from "./audio.js?v=wuyin-model-qa-v1";
-import { MandalingoGame } from "./game.js?v=wuyin-model-qa-v1";
+import { JourneyStore } from "./journey-store.js?v=wuyin-shops-v2";
+import { observationCue } from "./evidence-vfx.js?v=wuyin-shops-v2";
+import { Soundscape } from "./audio.js?v=wuyin-shops-v2";
+import { MandalingoGame } from "./game.js?v=wuyin-shops-v2";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=wuyin-model-qa-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=wuyin-model-qa-v1";
-import { InputRouter } from "./input.js?v=wuyin-model-qa-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=wuyin-model-qa-v1";
+} from "./lessons.js?v=wuyin-shops-v2";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=wuyin-shops-v2";
+import { InputRouter } from "./input.js?v=wuyin-shops-v2";
+import { ModalFocusManager } from "./modal-focus.js?v=wuyin-shops-v2";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);

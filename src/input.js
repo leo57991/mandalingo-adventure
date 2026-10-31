@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=wuyin-model-qa-v1";
+import { GAME_STATE } from "./game-state.js?v=wuyin-shops-v2";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 

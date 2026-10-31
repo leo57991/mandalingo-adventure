@@ -1,6 +1,6 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,riverX,townElevation} from './town-layout.js?v=wuyin-model-qa-v1';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-shops-v2';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
 const materials=new Map();
@@ -23,12 +23,49 @@ function sign(p,w,d,type){const g=group(p,-w/2+.55,1.55,d/2+.18);box(g,.69,.81,.
 function sword(p,x,y,z,tilt=0){const g=group(p,x,y,z);g.rotation.z=tilt;box(g,.07,.65,.045,0xa9b6af,0,.32);box(g,.27,.045,.09,0xba995c,0,-.02);cylinder(g,.037,.035,.19,P.wood,0,-.13);return g;}
 function barrel(p,x,z,size=1){const g=group(p,x,0,z);cylinder(g,.22*size,.19*size,.45*size,0x997448,0,.23*size);for(const y of [.1,.36])mesh(g,new T.TorusGeometry(.22*size,.018,4,12),P.dark,0,y*size).rotation.x=Math.PI/2;return g;}
 function basket(p,x,z,color){const g=group(p,x,.08,z);cylinder(g,.24,.16,.18,0xa17c4a,0,.1);for(let i=0;i<8;i++)mesh(g,new T.DodecahedronGeometry(.075,0),color,Math.sin(i*2.4)*.14,.23+(i%2)*.05,Math.cos(i*2.4)*.14);}
+function townProp(scene,p){
+ const [x,,z]=townPoint(p.x,p.y),g=group(scene,x,townElevation(p.x,p.y),z),w=p.width/100,d=p.depth/100;g.name=p.id;
+ if(p.type==='forge'){
+  box(g,w,.08,d,0x7b8071,0,.04);box(g,1.08,.72,.7,0x7e8274,0,.44);
+  box(g,1.15,.12,.76,0x8d7960,0,.86);box(g,.6,.32,.015,0x272e2a,.15,.56,.358);
+  box(g,.29,2.04,.30,0x785949,-.36,1.02,-.16);box(g,.39,.10,.4,0x8d7960,-.36,2.09,-.16);
+  for(let i=0;i<5;i++){const coal=mesh(g,new T.IcosahedronGeometry(.067,0),0xd48a3f,-.05+i*.09,.45,.33);coal.material=mat(0xd48a3f,{emissive:0xc65420,emissiveIntensity:.65});}
+  for(const y of [.26,.62])box(g,1.10,.025,.71,0x5f6f66,0,y);
+ }else if(p.type==='weapon-rack'){
+  for(const side of [-1,1]){box(g,.09,1.55,.12,P.wood,side*.44,.775);box(g,.12,.07,d,P.wood,side*.44,.035);}
+  for(const y of [.55,1.28])box(g,.94,.09,.10,0x9d784b,0,y);
+  for(let i=0;i<4;i++)sword(g,-.32+i*.21,.64,.10,(i%2-.5)*.09);
+ }else if(p.type==='bench'){
+  const alongZ=d>w,length=alongZ?d:w,seat=group(g);if(alongZ)seat.rotation.y=Math.PI/2;
+  const depth=alongZ?w:d;
+  for(const side of [-1,1])for(const front of [-1,1])box(seat,.09,.42,.09,P.dark,side*(length/2-.13),.21,front*(depth/2-.08));
+  for(const front of [-1,1])box(seat,length,.075,depth/2-.018,0x9d8053,0,.455,front*depth/4);
+  for(const side of [-1,1])box(seat,.07,.66,.07,P.wood,side*(length/2-.13),.55,-depth/2+.055);
+  for(const y of [.65,.82])box(seat,length,.10,.055,0x8d704b,0,y,-depth/2+.055);
+ }else{
+  for(const side of [-1,1])for(const front of [-1,1])box(g,.075,.65,.075,P.wood,side*(w/2-.09),.325,front*(d/2-.09));
+  box(g,w,.08,d,0x9d7d50,0,.69);box(g,w-.05,.12,.06,P.wood,0,.77,-d/2+.03);
+  if(p.type==='produce'){
+   for(let i=0;i<3;i++){const tray=group(g,(i-1)*.40,.755);box(tray,.36,.07,.52,0xb18b55);for(const side of [-1,1])box(tray,.035,.11,.52,0x896744,side*.17,.04);
+    for(let j=0;j<6;j++){const fruit=mesh(tray,new T.IcosahedronGeometry(.07,0),[0xc47740,0x9fa95d,0xd6b56a][i],(j%2-.5)*.16,.10,Math.floor(j/2)*.14-.14);if(i===1)fruit.scale.y=1.25;}
+   }
+  }else{
+   for(let i=0;i<5;i++){const scroll=cylinder(g,.055,.055,.34,P.ivory,-.24+(i%3)*.23,.79+Math.floor(i/3)*.11,-.08);scroll.rotation.x=Math.PI/2;for(const side of [-1,1])cylinder(g,.063,.063,.025,0xa77f4d,-.24+(i%3)*.23,.79+Math.floor(i/3)*.11,-.08+side*.17).rotation.x=Math.PI/2;}
+   for(let i=0;i<3;i++)box(g,.31,.055,.24,[0x526d69,0x896747,0xa38d5e][i],.17,.77+i*.055,.19);
+  }
+ }
+ return g;
+}
 function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(scene,x,townElevation(s.x,s.y),z),w=s.width/100,d=s.depth/100,h=s.id==='north-pavilion'?2.8:2.35;
  box(g,w+.2,.10,d+.2,P.stone,0,-.055);box(g,w,.075,d,0x9e8a68,0,-.0375);
  box(g,w,h,.22,P.plaster,0,h/2,-d/2+.11);for(const side of [-1,1]){box(g,.22,h,d,P.plaster,side*(w/2-.11),h/2);for(const zz of [-d/2+.15,d/2-.12])box(g,.14,h+.10,.15,P.wood,side*(w/2-.16),h/2,zz);}
  box(g,w,.18,.18,P.wood,0,h-.03,d/2-.08);for(const side of [-1,1]){box(g,w*.32,.63,.045,P.dark,side*w*.25,1.3,-d/2+.24);for(let i=0;i<4;i++)box(g,.035,.60,.055,0xb7a77e,side*w*.25-w*.13+i*w*.085,1.3,-d/2+.27);}
  const r=roof(g,w,d,h,s.roof);roofs.push({root:r,site:s});
  if(isShop){const canopy=box(r,w*.8,.045,1.05,s.awning,0,2.06,d/2+.40);canopy.rotation.x=.1;for(const side of [-1,1]){box(g,.065,2.1,.07,P.wood,side*(w*.39),1.05,d/2+.85);lantern(g,side*(w/2-.30),1.95,d/2+.2);}
+  // Cloth edging and structural timber remain geometry, including under cutaway roofs.
+  box(g,w-.32,.11,.20,P.wood,0,2.17,d/2-.06);
+  for(let i=0;i<9;i++)box(r,w*.8/9-.014,.15,.035,s.awning,(i-4)*w*.8/9,1.94,d/2+.92);
+  for(const side of [-1,1])beam(g,[side*(w*.39),1.67,d/2+.83],[side*(w*.39),2.04,d/2+.47],.027,P.wood);
   box(g,w-1.4,.83,.65,P.wood,0,.415,.725);box(g,w-1.3,.065,.73,0x9a774c,0,.86,.725);sign(g,w,d,s.id);
   if(s.id==='weapons'){
    box(g,2.9,.1,.2,P.wood,0,1.4,-d/2+.43);for(let i=0;i<5;i++)sword(g,-1.08+i*.54,.68,-d/2+.6,(i%2-.5)*.12);
@@ -37,6 +74,7 @@ function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(
    cylinder(g,.32,.38,.5,0x4d5146,1.8,.25,-1.25);mesh(g,new T.SphereGeometry(.21,8,6),0xe5a04a,1.8,.48,-1.25).material=mat(0xe5a04a,{emissive:0xcd5b20,emissiveIntensity:.65});
    sword(g,-.65,.91,.72,Math.PI/2);box(g,.6,.08,.32,0x727f79,.8,.95,.72);
   }else if(s.id==='grocer'){
+   for(let i=0;i<5;i++){const xx=-.65+i*.3;beam(g,[xx,2.08,d/2-.13],[xx,1.67,d/2-.13],.009,0xb69b6d);for(let j=0;j<3;j++)mesh(g,new T.SphereGeometry(.052,7,5),0xc2aa6d,xx+(j%2-.5)*.06,1.77-j*.075,d/2-.13);}
    for(const x of [-1.55,-.5,.55,1.55]){box(g,.8,1.5,.065,P.wood,x,.75,-d/2+.16);for(const side of [-1,1])box(g,.06,1.5,.48,P.wood,x+side*.4,.75,-d/2+.38);for(const y of [.35,.8,1.2]){box(g,.85,.055,.43,0xa07e4e,x,y,-d/2+.43);for(let i=0;i<3;i++)cylinder(g,.09,.10,.22,[0xb18c56,0x7a9272,0xc7a46b][i],x+(i-1)*.23,y+.13,-d/2+.4);}}
    for(const [x,c] of [[-1.1,0xb96d3f],[-.3,0x96a951],[.6,0xd4b56c]]){const tray=group(g,x,.88,.73);box(tray,.7,.07,.48,0x9b7944);for(let i=0;i<6;i++)mesh(tray,new T.DodecahedronGeometry(.07),c,(i%3-1)*.17,.10,Math.floor(i/3)*.17-.08);}
    barrel(g,-2.3,2.4);barrel(g,1.95,1.35,.85);basket(g,-1.5,2.15,0xb69551);
@@ -74,7 +112,10 @@ export function createTownWorld(makeActor,bake) {
  const well=group(scene,...townPoint(1780,2260));mesh(well,new T.LatheGeometry([new T.Vector2(.43,0),new T.Vector2(.5,.5),new T.Vector2(.40,.5),new T.Vector2(.38,.15)],20),0x929b8e);mesh(well,new T.TorusGeometry(.45,.075,6,24),P.stone,0,.50).rotation.x=Math.PI/2;cylinder(well,.38,.38,.01,P.water,0,.36);for(const side of [-1,1])box(well,.07,1.6,.08,P.wood,side*.65,.8);beam(well,[-.7,1.6,0],[.7,1.6,0],.045,P.wood);barrel(well,.9,.25,.65);
  // The bookshop court has low walls, a moon gate, stone seats and flowering planters.
  const court=group(scene,...townPoint(2380,1880));box(court,5.4,.06,2.45,0xb5b6a0,0,-.015);for(const side of [-1,1])box(court,.16,.65,2.5,0xb7b9a3,side*2.7,.30);for(const side of [-1,1])box(court,1.9,.65,.16,0xb7b9a3,side*1.8,.30,1.3);
- mesh(court,new T.TorusGeometry(.68,.13,6,36),P.plaster,0,.72,1.3);cylinder(court,.42,.40,.12,P.stone,.9,.65);cylinder(court,.16,.19,.59,P.stone,.9,.29);for(const [x,z] of [[.4,0],[1.4,0],[.9,.65]])cylinder(court,.16,.15,.3,0x929c8a,x,.15,z);
+ // A walk-through arch has full head clearance and grounded jambs, rather than a small detached ring.
+ mesh(court,new T.TorusGeometry(.98,.12,8,36,Math.PI),P.plaster,0,1,1.3);
+ for(const side of [-1,1]){cylinder(court,.12,.12,1.02,P.plaster,side*.98,.51,1.3);box(court,.30,.10,.3,P.stone,side*.98,.05,1.3);}
+ cylinder(court,.42,.40,.12,P.stone,.9,.65);cylinder(court,.16,.19,.59,P.stone,.9,.29);for(const [x,z] of [[.4,0],[1.4,0],[.9,.65]])cylinder(court,.16,.15,.3,0x929c8a,x,.15,z);
  for(const [x,y] of [[2167,1587],[2697,1557]]){const g=group(scene,...townPoint(x,y));box(g,.75,.42,.75,0x8c927b,0,.21);for(let i=0;i<8;i++)mesh(g,new T.IcosahedronGeometry(.14,0),i%2?0xc5a278:0x81945a,Math.sin(i)*.22,.55,Math.cos(i)*.22);}
  for(const t of TOWN_TREES){const [x,,z]=townPoint(t.x,t.y),g=group(scene,x,townElevation(t.x,t.y),z);cylinder(g,.11,.17,1.85,0x6d543a,0,.92);for(let i=0;i<3;i++){const leaf=mesh(g,new T.DodecahedronGeometry(.68*t.size,0),t.color,(i-1)*.4,1.85+(i%2)*.45,Math.sin(i*2)*.23);leaf.scale.set(1,1.08,.85);}}
  // Closed, grounded rock columns with varied shoulders replace stretched single polyhedra.
@@ -86,6 +127,7 @@ export function createTownWorld(makeActor,bake) {
 
  for(const [x,y] of TOWN_LAMPS){const [xx,,zz]=townPoint(x,y),g=group(scene,xx,0,zz);box(g,.06,1.8,.07,P.wood,0,.9);beam(g,[0,1.8,0],[.28,1.8,0],.025,P.wood);lantern(g,.28,1.65,0);}
  const cart=group(scene,...townPoint(2080,2310));box(cart,1.0,.10,.65,P.wood,0,.42);for(const side of [-1,1]){const wheel=mesh(cart,new T.TorusGeometry(.20,.035,5,12),P.dark,side*.55,.22);wheel.rotation.y=Math.PI/2;}for(const z of [-.30,.30])box(cart,1.0,.20,.045,0x96764c,0,.56,z);barrel(cart,-.2,0,.75);box(cart,.36,.3,.34,0xb6a17c,.27,.62);beam(cart,[.48,.43,.22],[1.15,.6,.22],.025,P.wood);
+ for(const p of TOWN_PROPS)townProp(scene,p);
  const excluded=[...roofs.map(r=>r.root),riverMesh];bake(scene,excluded);
  const actors=new Map();const player=makeActor(0x427e81,'player');actors.set('player',player);scene.add(player.root);
  for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,'clerk');actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}

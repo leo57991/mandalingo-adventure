@@ -25,7 +25,7 @@ import {createTownWorld,frameTownCamera,updateTownWorld,townPoint} from '../src/
 import {createActor,poseActor} from '../src/courtyard-3d.js';
 import * as T from '../src/vendor/three.module.js';
 test('town scene contains distinct stocked shops; cutaway roof materials do not fade static scenery',()=>{
- const world=createTownWorld(createActor,()=>{});assert.equal(world.shops.size,3);assert.equal(world.actors.size,6);
+ const world=createTownWorld(createActor,()=>{});assert.equal(world.shops.size,3);assert.equal(world.actors.size,7);
  const roofs=new Set(world.roofs.map(r=>r.root)),staticMaterials=new Set();
  world.scene.traverse(m=>{if(!m.isMesh)return;for(let p=m;p;p=p.parent)if(roofs.has(p))return;staticMaterials.add(m.material);});
  const g=game();g.questResolved=true;g.enterTown();g.player={...g.player,x:760,y:1700};g.reducedMotion=true;updateTownWorld(world,g,poseActor);

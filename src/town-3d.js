@@ -1,6 +1,7 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-wuxia-v1';
+import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-journey-v1';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-journey-v1';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
 const materials=new Map();
@@ -99,6 +100,7 @@ function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(
    cylinder(g,.32,.38,.5,0x4d5146,1.8,.25,-1.25);mesh(g,new T.SphereGeometry(.21,8,6),0xe5a04a,1.8,.48,-1.25).material=mat(0xe5a04a,{emissive:0xcd5b20,emissiveIntensity:.65});
    sword(g,-.65,.91,.72,Math.PI/2);box(g,.6,.08,.32,0x727f79,.8,.95,.72);
   }else if(s.id==='grocer'){
+   const cup=group(g,1.45,.90,.73);mesh(cup,new T.LatheGeometry([new T.Vector2(.07,0),new T.Vector2(.10,.15),new T.Vector2(.085,.15),new T.Vector2(.055,.02)],12),0xb7a079);cylinder(cup,.078,.078,.01,P.water,0,.12);
    for(let i=0;i<5;i++){const xx=-.65+i*.3;beam(g,[xx,2.08,d/2-.13],[xx,1.67,d/2-.13],.009,0xb69b6d);for(let j=0;j<3;j++)mesh(g,new T.SphereGeometry(.052,7,5),0xc2aa6d,xx+(j%2-.5)*.06,1.77-j*.075,d/2-.13);}
    for(const x of [-1.55,-.5,.55,1.55]){box(g,.8,1.5,.065,P.wood,x,.75,-d/2+.16);for(const side of [-1,1])box(g,.06,1.5,.48,P.wood,x+side*.4,.75,-d/2+.38);for(const y of [.35,.8,1.2]){box(g,.85,.055,.43,0xa07e4e,x,y,-d/2+.43);for(let i=0;i<3;i++)cylinder(g,.09,.10,.22,[0xb18c56,0x7a9272,0xc7a46b][i],x+(i-1)*.23,y+.13,-d/2+.4);}}
    for(const [x,c] of [[-1.1,0xb96d3f],[-.3,0x96a951],[.6,0xd4b56c]]){const tray=group(g,x,.88,.73);box(tray,.7,.07,.48,0x9b7944);for(let i=0;i<6;i++)mesh(tray,new T.DodecahedronGeometry(.07),c,(i%3-1)*.17,.10,Math.floor(i/3)*.17-.08);}
@@ -162,25 +164,33 @@ export function createTownWorld(makeActor,bake) {
  }
  const actors=new Map();const player=makeActor(0x427e81,'player');actors.set('player',player);scene.add(player.root);
  for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,'clerk');actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}
+ const traveller=makeActor(TOWN_TRAVELLER.color,'traveller');traveller.root.visible=false;actors.set(TOWN_TRAVELLER.id,traveller);scene.add(traveller.root);
+ const storyRings=group(scene,...townPoint(2350,1790));
+ for(let i=0;i<3;i++){const ring=mesh(storyRings,new T.TorusGeometry(.38,.012,6,40),0x96d3ba,0,1.24+i*.06);ring.rotation.x=Math.PI/2;ring.material=mat(0x96d3ba,{emissive:0x69b39a,emissiveIntensity:.5,transparent:true,opacity:.45,depthWrite:false});ring.castShadow=ring.receiveShadow=false;ring.visible=false;}
  const waterGlints=new T.InstancedMesh(new T.TorusGeometry(.3,.008,4,20,1.4),mat(0xb3e1d7),22),glintDummy=new T.Object3D();waterGlints.castShadow=false;scene.add(waterGlints);
  const glintPositions=Array.from({length:22},(_,i)=>{const y=360+i*115;return townPoint(riverX(y),y);});
 
  const debug=new T.Group();scene.add(debug);for(const r of TOWN_COLLIDERS){const [x,y,w,d]=r,m=new T.Mesh(new T.BoxGeometry(w/100,.06,d/100),new T.MeshBasicMaterial({color:0xffbc58,wireframe:true}));m.position.set(...townPoint(x+w/2,y+d/2));m.position.y=townElevation(x+w/2,y+d/2)+.05;debug.add(m);}debug.visible=false;
- return {scene,shops,roofs,actors,river:riverMesh,waterGlints,glintPositions,glintDummy,debug,ambience};
+ return {scene,shops,roofs,actors,river:riverMesh,waterGlints,glintPositions,glintDummy,debug,ambience,storyRings};
 }
 export function frameTownCamera(camera,width,height,focus){const span=Math.max(10.3,16/(width/height));camera.left=-span*width/height/2;camera.right=-camera.left;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();const x=Math.max(850,Math.min(2380,focus.x)),y=Math.max(850,Math.min(2500,focus.y)),target=new T.Vector3(...townPoint(x,y));target.y=.3;camera.position.copy(target).add(new T.Vector3(0,11,12));camera.lookAt(target);camera.updateMatrixWorld();}
 export function updateTownWorld(world,game,poseActor){
  const time=game.reducedMotion?0:game.time;
+ const awake=townSignalAwake(game.townJourney),elapsed=game.townPulseAt==null?Infinity:game.time-game.townPulseAt,pulse=elapsed>=0&&elapsed<4?(game.reducedMotion?.25:Math.sin(elapsed*Math.PI/4)):0;
+ world.storyRings.children.forEach((ring,i)=>{ring.visible=awake&&(!game.townJourney.signalSeen||pulse>0);const t=game.reducedMotion?.4:(time*.12+i/3)%1;ring.scale.setScalar(.85+t*.8+pulse*.4);});
+ mat(0x9e4637,{emissive:0xb34d28,emissiveIntensity:.22}).emissiveIntensity=.22+pulse*.6;
  for(const m of world.ambience.children){const {origin:[x,y,z],ember,phase}=m.userData,a=phase*Math.PI*2+time*.42;
   if(ember){const t=(phase+time*.16)%1;m.position.set(x+.13+Math.sin(a)*.17,y+.48+t*.55,z+.31+Math.cos(a)*.03);m.scale.setScalar(.45+Math.sin(t*Math.PI)*.55);}
   else{m.position.set(x+Math.cos(a)*.32,y+1.24+Math.sin(a*2)*.19,z+Math.sin(a)*.32);m.scale.setScalar(.75);}
   m.rotation.set(a*.3,a,0);
  }
- for(const [id,a] of world.actors){const data=TOWN_RESIDENTS.find(r=>r.id===id);let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
+ for(const [id,a] of world.actors){const data=id===TOWN_TRAVELLER.id?TOWN_TRAVELLER:TOWN_RESIDENTS.find(r=>r.id===id);if(id===TOWN_TRAVELLER.id){a.root.visible=awake;if(!awake)continue;}const focused=game.townFocus?.actorId===id;let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
   if(data?.path&&!game.reducedMotion){const p=(game.time*.035)%data.path.length,i=Math.floor(p),t=p-i,from=data.path[i],to=data.path[(i+1)%data.path.length];position={x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t};angle=Math.atan2(to[0]-from[0],to[1]-from[1]);moving=true;}
+  if(focused)angle=Math.atan2(game.player.x-position.x,game.player.y-position.y);
   a.root.position.set(...townPoint(position.x,position.y));a.root.position.y=townElevation(position.x,position.y);a.root.rotation.y=angle;
-  poseActor(a,{moving,stride:id==='player'?game.stride:game.time*4.5,time:game.time,reducedMotion:game.reducedMotion});
-  if(data?.shop==='weapons'&&!game.reducedMotion)a.rightArm.rotation.x=-.7+Math.sin(game.time*2.3)*.25;
+  poseActor(a,{moving,stride:id==='player'?game.stride:game.time*4.5,time:game.time,reducedMotion:game.reducedMotion,pose:focused?(id===TOWN_TRAVELLER.id?'point-self':'nod'):'idle',carrying:id===TOWN_TRAVELLER.id,emptyBowl:id===TOWN_TRAVELLER.id});
+  if(data?.shop==='weapons'&&!game.reducedMotion&&!focused)a.rightArm.rotation.x=-.7+Math.sin(game.time*2.3)*.25;
+  if(focused&&id===TOWN_TRAVELLER.id)a.head.rotation.x=game.reducedMotion?.12:.12+Math.sin(Math.min(1,(game.time-game.townFocus.startedAt)/1.4)*Math.PI)*.12;
  }
  world.scene.updateMatrixWorld(true);
  const [px,,pz]=townPoint(game.player.x,game.player.y),up=12/Math.sqrt(265),forward=11/Math.sqrt(265),bodyY=(townElevation(game.player.x,game.player.y)+.85)*up-pz*forward;

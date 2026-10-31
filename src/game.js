@@ -1,8 +1,9 @@
-import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-wuxia-v1";
-import { isGateWalkable } from "./gate-geometry.js?v=wuyin-wuxia-v1";
-import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-wuxia-v1";
-import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-wuxia-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-wuxia-v1";
+import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-journey-v1";
+import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=wuyin-journey-v1';
+import { isGateWalkable } from "./gate-geometry.js?v=wuyin-journey-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-journey-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-journey-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-journey-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -51,19 +52,26 @@ export class MandalingoGame {
     this.loop = this.loop.bind(this); requestAnimationFrame(this.loop);
   }
 
-  start({ resolved = false } = {}) { this.location = "courtyard"; this.evidence = new EvidenceEffects(); this.travellerKneeling = resolved ? 0 : 1; this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
+  start({ resolved = false, townJourney = {} } = {}) { this.townJourney=createTownJourney(townJourney,resolved);this.townFocus=null;this.townPulseAt=null;this.location = "courtyard"; this.evidence = new EvidenceEffects(); this.travellerKneeling = resolved ? 0 : 1; this.stride = 0; this.moving = false; this.started = true; this.inputEnabled = true; this.gateApproachTriggered = false; this.questResolved = false; this.gateOpenProgress = 0; this.resolution = null; this.resolutionPhase = null; this.resolutionCompleted = false; this.actorPositions = Object.fromEntries(NPCS.map(npc => [npc.id, { x: npc.x, y: npc.y }])); this.player = { x: ROOM.playerStart.x, y: ROOM.playerStart.y, facing: ROOM.playerStart.facing, lookX: 0, lookY: -1 }; this.resetActorCues();
     if (resolved) {
       this.questResolved = true; this.gateOpenProgress = 1; this.gateApproachTriggered = true;
       this.actorPositions["thirsty-traveller"] = { x: 735, y: 405 };
       this.setActorCue("thirsty-traveller", {pose:"idle", expression:"relieved", prop:null});
     }
+    this.restoreTownCheckpoint();
   }
-  enterTown() {
+  restoreTownCheckpoint(){
+    const journey=this.townJourney;if(journey.location!=='town'||!this.questResolved)return;
+    this.enterTown(journey);
+  }
+  enterTown(checkpoint=null) {
     if (!this.questResolved) return false;
     this.location="town";this.resolution=null;this.resolutionPhase=null;this.dialogueActor=null;this.dialogueText=null;this.nearby=null;this.clearKeys();this.moving=false;
-    this.player={...this.player,...TOWN.spawn,lookX:0,lookY:-1};this.callbacks.onNearby?.(null);this.callbacks.onLocationChange?.("town");return true;
+    const restored=createTownJourney(checkpoint??this.townJourney,true);this.townJourney={...restored,location:'town',checkpoint:checkpoint?restored.checkpoint:'entry'};
+    this.player={...this.player,...townCheckpointPosition(this.townJourney),lookX:0,lookY:-1};this.callbacks.onNearby?.(null);this.callbacks.onLocationChange?.("town");return true;
   }
   leaveTown() {
+    this.townJourney={...this.townJourney,location:'courtyard',checkpoint:'gate'};this.townFocus=null;
     this.location="courtyard";this.resetActorCues();this.nearby=null;this.clearKeys();this.moving=false;this.player={...this.player,x:800,y:345,lookX:0,lookY:1};this.callbacks.onNearby?.(null);this.callbacks.onLocationChange?.("courtyard");
   }
   updateTown(dt) {
@@ -73,11 +81,22 @@ export class MandalingoGame {
     const ox=this.player.x,oy=this.player.y,run=this.keys.has("shift");
     if(x||y){this.player.lookX=x;this.player.lookY=y;}
     const nx=ox+x*(run?PLAYER_SPEED.runX:PLAYER_SPEED.walkX)*dt,ny=oy+y*(run?PLAYER_SPEED.runY:PLAYER_SPEED.walkY)*dt;
-    if(isTownWalkable(nx,oy))this.player.x=nx;if(isTownWalkable(this.player.x,ny))this.player.y=ny;
+    const blockers=townExtraColliders(this.townJourney);
+    if(isTownWalkable(nx,oy,18,blockers))this.player.x=nx;if(isTownWalkable(this.player.x,ny,18,blockers))this.player.y=ny;
     const travelled=Math.hypot(this.player.x-ox,this.player.y-oy);this.stride+=travelled/13;this.moving=travelled>.01;
-    const exit={id:"town-exit",x:1700,y:2890,label:"South Gate",action:"Return",interactionRadius:145};
-    this.nearby=selectInteractionTarget(this.player,[exit]);this.callbacks.onNearby?.(this.nearby);
+    this.nearby=selectInteractionTarget(this.player,townEntities(this.townJourney));this.callbacks.onNearby?.(this.nearby);
     if(this.player.y>2890&&Math.abs(this.player.x-1700)<65)this.leaveTown();
+  }
+  beginTownObservation(id){
+    if(this.location!=='town')return null;const entity=townEntities(this.townJourney).find(e=>e.id===id&&e.type==='town');if(!entity)return null;
+    const wasAwake=townSignalAwake(this.townJourney),introduced=[...this.townJourney.introduced];if(entity.shopId&&!introduced.includes(entity.shopId))introduced.push(entity.shopId);
+    this.townJourney={...this.townJourney,introduced,checkpoint:entity.shopId??(id==='town-jade'?'jade':'well')};this.townFocus={id,actorId:entity.actorId,startedAt:this.time};
+    this.callbacks.onTownJourneyChange?.(this.townJourney);if(!wasAwake&&townSignalAwake(this.townJourney))this.callbacks.onTownSignalAwake?.();
+    return townObservation(entity,this.townJourney);
+  }
+  finishTownObservation(id){
+    if(this.townFocus?.id!==id)return;this.townFocus=null;
+    if(id==='town-jade'&&townSignalAwake(this.townJourney)&&!this.townJourney.signalSeen){this.townJourney={...this.townJourney,signalSeen:true};this.townPulseAt=this.time;this.callbacks.onTownSignalSeen?.();this.callbacks.onTownJourneyChange?.(this.townJourney);}
   }
   playEvidence(cue) { const played = this.evidence?.play(cue) || false; if (played) this.callbacks.onEvidence?.(cue.kind); return played; }
   setInputEnabled(enabled) { this.inputEnabled = enabled; if (!enabled) this.clearKeys(); }

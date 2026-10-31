@@ -57,9 +57,10 @@ export function townElevation(x,y){
  if(x>=1470&&x<=2250&&y<1010)return .38*Math.min(7,Math.ceil((1010-y)/(160/7)))/7;
  return 0;
 }
-export function isTownWalkable(x,y,radius=18){
+export function isTownWalkable(x,y,radius=18,extraColliders=[]){
+ const colliders=extraColliders.length?[...TOWN_COLLIDERS,...extraColliders]:TOWN_COLLIDERS;
  const samples=[[0,0],[radius,0],[-radius,0],[0,radius],[0,-radius],[radius*.7,radius*.7],[-radius*.7,radius*.7],[radius*.7,-radius*.7],[-radius*.7,-radius*.7]];
  return samples.every(([dx,dy])=>{const px=x+dx,py=y+dy;
-  return inside(px,py,TOWN.bounds)&&(!((Math.abs(px-riverX(py))<TOWN.riverWidth/2))||inside(px,py,TOWN.bridge))&&!TOWN_COLLIDERS.some(r=>inside(px,py,r));
+  return inside(px,py,TOWN.bounds)&&(!((Math.abs(px-riverX(py))<TOWN.riverWidth/2))||inside(px,py,TOWN.bridge))&&!colliders.some(r=>inside(px,py,r));
  });
 }

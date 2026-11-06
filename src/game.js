@@ -1,10 +1,10 @@
-import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-world-v1";
-import {toTownPoint,fromTownPoint,isConnectedWalkable} from './world-layout.js?v=wuyin-world-v1';
-import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=wuyin-world-v1';
-import { isGateWalkable } from "./gate-geometry.js?v=wuyin-world-v1";
-import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-world-v1";
-import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-world-v1";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-world-v1";
+import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-world-v2";
+import {toTownPoint,fromTownPoint,isConnectedWalkable} from './world-layout.js?v=wuyin-world-v2';
+import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=wuyin-world-v2';
+import { isGateWalkable } from "./gate-geometry.js?v=wuyin-world-v2";
+import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-world-v2";
+import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-world-v2";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-world-v2";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -136,7 +136,7 @@ export class MandalingoGame {
   toggleCollisionDebug() { this.debugCollisions = !this.debugCollisions; return this.debugCollisions; }
   interact() { if(this.inputEnabled&&this.location==="town"&&this.nearby?.id==="town-exit"){this.leaveTown();return;} if (this.inputEnabled && this.nearby) this.callbacks.onInteract?.(this.nearby); }
 
-  loop(now) { const dt = Math.min((now - this.lastTime) / 1000, .04); this.lastTime = now; if (!this.presentationPaused) this.time += dt; if (this.started) this.update(dt); this.draw(); requestAnimationFrame(this.loop); }
+  loop(now) { const dt = Math.max(0, Math.min((now - this.lastTime) / 1000, .04)); this.lastTime = now; if (!this.presentationPaused) this.time += dt; if (this.started) this.update(dt); this.draw(); requestAnimationFrame(this.loop); }
   update(dt) {
     this.evidence?.advance(dt, this.presentationPaused);
     if (this.presentationPaused) return;

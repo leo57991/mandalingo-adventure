@@ -1,4 +1,4 @@
-import {SHOPS,TOWN} from './town-layout.js?v=wuyin-world-v1';
+import {SHOPS,TOWN} from './town-layout.js?v=wuyin-world-v2';
 
 // Story discoveries are separate from Mandarin evidence and never authorize language actions.
 const shopIds=SHOPS.map(s=>s.id);

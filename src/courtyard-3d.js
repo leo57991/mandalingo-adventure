@@ -1,16 +1,16 @@
-import { createTownWorld, updateTownWorld } from "./town-3d.js?v=wuyin-world-v1";
-import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=wuyin-world-v1';
-import {townElevation} from './town-layout.js?v=wuyin-world-v1';
-import {townSignalAwake} from './town-journey.js?v=wuyin-world-v1';
-import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-world-v1";
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-world-v1";
+import { createTownWorld, updateTownWorld } from "./town-3d.js?v=wuyin-world-v2";
+import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=wuyin-world-v2';
+import {townElevation} from './town-layout.js?v=wuyin-world-v2';
+import {townSignalAwake} from './town-journey.js?v=wuyin-world-v2';
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-world-v2";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-world-v2";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=wuyin-world-v1";
+} from "./lessons.js?v=wuyin-world-v2";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];

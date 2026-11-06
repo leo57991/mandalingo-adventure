@@ -7,8 +7,11 @@ app.whenReady().then(async()=>{try{
  win.webContents.on('console-message',e=>{if(e.level==='error')errors.push(e.message);});const run=code=>win.webContents.executeJavaScript(code);
  const url=base+(base.includes('?')?'&':'?')+'qa=journey';await win.loadURL(url);await run("localStorage.removeItem('mandalingo-gatehouse-playtest-v5')");await win.loadURL(url);
  async function ready(){for(let i=0;i<60;i++){if(await run('!!window.__mandalingo?.game?.view?.world'))return;await new Promise(r=>setTimeout(r,100));}throw Error('game did not initialize');}
- await ready();await run("document.querySelector('#start-btn').click();window.review=window.__mandalingo;review.game.presentationPaused=true;review.game.gateApproachTriggered=true;");
- const lessonURL=new URL('src/lessons.js?v=wuyin-world-v1',base).href;await run(`(async()=>{window.lesson=await import(${JSON.stringify(lessonURL)})})()`);
+ await ready();
+ // Reload the complete shared world: its first animation frame must never rewind time.
+ for(let i=0;i<3;i++){await win.loadURL(url);await ready();assert.ok(await run('window.__mandalingo.game.time>=0'));await run('window.__mandalingo.game.draw()');}
+ await run("document.querySelector('#start-btn').click();window.review=window.__mandalingo;review.game.presentationPaused=true;review.game.gateApproachTriggered=true;");
+ const lessonURL=new URL('src/lessons.js?v=wuyin-world-v2',base).href;await run(`(async()=>{window.lesson=await import(${JSON.stringify(lessonURL)})})()`);
  async function shot(name){await run('review.game.draw();new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');fs.writeFileSync(path.join(out,name+'.png'),(await win.webContents.capturePage()).toPNG());}
  const key=key=>run(`window.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(key)}}));window.dispatchEvent(new KeyboardEvent('keyup',{key:${JSON.stringify(key)}}))`);
  await shot('journey-opening');

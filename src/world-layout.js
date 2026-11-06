@@ -1,6 +1,6 @@
-import {ROOM,COLLIDERS} from './lessons.js?v=wuyin-world-v1';
-import {isTownWalkable} from './town-layout.js?v=wuyin-world-v1';
-import {isGateWalkable} from './gate-geometry.js?v=wuyin-world-v1';
+import {ROOM,COLLIDERS} from './lessons.js?v=wuyin-world-v2';
+import {isTownWalkable} from './town-layout.js?v=wuyin-world-v2';
+import {isGateWalkable} from './gate-geometry.js?v=wuyin-world-v2';
 export const TOWN_WORLD_OFFSET=Object.freeze({x:-900,y:-2635});
 export const CITY_WALL_EXTENSIONS=Object.freeze([[-720,247,975,38],[1345,247,775,38]]);
 export const toTownPoint=p=>({...p,x:p.x-TOWN_WORLD_OFFSET.x,y:p.y-TOWN_WORLD_OFFSET.y});

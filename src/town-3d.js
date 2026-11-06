@@ -1,7 +1,7 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-world-v1';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-world-v1';
+import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-world-v2';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-world-v2';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
 const materials=new Map();
@@ -173,7 +173,7 @@ export function createTownWorld(makeActor,bake) {
 }
 export function frameTownCamera(camera,width,height,focus){const span=Math.max(10.3,16/(width/height));camera.left=-span*width/height/2;camera.right=-camera.left;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();const x=Math.max(850,Math.min(2380,focus.x)),y=Math.max(850,Math.min(2500,focus.y)),target=new T.Vector3(...townPoint(x,y));target.y=.3;camera.position.copy(target).add(new T.Vector3(0,11,12));camera.lookAt(target);camera.updateMatrixWorld();}
 export function updateTownWorld(world,game,poseActor){
- const time=game.reducedMotion?0:game.time;
+ const time=game.reducedMotion?0:Math.max(0,game.time);
  const awake=townSignalAwake(game.townJourney),elapsed=game.townPulseAt==null?Infinity:game.time-game.townPulseAt,pulse=elapsed>=0&&elapsed<4?(game.reducedMotion?.25:Math.sin(elapsed*Math.PI/4)):0;
  world.storyRings.children.forEach((ring,i)=>{ring.visible=awake&&(!game.townJourney.signalSeen||pulse>0);const t=game.reducedMotion?.4:(time*.12+i/3)%1;ring.scale.setScalar(.85+t*.8+pulse*.4);});
  mat(0x9e4637,{emissive:0xb34d28,emissiveIntensity:.22}).emissiveIntensity=.22+pulse*.6;
@@ -183,7 +183,7 @@ export function updateTownWorld(world,game,poseActor){
   m.rotation.set(a*.3,a,0);
  }
  for(const [id,a] of world.actors){if(id==='player'&&world.sharedPlayer)continue;const data=id===TOWN_TRAVELLER.id?TOWN_TRAVELLER:TOWN_RESIDENTS.find(r=>r.id===id);if(id===TOWN_TRAVELLER.id){a.root.visible=awake;if(!awake)continue;}const focused=game.townFocus?.actorId===id;let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
-  if(data?.path&&!game.reducedMotion){const p=(game.time*.035)%data.path.length,i=Math.floor(p),t=p-i,from=data.path[i],to=data.path[(i+1)%data.path.length];position={x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t};angle=Math.atan2(to[0]-from[0],to[1]-from[1]);moving=true;}
+  if(data?.path&&!game.reducedMotion){const p=(time*.035)%data.path.length,i=Math.floor(p),t=p-i,from=data.path[i],to=data.path[(i+1)%data.path.length];position={x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t};angle=Math.atan2(to[0]-from[0],to[1]-from[1]);moving=true;}
   if(focused)angle=Math.atan2(game.player.x-position.x,game.player.y-position.y);
   a.root.position.set(...townPoint(position.x,position.y));a.root.position.y=townElevation(position.x,position.y);a.root.rotation.y=angle;
   poseActor(a,{moving,stride:id==='player'?game.stride:game.time*4.5,time:game.time,reducedMotion:game.reducedMotion,pose:focused?(id===TOWN_TRAVELLER.id?'point-self':'nod'):'idle',carrying:id===TOWN_TRAVELLER.id,emptyBowl:id===TOWN_TRAVELLER.id});

@@ -2,10 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MandalingoGame} from '../src/game.js';
 import * as courtyard from '../src/courtyard-3d.js';
-import {createTownWorld} from '../src/town-3d.js';
+import {createTownWorld,updateTownWorld} from '../src/town-3d.js';
 import * as T from '../src/vendor/three.module.js';
 const game=()=>Object.assign(Object.create(MandalingoGame.prototype),{time:0,keys:new Set(),mobileVector:{x:0,y:0},actorCues:{},callbacks:{}});
 const globalPosition=g=>g.location==='town'?{x:g.player.x-900,y:g.player.y-2635}:{x:g.player.x,y:g.player.y};
+
+test('an initial animation timestamp before construction cannot rewind the game clock',()=>{
+ const original=globalThis.requestAnimationFrame;globalThis.requestAnimationFrame=()=>{};
+ try{const g=Object.assign(game(),{lastTime:100,started:false,draw:()=>{}});g.loop(99);assert.equal(g.time,0);g.loop(115);assert.equal(g.time,.016);}finally{if(original)globalThis.requestAnimationFrame=original;else delete globalThis.requestAnimationFrame;}
+});
+
+test('town walkers remain renderable at a negative initial clock boundary',()=>{
+ const world=createTownWorld(courtyard.createActor,()=>{}),g=game();g.start({resolved:true});g.time=-.001;
+ assert.doesNotThrow(()=>updateTownWorld(world,g,()=>{}));
+ for(const actor of world.actors.values()){assert.ok(Number.isFinite(actor.root.position.x));assert.ok(Number.isFinite(actor.root.position.z));}
+});
 test('walking across the opened gate keeps world movement, held keys and stride continuous both ways',()=>{
  const g=game();g.start({resolved:true});g.player={...g.player,x:800,y:330};g.setKey('w',true);let entered=false;
  for(let i=0;i<100;i++){const before=globalPosition(g),stride=g.stride;g.update(.04);const after=globalPosition(g);assert.ok(Math.hypot(after.x-before.x,after.y-before.y)<=4.21,'no walking teleport');assert.ok(g.keys.has('w'));assert.ok(g.stride>=stride);if(g.location==='town')entered=true;}

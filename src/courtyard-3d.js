@@ -384,6 +384,9 @@ export function buildCourtyard() {
   }
   const gateRoof=group(gatehouse);box(gateRoof,2.7,.27,.5,P.wood,0,2.02);roof(gateRoof,3,1.7,2.28);
   box(gateRoof,.9,.32,.075,P.dark,0,2.06,.3);box(gateRoof,.65,.045,.08,P.gold,0,2.06,.35);
+  const seal=mesh(gateRoof,new T.TorusGeometry(.115,.013,4,4),P.gold,0,2.07,.395);
+  seal.rotation.z=Math.PI/4;
+  mesh(gateRoof,new T.OctahedronGeometry(.036,0),0x91c6b6,0,2.07,.42);
   const roofBatches=new Map();for(const m of [...gateRoof.children]){m.updateMatrix();const geo=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();geo.applyMatrix4(m.matrix);if(!roofBatches.has(m.material))roofBatches.set(m.material,[]);roofBatches.get(m.material).push(geo);gateRoof.remove(m);m.geometry.dispose();}
   for(const [source,geometries] of roofBatches){const m=new T.Mesh(mergeGeometries(geometries),source.clone());m.castShadow=m.receiveShadow=true;gateRoof.add(m);geometries.forEach(g=>g.dispose());}
   const doors = [];
@@ -564,14 +567,13 @@ export function buildCourtyard() {
         px = Math.cos(a) * r,
         pz = Math.sin(a) * r;
       beam(tree, [0, 1.6, 0], [px, 2.6, pz], 0.055, 0x68503a);
-      mesh(
-        tree,
-        new T.IcosahedronGeometry(0.69, 1),
-        [0xc58a38, 0xd3a34c, 0xb96735][i % 3],
-        px,
-        2.5 + (i % 3) * 0.23,
-        pz,
-      ).scale.y = 0.7;
+      for (let leaf=0;leaf<3;leaf++) {
+        const a2=a+leaf*2.1,offset=.23+(leaf%2)*.13;
+        const crown=mesh(tree,new T.IcosahedronGeometry(.38+(leaf%2)*.07,0),
+          [0xc28b52,0xe2b36c,0xa86546,0x8d9b6b][(i+leaf)%4],
+          px+Math.cos(a2)*offset,2.43+(i%3)*.23+(leaf%2)*.16,pz+Math.sin(a2)*offset);
+        crown.scale.set(1.1,.7,.82);
+      }
     }
   }
   const leaves = new T.InstancedMesh(

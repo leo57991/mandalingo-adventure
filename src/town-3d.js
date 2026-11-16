@@ -3,7 +3,7 @@ import * as T from './vendor/three.module.js';
 import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-world-v2';
 import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-world-v2';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
-const P={stone:0xaaa993,plaster:0xd7cdb2,wood:0x644634,dark:0x2c413c,ivory:0xf2dfb8,water:0x439da6};
+const P={stone:0x829795,plaster:0xbfc0ae,wood:0x49332e,dark:0x172d37,ivory:0xeee0be,water:0x3e8292};
 const materials=new Map();
 function mat(color,extra={}){const key=color+JSON.stringify(extra);if(!materials.has(key))materials.set(key,new T.MeshStandardMaterial({color,roughness:.85,...extra}));return materials.get(key);}
 function group(parent,x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);parent.add(g);return g;}
@@ -11,8 +11,8 @@ function mesh(p,geo,c,x=0,y=0,z=0){const m=new T.Mesh(geo,mat(c));m.position.set
 const box=(p,w,h,d,c,x=0,y=0,z=0)=>mesh(p,new T.BoxGeometry(w,h,d),c,x,y,z);
 const cylinder=(p,r,rb,h,c,x=0,y=0,z=0,n=10)=>mesh(p,new T.CylinderGeometry(r,rb,h,n),c,x,y,z);
 function beam(p,a,b,r,c){const start=new T.Vector3(...a),end=new T.Vector3(...b),m=mesh(p,new T.CylinderGeometry(r,r,start.distanceTo(end),8),c);m.position.copy(start).add(end).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),end.sub(start).normalize());return m;}
-function lantern(p,x,y,z){const g=group(p,x,y,z),red=mat(0x9e4637,{emissive:0xb34d28,emissiveIntensity:.22});
- const body=cylinder(g,.145,.145,.30,0x9e4637,0,-.15,0,8);body.material=red;
+function lantern(p,x,y,z){const g=group(p,x,y,z),red=mat(0xe2a05c,{emissive:0xffa34a,emissiveIntensity:.85});
+ const body=cylinder(g,.145,.145,.30,0xe2a05c,0,-.15,0,8);body.material=red;
  for(const h of [0,-.30]){cylinder(g,.18,.18,.035,0x9a7d49,0,h,0,8);}
  for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(g,[Math.sin(a)*.147,-.02,Math.cos(a)*.147],[Math.sin(a)*.147,-.28,Math.cos(a)*.147],.008,0xc4a267);}
  beam(g,[0,.15,0],[0,0,0],.012,P.dark);beam(g,[0,-.32,0],[0,-.42,0],.009,0xb99852);cylinder(g,.025,.045,.10,0x9e4637,0,-.46,0,6);
@@ -117,14 +117,14 @@ function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(
  return g;
 }
 export function createTownWorld(makeActor,bake) {
- const scene=new T.Scene();scene.background=new T.Color(0xb4c4bf);scene.fog=new T.Fog(0xb4c4bf,27,54);scene.add(new T.HemisphereLight(0xe7f1e5,0x65765c,2.4));
- const sun=new T.DirectionalLight(0xffe1ac,3.2);sun.position.set(-9,18,8);sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:.1,far:65});sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.025;scene.add(sun);
- box(scene,150,.3,150,0x83967b,0,-.3);const landVertices=[],landIndices=[];
+ const scene=new T.Scene();scene.background=new T.Color(0x354f5b);scene.fog=new T.Fog(0x354f5b,23,50);scene.add(new T.HemisphereLight(0xa2c5d0,0x253d4a,1.45));
+ const sun=new T.DirectionalLight(0xffc783,1.85);sun.position.set(-9,18,8);sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:.1,far:65});sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.025;scene.add(sun);
+ box(scene,150,.3,150,0x536b70,0,-.3);const landVertices=[],landIndices=[];
  for(let i=0;i<=32;i++){const y=300+i*2640/32,c=riverX(y);for(const x of [180,c-TOWN.riverWidth/2,c+TOWN.riverWidth/2,3020]){const [xx,,zz]=townPoint(x,y);landVertices.push(xx,-.025,zz);}if(i<32){const n=i*4;landIndices.push(n,n+4,n+1,n+1,n+4,n+5,n+2,n+6,n+3,n+3,n+6,n+7);}}
- const landGeo=new T.BufferGeometry();landGeo.setAttribute('position',new T.Float32BufferAttribute(landVertices,3));landGeo.setIndex(landIndices);landGeo.computeVertexNormals();scene.add(new T.Mesh(landGeo,mat(0xadb198)));
+ const landGeo=new T.BufferGeometry();landGeo.setAttribute('position',new T.Float32BufferAttribute(landVertices,3));landGeo.setIndex(landIndices);landGeo.computeVertexNormals();scene.add(new T.Mesh(landGeo,mat(0x839b91)));
  const roadPositions=new Map();function road(x0,y0,w,d){for(let y=y0;y<y0+d;y+=38)for(let x=x0;x<x0+w;x+=43){const xx=Math.round(x/43)*43,yy=Math.round(y/38)*38;if(Math.abs(xx-riverX(yy))>TOWN.riverWidth/2+5||yy>1780&&yy<1960)roadPositions.set(xx+':'+yy,[xx,yy]);}}
  road(1570,960,440,1930);road(420,1800,2240,180);road(1060,1240,140,1450);road(1580,1760,1100,180);road(2020,1730,700,260);road(1390,1020,930,240);
- const stones=new T.InstancedMesh(new T.BoxGeometry(.405,.035,.345),mat(0xb5b39b),roadPositions.size),dummy=new T.Object3D();let index=0;for(const [x,y] of roadPositions.values()){dummy.position.set(...townPoint(x,y));dummy.position.y=-.016;dummy.rotation.y=Math.sin(index*27)*.035;dummy.updateMatrix();stones.setMatrixAt(index++,dummy.matrix);}stones.receiveShadow=true;scene.add(stones);
+ const stones=new T.InstancedMesh(new T.BoxGeometry(.405,.035,.345),mat(0x9ba89e),roadPositions.size),dummy=new T.Object3D();let index=0;for(const [x,y] of roadPositions.values()){dummy.position.set(...townPoint(x,y));dummy.position.y=-.016;dummy.rotation.y=Math.sin(index*27)*.035;dummy.updateMatrix();stones.setMatrixAt(index++,dummy.matrix);}stones.receiveShadow=true;scene.add(stones);
  const riverVertices=[],riverIndices=[];for(let i=0;i<=32;i++){const y=300+i*2640/32,c=riverX(y);for(const side of [-1,1]){const [x,,z]=townPoint(c+side*TOWN.riverWidth/2,y);riverVertices.push(x,-.075,z);}if(i<32){const n=i*2;riverIndices.push(n,n+2,n+1,n+1,n+2,n+3);}}
  const riverGeometry=new T.BufferGeometry();riverGeometry.setAttribute('position',new T.Float32BufferAttribute(riverVertices,3));riverGeometry.setIndex(riverIndices);riverGeometry.computeVertexNormals();const riverMesh=new T.Mesh(riverGeometry,mat(P.water,{roughness:.22,metalness:.1,side:T.DoubleSide}));riverMesh.receiveShadow=true;scene.add(riverMesh);
  for(let y=340;y<2920;y+=115)for(const side of [-1,1]){const [x,,z]=townPoint(riverX(y)+side*95,y);const rock=mesh(scene,new T.DodecahedronGeometry(.19,0),0x83938b,x,-.025,z);rock.scale.set(1.15,.65,1.4);}
@@ -154,6 +154,11 @@ export function createTownWorld(makeActor,bake) {
  const cart=group(scene,...townPoint(2080,2310));box(cart,1.0,.10,.65,P.wood,0,.42);for(const side of [-1,1]){const wheel=mesh(cart,new T.TorusGeometry(.20,.035,5,12),P.dark,side*.55,.22);wheel.rotation.y=Math.PI/2;}for(const z of [-.30,.30])box(cart,1.0,.20,.045,0x96764c,0,.56,z);barrel(cart,-.2,0,.75);box(cart,.36,.3,.34,0xb6a17c,.27,.62);beam(cart,[.48,.43,.22],[1.15,.6,.22],.025,P.wood);
  for(const p of TOWN_PROPS)townProp(scene,p);
  const excluded=[...roofs.map(r=>r.root),riverMesh];bake(scene,excluded);
+ // Lantern light guides the eye along the main route without changing collision or interaction.
+ for (const [x,y] of [[1660,1060],[1790,1430],[1770,2240],[2220,1800]]) {
+  const [xx,,zz]=townPoint(x,y),light=new T.PointLight(0xffae63,5.5,5.2,2);
+  light.position.set(xx,1.9,zz);scene.add(light);
+ }
  // Small solid meshes provide atmospheric depth without billboard sprites or gameplay effects.
  const ambience=group(scene);ambience.name='town-ambience';
  for(const p of TOWN_PROPS.filter(p=>p.type==='forge'||p.type==='jade-lantern')){
@@ -176,7 +181,7 @@ export function updateTownWorld(world,game,poseActor){
  const time=game.reducedMotion?0:Math.max(0,game.time);
  const awake=townSignalAwake(game.townJourney),elapsed=game.townPulseAt==null?Infinity:game.time-game.townPulseAt,pulse=elapsed>=0&&elapsed<4?(game.reducedMotion?.25:Math.sin(elapsed*Math.PI/4)):0;
  world.storyRings.children.forEach((ring,i)=>{ring.visible=awake&&(!game.townJourney.signalSeen||pulse>0);const t=game.reducedMotion?.4:(time*.12+i/3)%1;ring.scale.setScalar(.85+t*.8+pulse*.4);});
- mat(0x9e4637,{emissive:0xb34d28,emissiveIntensity:.22}).emissiveIntensity=.22+pulse*.6;
+ mat(0xe2a05c,{emissive:0xffa34a,emissiveIntensity:.85}).emissiveIntensity=.85+pulse*.6;
  for(const m of world.ambience.children){const {origin:[x,y,z],ember,phase}=m.userData,a=phase*Math.PI*2+time*.42;
   if(ember){const t=(phase+time*.16)%1;m.position.set(x+.13+Math.sin(a)*.17,y+.48+t*.55,z+.31+Math.cos(a)*.03);m.scale.setScalar(.45+Math.sin(t*Math.PI)*.55);}
   else{m.position.set(x+Math.cos(a)*.32,y+1.24+Math.sin(a*2)*.19,z+Math.sin(a)*.32);m.scale.setScalar(.75);}

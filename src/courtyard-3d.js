@@ -38,15 +38,15 @@ export function frameCamera(camera, width, height, focus) {
   camera.updateMatrixWorld();
 }
 const P = {
-  plaster: 0xd8cbb1,
-  stone: 0x929990,
-  dark: 0x263b3b,
-  roof: 0x315459,
-  wood: 0x593b30,
-  gold: 0xc59d54,
+  plaster: 0xbfc0ae,
+  stone: 0x718887,
+  dark: 0x172d37,
+  roof: 0x204c59,
+  wood: 0x49332e,
+  gold: 0xd7a762,
   skin: 0xd9ad83,
-  ivory: 0xf2dfb8,
-  water: 0x3e9eaa,
+  ivory: 0xeee0be,
+  water: 0x3e8292,
 };
 const materials = new Map();
 function material(color, extras = {}) {
@@ -311,10 +311,10 @@ function batchScenery(scene, doors) {
 }
 export function buildCourtyard() {
   const scene = new T.Scene();
-  scene.background = new T.Color(0xb4c4bf);
-  scene.fog = new T.Fog(0xb4c4bf, 23, 48);
-  scene.add(new T.HemisphereLight(0xe7f1e5, 0x64756c, 2.4));
-  const sun = new T.DirectionalLight(0xffe1ac, 3.3);
+  scene.background = new T.Color(0x354f5b);
+  scene.fog = new T.Fog(0x354f5b, 19, 44);
+  scene.add(new T.HemisphereLight(0xa2c5d0, 0x253d4a, 1.45));
+  const sun = new T.DirectionalLight(0xffc783, 1.85);
   sun.position.set(-5, 10, 6);
   sun.castShadow = true;
   Object.assign(sun.shadow.camera, {
@@ -330,12 +330,12 @@ export function buildCourtyard() {
   sun.shadow.normalBias = 0.025;
   scene.add(sun);
   sun.position.set(-9,22,10);sun.target.position.set(0,0,-12);scene.add(sun.target);
-  box(scene, 200, 0.2, 200, 0x81978c, 0, -0.85);
-  box(scene, 11.5, 0.65, 6.5, 0x62756f, 0, -0.45, 0.35);
-  box(scene, 11.3, 0.15, 6.3, 0xb4b29c, 0, -0.09, 0.35);
+  box(scene, 200, 0.2, 200, 0x536b70, 0, -0.85);
+  box(scene, 11.5, 0.65, 6.5, 0x465d61, 0, -0.45, 0.35);
+  box(scene, 11.3, 0.15, 6.3, 0x8d9890, 0, -0.09, 0.35);
   const paving = new T.InstancedMesh(
       new T.BoxGeometry(0.485, 0.045, 0.385),
-      material(0xb7b5a0),
+      material(0x9aa59c),
       330,
     ),
     dummy = new T.Object3D();
@@ -352,9 +352,9 @@ export function buildCourtyard() {
       paving.setColorAt(
         index++,
         new T.Color().setHSL(
-          0.12,
-          0.09,
-          0.56 + ((row * 17 + col * 13) % 11) * 0.012,
+          0.46,
+          0.10,
+          0.49 + ((row * 17 + col * 13) % 11) * 0.010,
         ),
       );
     }
@@ -490,7 +490,7 @@ export function buildCourtyard() {
         0.25,
         1.32,
         0,
-        { emissive: 0xe68a39, emissiveIntensity: 0.5 },
+        { emissive: 0xffa94f, emissiveIntensity: 1.1 },
       );
       for (const y of [1.16, 1.48]) box(g, 0.34, 0.045, 0.32, P.dark, 0.25, y);
     } else if (item.id === "weapon-rack") {
@@ -592,6 +592,12 @@ export function buildCourtyard() {
   }
   scene.add(leaves);
   batchScenery(scene, [...doors,gateRoof]);
+  // Pools of warm light make the gate and useful courtyard objects readable at dusk.
+  for (const [x, z, strength] of [[-3.1, -1.65, 7], [3.1, -1.65, 7], [-1.65, 2.4, 4], [1.65, 2.4, 4]]) {
+    const lamp = new T.PointLight(0xffb56e, strength, 4.5, 2);
+    lamp.position.set(x, 1.55, z);
+    scene.add(lamp);
+  }
   const jarWater = createJarWater(props.get("water-jar"));
   const actors = new Map();
   for (const [id, color, role] of [

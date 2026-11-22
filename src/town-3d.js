@@ -1,11 +1,14 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=wuyin-world-v2';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=wuyin-world-v2';
+import { inkSurface } from './ink-art.js?v=ink-world-v1';
+import { addInkTree } from './ink-tree.js?v=ink-world-v1';
+import { inkRock } from './ink-rock.js?v=ink-world-v1';
+import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=ink-world-v1';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=ink-world-v1';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0x829795,plaster:0xbfc0ae,wood:0x49332e,dark:0x172d37,ivory:0xeee0be,water:0x3e8292};
 const materials=new Map();
-function mat(color,extra={}){const key=color+JSON.stringify(extra);if(!materials.has(key))materials.set(key,new T.MeshStandardMaterial({color,roughness:.85,...extra}));return materials.get(key);}
+function mat(color,extra={}){const key=color+JSON.stringify(extra);if(!materials.has(key))materials.set(key,new T.MeshStandardMaterial({color,roughness:.85,...inkSurface(color),...extra}));return materials.get(key);}
 function group(parent,x=0,y=0,z=0){const g=new T.Group();g.position.set(x,y,z);parent.add(g);return g;}
 function mesh(p,geo,c,x=0,y=0,z=0){const m=new T.Mesh(geo,mat(c));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;p.add(m);return m;}
 const box=(p,w,h,d,c,x=0,y=0,z=0)=>mesh(p,new T.BoxGeometry(w,h,d),c,x,y,z);
@@ -119,15 +122,44 @@ function building(scene,s,roofs,isShop){const [x,,z]=townPoint(s.x,s.y),g=group(
 export function createTownWorld(makeActor,bake) {
  const scene=new T.Scene();scene.background=new T.Color(0x354f5b);scene.fog=new T.Fog(0x354f5b,23,50);scene.add(new T.HemisphereLight(0xa2c5d0,0x253d4a,1.45));
  const sun=new T.DirectionalLight(0xffc783,1.85);sun.position.set(-9,18,8);sun.castShadow=true;Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:.1,far:65});sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.025;scene.add(sun);
- box(scene,150,.3,150,0x536b70,0,-.3);const landVertices=[],landIndices=[];
- for(let i=0;i<=32;i++){const y=300+i*2640/32,c=riverX(y);for(const x of [180,c-TOWN.riverWidth/2,c+TOWN.riverWidth/2,3020]){const [xx,,zz]=townPoint(x,y);landVertices.push(xx,-.025,zz);}if(i<32){const n=i*4;landIndices.push(n,n+4,n+1,n+1,n+4,n+5,n+2,n+6,n+3,n+3,n+6,n+7);}}
- const landGeo=new T.BufferGeometry();landGeo.setAttribute('position',new T.Float32BufferAttribute(landVertices,3));landGeo.setIndex(landIndices);landGeo.computeVertexNormals();scene.add(new T.Mesh(landGeo,mat(0x839b91)));
+ box(scene,150,.3,150,0x536b70,0,-.3);const landVertices=[],landUvs=[],landIndices=[];
+ for(let i=0;i<=32;i++){const y=300+i*2640/32,c=riverX(y);for(const x of [180,c-TOWN.riverWidth/2,c+TOWN.riverWidth/2,3020]){const [xx,,zz]=townPoint(x,y);landVertices.push(xx,-.025,zz);landUvs.push(xx/100,zz/100);}if(i<32){const n=i*4;landIndices.push(n,n+4,n+1,n+1,n+4,n+5,n+2,n+6,n+3,n+3,n+6,n+7);}}
+ const landGeo=new T.BufferGeometry();landGeo.setAttribute('position',new T.Float32BufferAttribute(landVertices,3));landGeo.setAttribute('uv',new T.Float32BufferAttribute(landUvs,2));landGeo.setIndex(landIndices);landGeo.computeVertexNormals();scene.add(new T.Mesh(landGeo,mat(0x839b91)));
  const roadPositions=new Map();function road(x0,y0,w,d){for(let y=y0;y<y0+d;y+=38)for(let x=x0;x<x0+w;x+=43){const xx=Math.round(x/43)*43,yy=Math.round(y/38)*38;if(Math.abs(xx-riverX(yy))>TOWN.riverWidth/2+5||yy>1780&&yy<1960)roadPositions.set(xx+':'+yy,[xx,yy]);}}
  road(1570,960,440,1930);road(420,1800,2240,180);road(1060,1240,140,1450);road(1580,1760,1100,180);road(2020,1730,700,260);road(1390,1020,930,240);
  const stones=new T.InstancedMesh(new T.BoxGeometry(.405,.035,.345),mat(0x9ba89e),roadPositions.size),dummy=new T.Object3D();let index=0;for(const [x,y] of roadPositions.values()){dummy.position.set(...townPoint(x,y));dummy.position.y=-.016;dummy.rotation.y=Math.sin(index*27)*.035;dummy.updateMatrix();stones.setMatrixAt(index++,dummy.matrix);}stones.receiveShadow=true;scene.add(stones);
- const riverVertices=[],riverIndices=[];for(let i=0;i<=32;i++){const y=300+i*2640/32,c=riverX(y);for(const side of [-1,1]){const [x,,z]=townPoint(c+side*TOWN.riverWidth/2,y);riverVertices.push(x,-.075,z);}if(i<32){const n=i*2;riverIndices.push(n,n+2,n+1,n+1,n+2,n+3);}}
- const riverGeometry=new T.BufferGeometry();riverGeometry.setAttribute('position',new T.Float32BufferAttribute(riverVertices,3));riverGeometry.setIndex(riverIndices);riverGeometry.computeVertexNormals();const riverMesh=new T.Mesh(riverGeometry,mat(P.water,{roughness:.22,metalness:.1,side:T.DoubleSide}));riverMesh.receiveShadow=true;scene.add(riverMesh);
- for(let y=340;y<2920;y+=115)for(const side of [-1,1]){const [x,,z]=townPoint(riverX(y)+side*95,y);const rock=mesh(scene,new T.DodecahedronGeometry(.19,0),0x83938b,x,-.025,z);rock.scale.set(1.15,.65,1.4);}
+ const riverVertices = [], riverColors = [], riverIndices = [];
+ const channels = [-1, -.6, 0, .6, 1], deep = new T.Color(0x336474), shallow = new T.Color(0x728e83);
+ const tint = new T.Color();
+ for (let i = 0; i <= 32; i++) {
+  const y = 300 + i * 2640 / 32, centre = riverX(y);
+  for (const [column, side] of channels.entries()) {
+   const [x,,z] = townPoint(centre + side * TOWN.riverWidth / 2, y);
+   riverVertices.push(x, -.075, z);
+   tint.copy(deep).lerp(shallow, .09 + side * side * .67 + .09 * Math.sin(i * .67 + side * 3));
+   riverColors.push(tint.r, tint.g, tint.b);
+   if (i < 32 && column < channels.length - 1) {
+    const a = i * channels.length + column, b = a + channels.length;
+    riverIndices.push(a, b, a + 1, a + 1, b, b + 1);
+   }
+  }
+ }
+ const riverGeometry = new T.BufferGeometry();
+ riverGeometry.setAttribute('position', new T.Float32BufferAttribute(riverVertices, 3));
+ riverGeometry.setAttribute('color', new T.Float32BufferAttribute(riverColors, 3));
+ riverGeometry.setIndex(riverIndices);
+ riverGeometry.computeVertexNormals();
+ const riverMesh = new T.Mesh(riverGeometry, mat(0xffffff, { vertexColors: true, roughness: .28, metalness: .1 }));
+ riverMesh.receiveShadow = true;
+ scene.add(riverMesh);
+ for (let y = 340; y < 2920; y += 115) for (const side of [-1, 1]) {
+  const [x,,z] = townPoint(riverX(y) + side * 95, y);
+  const rock = inkRock(0x899890, y * .12 + side);
+  rock.position.set(x, -.08, z);
+  rock.rotation.y = y * .17;
+  rock.scale.set(.2, .18 + .06 * Math.sin(y), .32);
+  scene.add(rock);
+ }
  for(let y=380;y<2850;y+=140)for(const side of [-1,1]){const [x,,z]=townPoint(riverX(y)+side*112,y);for(let i=0;i<3;i++){const reed=box(scene,.027,.25+(i%2)*.12,.04,0x6c875d,x+i*.045,.13,z+i*.035);reed.rotation.z=(i-1)*.17;}}
  const bridge=group(scene,...townPoint(1410,1870));for(let i=0;i<14;i++){const x=1150+(i+.5)*520/14,h=townElevation(x,1870);box(bridge,520/1400+.02,.14,1.80,P.stone,(x-1410)/100,h-.07,0);for(const side of [-1,1]){box(bridge,.35,.27,.14,0x8b968a,(x-1410)/100,h+.15,side*.84);}}
  for(const side of [-1,1]){const arch=mesh(bridge,new T.TorusGeometry(2.5,.11,6,40,Math.PI),0x788b83,0,-.16,side*.70);arch.scale.y=.14;}
@@ -142,12 +174,31 @@ export function createTownWorld(makeActor,bake) {
  for(const side of [-1,1]){cylinder(court,.12,.12,1.02,P.plaster,side*.98,.51,1.3);box(court,.30,.10,.3,P.stone,side*.98,.05,1.3);}
  cylinder(court,.42,.40,.12,P.stone,.9,.65);cylinder(court,.16,.19,.59,P.stone,.9,.29);for(const [x,z] of [[.4,0],[1.4,0],[.9,.65]])cylinder(court,.16,.15,.3,0x929c8a,x,.15,z);
  for(const [x,y] of [[2167,1587],[2697,1557]]){const g=group(scene,...townPoint(x,y));box(g,.75,.42,.75,0x8c927b,0,.21);for(let i=0;i<8;i++)mesh(g,new T.IcosahedronGeometry(.14,0),i%2?0xc5a278:0x81945a,Math.sin(i)*.22,.55,Math.cos(i)*.22);}
- for(const t of TOWN_TREES){const [x,,z]=townPoint(t.x,t.y),g=group(scene,x,townElevation(t.x,t.y),z);cylinder(g,.11,.17,1.85,0x5c493f,0,.92);for(let i=0;i<5;i++){const a=i*2.4,r=.34+(i%2)*.20;beam(g,[0,1.40,0],[Math.cos(a)*r,2.02+(i%3)*.16,Math.sin(a)*r],.045,P.wood);for(let j=0;j<3;j++){const leaf=mesh(g,new T.DodecahedronGeometry((.29+(j%2)*.07)*t.size,0),[t.color,0xc39a64,0x829578][(i+j)%3],Math.cos(a)*r+Math.sin(j*2.2)*.23,2.02+(i%3)*.16+(j%2)*.13,Math.sin(a)*r+Math.cos(j*2.2)*.23);leaf.scale.set(1.1,.78,.88);}}}
- // Closed, grounded rock columns with varied shoulders replace stretched single polyhedra.
- for(let i=0;i<18;i++){const angle=i*Math.PI*2/18;if(Math.sin(angle)>.32)continue;const radius=21+(i%3),g=group(scene,Math.cos(angle)*radius,-.15,Math.sin(angle)*radius),h=5.6+(i%3)*1.1;
-  const c=[0x758b84,0x81948d,0x8a9e95][i%3];cylinder(g,1.25,2.5,h,c,0,h/2,0,7).rotation.y=i*.37;
-  for(const side of [-1,1]){const height=h*(side<0?.58:.72);cylinder(g,.95,1.6,height,c,side*1.45,height/2,side*.55,6).rotation.y=i*.23;}
-  for(const x of [-.55,.5]){cylinder(g,.045,.07,.65,P.wood,x,h+.28,0);mesh(g,new T.ConeGeometry(.36,1.15,7),0x48634f,x,h+.78,0);}
+ for (const [index, tree] of TOWN_TREES.entries()) {
+  const [x,,z] = townPoint(tree.x, tree.y);
+  const model = addInkTree(scene, { pine: index % 3 === 2, color: tree.color, seed: index * 11 + 5 });
+  model.position.set(x, townElevation(tree.x, tree.y), z);
+  model.scale.setScalar(tree.size * .87);
+ }
+ // Taller distant ridges fade into the same blue grey as the town fog.
+ for (let i = 0; i < 18; i++) {
+  const angle = i * Math.PI * 2 / 18;
+  if (Math.sin(angle) > .32) continue;
+  const radius = 20 + (i % 3), height = 6 + (i % 3) * 1.2;
+  const ridge = group(scene, Math.cos(angle) * radius, -.22, Math.sin(angle) * radius);
+  ridge.rotation.y = angle + i * .21;
+  for (const [dx, dz, width, rise, color] of [
+   [0, 0, 2.85, height, 0x6d8885],
+   [-1.64, .52, 1.8, height * .66, 0x718d87],
+   [1.82, .66, 1.62, height * .77, 0x7e948b],
+   [.4, 2.15, 1.56, height * .37, 0x586f66],
+  ]) {
+   const stone = inkRock(color, i * 2.14 + dx);
+   stone.position.set(dx, 0, dz);
+   stone.scale.set(width, rise, width * .8);
+   stone.castShadow = false;
+   ridge.add(stone);
+  }
  }
 
  for(const [x,y] of TOWN_LAMPS){const [xx,,zz]=townPoint(x,y),g=group(scene,xx,0,zz);box(g,.06,1.8,.07,P.wood,0,.9);beam(g,[0,1.8,0],[.28,1.8,0],.025,P.wood);lantern(g,.28,1.65,0);}
@@ -166,7 +217,7 @@ export function createTownWorld(makeActor,bake) {
   for(let i=0;i<count;i++){const m=mesh(ambience,new T.OctahedronGeometry(ember?.022:.027,0),ember?0xe3ab58:0x89cbb4);m.material=mat(ember?0xe3ab58:0x89cbb4,{emissive:ember?0xc56b26:0x549e88,emissiveIntensity:.55});m.castShadow=m.receiveShadow=false;m.userData={origin:[x,townElevation(p.x,p.y),z],ember,phase:i/count};}
  }
  const actors=new Map();const player=makeActor(0x427e81,'player');actors.set('player',player);scene.add(player.root);
- for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,'clerk');actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}
+ for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,resident.id);actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}
  const traveller=makeActor(TOWN_TRAVELLER.color,'traveller');traveller.root.visible=false;actors.set(TOWN_TRAVELLER.id,traveller);scene.add(traveller.root);
  const storyRings=group(scene,...townPoint(2350,1790));
  for(let i=0;i<3;i++){const ring=mesh(storyRings,new T.TorusGeometry(.38,.012,6,40),0x96d3ba,0,1.24+i*.06);ring.rotation.x=Math.PI/2;ring.material=mat(0x96d3ba,{emissive:0x69b39a,emissiveIntensity:.5,transparent:true,opacity:.45,depthWrite:false});ring.castShadow=ring.receiveShadow=false;ring.visible=false;}

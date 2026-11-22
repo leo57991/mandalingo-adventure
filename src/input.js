@@ -1,4 +1,4 @@
-import { GAME_STATE } from "./game-state.js?v=wuyin-world-v2";
+import { GAME_STATE } from "./game-state.js?v=ink-world-v1";
 
 const MOVEMENT_KEYS = new Set(["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"]);
 

@@ -1,10 +1,10 @@
-import { TOWN, isTownWalkable } from "./town-layout.js?v=wuyin-world-v2";
-import {toTownPoint,fromTownPoint,isConnectedWalkable} from './world-layout.js?v=wuyin-world-v2';
-import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=wuyin-world-v2';
-import { isGateWalkable } from "./gate-geometry.js?v=wuyin-world-v2";
-import { EvidenceEffects } from "./evidence-vfx.js?v=wuyin-world-v2";
-import { Courtyard3D } from "./courtyard-3d.js?v=wuyin-world-v2";
-import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=wuyin-world-v2";
+import { TOWN, isTownWalkable } from "./town-layout.js?v=ink-world-v1";
+import {toTownPoint,fromTownPoint,isConnectedWalkable} from './world-layout.js?v=ink-world-v1';
+import {createTownJourney,townCheckpointPosition,townEntities,townObservation,townSignalAwake,townExtraColliders} from './town-journey.js?v=ink-world-v1';
+import { isGateWalkable } from "./gate-geometry.js?v=ink-world-v1";
+import { EvidenceEffects } from "./evidence-vfx.js?v=ink-world-v1";
+import { Courtyard3D } from "./courtyard-3d.js?v=ink-world-v1";
+import { COLLIDERS, ENTITIES, NPCS, ROOM } from "./lessons.js?v=ink-world-v1";
 
 const WIDTH = ROOM.width, HEIGHT = ROOM.height;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));

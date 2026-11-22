@@ -1,16 +1,19 @@
-import { createTownWorld, updateTownWorld } from "./town-3d.js?v=wuyin-world-v2";
-import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=wuyin-world-v2';
-import {townElevation} from './town-layout.js?v=wuyin-world-v2';
-import {townSignalAwake} from './town-journey.js?v=wuyin-world-v2';
-import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=wuyin-world-v2";
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=wuyin-world-v2";
+import { createTownWorld, updateTownWorld } from "./town-3d.js?v=ink-world-v1";
+import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=ink-world-v1';
+import {townElevation} from './town-layout.js?v=ink-world-v1';
+import {townSignalAwake} from './town-journey.js?v=ink-world-v1';
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=ink-world-v1";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=ink-world-v1";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
+import { inkSurface } from "./ink-art.js?v=ink-world-v1";
+import { modelInkActor } from "./ink-actor.js?v=ink-world-v1";
+import { addInkTree } from "./ink-tree.js?v=ink-world-v1";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=wuyin-world-v2";
+} from "./lessons.js?v=ink-world-v1";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -54,7 +57,7 @@ function material(color, extras = {}) {
   if (!materials.has(key))
     materials.set(
       key,
-      new T.MeshStandardMaterial({ color, roughness: 0.85, ...extras }),
+      new T.MeshStandardMaterial({ color, roughness: 0.85, ...inkSurface(color), ...extras }),
     );
   return materials.get(key);
 }
@@ -143,67 +146,12 @@ function bowl(p, x, y, z, water = true) {
   return b;
 }
 export function createActor(color, role = "player") {
-  const root = new T.Group(),
-    body = group(root);
-  mesh(body, new T.CylinderGeometry(0.19, 0.27, 0.49, 8), color, 0, 0.51);
-  box(body, 0.39, 0.4, 0.23, color, 0, 0.88);
-  box(body, 0.405, 0.065, 0.25, P.gold, 0, 0.69);
-  box(body, 0.075, 0.32, 0.025, P.ivory, 0.045, 0.95, 0.13).rotation.z = -0.33;
-  const head = group(body, 0, 1.25);
-  mesh(head, new T.SphereGeometry(0.18, 12, 10), P.skin).scale.set(
-    0.85,
-    1,
-    0.88,
-  );
-  mesh(
-    head,
-    new T.SphereGeometry(0.18, 12, 8),
-    0x272929,
-    0,
-    0.075,
-    -0.035,
-  ).scale.set(0.92, 0.66, 0.85);
-  cylinder(head, 0.075, 0.09, 0.11, 0x272929, 0, 0.22, -0.035);
-  for (const s of [-1, 1])
-    mesh(
-      head,
-      new T.SphereGeometry(0.013, 6, 4),
-      0x302c28,
-      s * 0.057,
-      0,
-      0.151,
-    );
-  if (role === "gatekeeper") {
-    cylinder(head, 0.23, 0.23, 0.04, P.dark, 0, 0.14);
-    cylinder(head, 0.12, 0.18, 0.16, P.dark, 0, 0.23);
-  }
-  if (role === "traveller")
-    cylinder(head, 0.02, 0.33, 0.12, 0xb99759, 0, 0.17).rotation.z = 0.13;
-  const limbs = {};
-  for (const s of [-1, 1]) {
-    const arm = group(body, s * 0.26, 1.02);
-    box(arm, 0.16, 0.34, 0.18, color, 0, -0.13);
-    const hand = mesh(arm, new T.SphereGeometry(0.075, 8, 6), P.skin, 0, -0.34);
-    if (role === "traveller") {
-      const forearm = group(arm, 0, -.3);
-      box(forearm, .14, .23, .15, color, 0, -.1);
-      forearm.add(hand); hand.position.set(0, -.23, 0);
-      limbs[s < 0 ? "leftForearm" : "rightForearm"] = forearm;
-    }
-    const leg = group(root, s * 0.105, 0.45);
-    box(leg, 0.13, 0.31, 0.14, 0x3a3b36, 0, -0.15);
-    box(leg, 0.15, 0.11, 0.24, P.dark, 0, -0.39, 0.045);
-    limbs[s < 0 ? "leftArm" : "rightArm"] = arm;
-    limbs[s < 0 ? "leftLeg" : "rightLeg"] = leg;
-  }
-  const carried = bowl(body, 0, 0.78, 0.37);
-  carried.visible = false;
-  if (role === "player") {
-    box(body, 0.25, 0.29, 0.13, 0x9b7850, 0, 0.9, -0.2);
-    beam(body, [-0.17, 1.08, -0.08], [0.15, 0.69, 0.14], 0.025, P.ivory);
-  }
-  return { root, body, head, bowl: carried, ...limbs };
+  const actor = modelInkActor(color, role);
+  actor.bowl = bowl(actor.body, 0, 0.78, 0.37);
+  actor.bowl.visible = false;
+  return actor;
 }
+
 export function poseActor(
   a,
   {
@@ -552,29 +500,15 @@ export function buildCourtyard() {
           ).scale.set(2, 0.3, 0.6);
       }
   }
-  for (const [x, z, scale] of [
-    [-6.2, -1.2, 1],
-    [6.3, -2, 1.1],
-    [-6.1, 2.8, 0.8],
-    [6.4, 3, 0.75],
+  for (const [x, z, scale, color] of [
+    [-6.2, -1.2, 1, 0xbd8757],
+    [6.3, -2, 1.1, 0xa9664e],
+    [-6.1, 2.8, 0.8, 0xc4a261],
+    [6.4, 3, 0.75, 0x899271],
   ]) {
-    const tree = group(scene, x, 0, z);
+    const tree = addInkTree(scene, { color, seed: x * 7 + z });
+    tree.position.set(x, 0, z);
     tree.scale.setScalar(scale);
-    beam(tree, [0, 0, 0], [0.13, 2.5, 0], 0.12, 0x68503a);
-    for (let i = 0; i < 8; i++) {
-      const a = i * 2.4,
-        r = 0.5 + (i % 3) * 0.2,
-        px = Math.cos(a) * r,
-        pz = Math.sin(a) * r;
-      beam(tree, [0, 1.6, 0], [px, 2.6, pz], 0.055, 0x68503a);
-      for (let leaf=0;leaf<3;leaf++) {
-        const a2=a+leaf*2.1,offset=.23+(leaf%2)*.13;
-        const crown=mesh(tree,new T.IcosahedronGeometry(.38+(leaf%2)*.07,0),
-          [0xc28b52,0xe2b36c,0xa86546,0x8d9b6b][(i+leaf)%4],
-          px+Math.cos(a2)*offset,2.43+(i%3)*.23+(leaf%2)*.16,pz+Math.sin(a2)*offset);
-        crown.scale.set(1.1,.7,.82);
-      }
-    }
   }
   const leaves = new T.InstancedMesh(
     new T.OctahedronGeometry(0.065, 0),

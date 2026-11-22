@@ -1,16 +1,17 @@
-import { JourneyStore } from "./journey-store.js?v=wuyin-world-v2";
-import {createTownJourney} from './town-journey.js?v=wuyin-world-v2';
-import { observationCue } from "./evidence-vfx.js?v=wuyin-world-v2";
-import { Soundscape } from "./audio.js?v=wuyin-world-v2";
-import { MandalingoGame } from "./game.js?v=wuyin-world-v2";
+import { JourneyStore } from "./journey-store.js?v=ink-world-v1";
+import {createTownJourney} from './town-journey.js?v=ink-world-v1';
+import { observationCue } from "./evidence-vfx.js?v=ink-world-v1";
+import { Soundscape } from "./audio.js?v=ink-world-v1";
+import { MandalingoGame } from "./game.js?v=ink-world-v1";
+import { waitForInkSurfaces } from "./ink-art.js?v=ink-world-v1";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=wuyin-world-v2";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=wuyin-world-v2";
-import { InputRouter } from "./input.js?v=wuyin-world-v2";
-import { ModalFocusManager } from "./modal-focus.js?v=wuyin-world-v2";
+} from "./lessons.js?v=ink-world-v1";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=ink-world-v1";
+import { InputRouter } from "./input.js?v=ink-world-v1";
+import { ModalFocusManager } from "./modal-focus.js?v=ink-world-v1";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);
@@ -75,8 +76,21 @@ function syncUiState() {
   focusManager.sync(modal); updateInterface();
 }
 
-function startGame() {
-  if (state.current !== GAME_STATE.TITLE) return; sound.ensure(); game.start({ resolved: tutorialSession.resolved,townJourney });townJourney=game.townJourney; state.reset(GAME_STATE.EXPLORING);
+let starting = false;
+async function startGame() {
+  if (state.current !== GAME_STATE.TITLE || starting) return;
+  starting = true;
+  sound.ensure();
+  const startButton = $("#start-btn"), startLabel = startButton.querySelector("span");
+  const originalLabel = startLabel.textContent;
+  startButton.disabled = true;
+  startLabel.textContent = "Preparing the world…";
+  await waitForInkSurfaces();
+  startButton.disabled = false;
+  startLabel.textContent = originalLabel;
+  starting = false;
+  if (state.current !== GAME_STATE.TITLE) return;
+  game.start({ resolved: tutorialSession.resolved,townJourney });townJourney=game.townJourney; state.reset(GAME_STATE.EXPLORING);
   if (previewTown && progressStore.replay) game.enterTown();
   updateLocationLabel();
   requestAnimationFrame(() => elements.game.focus());

@@ -1,10 +1,10 @@
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import * as T from './vendor/three.module.js';
-import { inkSurface } from './ink-art.js?v=ink-world-v1';
-import { addInkTree } from './ink-tree.js?v=ink-world-v1';
-import { inkRock } from './ink-rock.js?v=ink-world-v1';
-import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=ink-world-v1';
-import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=ink-world-v1';
+import { inkSurface } from './ink-art.js?v=ink-world-v2';
+import { addBankGrass, addInkTree } from './ink-tree.js?v=ink-world-v2';
+import { inkRock } from './ink-rock.js?v=ink-world-v2';
+import {TOWN_TRAVELLER,townSignalAwake} from './town-journey.js?v=ink-world-v2';
+import {TOWN,SHOPS,HOUSES,TOWN_TREES,TOWN_LAMPS,TOWN_COLLIDERS,TOWN_RESIDENTS,TOWN_PROPS,riverX,townElevation} from './town-layout.js?v=ink-world-v2';
 export const townPoint=(x,y)=>[(x-1600)/100,0,(y-1600)/100];
 const P={stone:0x829795,plaster:0xbfc0ae,wood:0x49332e,dark:0x172d37,ivory:0xeee0be,water:0x3e8292};
 const materials=new Map();
@@ -160,7 +160,12 @@ export function createTownWorld(makeActor,bake) {
   rock.scale.set(.2, .18 + .06 * Math.sin(y), .32);
   scene.add(rock);
  }
- for(let y=380;y<2850;y+=140)for(const side of [-1,1]){const [x,,z]=townPoint(riverX(y)+side*112,y);for(let i=0;i<3;i++){const reed=box(scene,.027,.25+(i%2)*.12,.04,0x6c875d,x+i*.045,.13,z+i*.035);reed.rotation.z=(i-1)*.17;}}
+ const bankGrass = [];
+ for (let y = 380; y < 2850; y += 83) for (const side of [-1, 1]) {
+  const [x,,z] = townPoint(riverX(y) + side * (100 + Math.sin(y) * 12), y);
+  bankGrass.push([x, -.02, z], [x + side * .19, -.02, z + .13]);
+ }
+ addBankGrass(scene, bankGrass);
  const bridge=group(scene,...townPoint(1410,1870));for(let i=0;i<14;i++){const x=1150+(i+.5)*520/14,h=townElevation(x,1870);box(bridge,520/1400+.02,.14,1.80,P.stone,(x-1410)/100,h-.07,0);for(const side of [-1,1]){box(bridge,.35,.27,.14,0x8b968a,(x-1410)/100,h+.15,side*.84);}}
  for(const side of [-1,1]){const arch=mesh(bridge,new T.TorusGeometry(2.5,.11,6,40,Math.PI),0x788b83,0,-.16,side*.70);arch.scale.y=.14;}
  box(scene,9.2,.38,5.6,0xa8aa96,2.6,.19,-10.3);for(let i=0;i<7;i++){const h=.38*(i+1)/7,y=1010-(i+.5)*160/7;box(scene,7.8,h,160/700,P.stone,2.6,h/2,(y-1600)/100);}
@@ -217,7 +222,7 @@ export function createTownWorld(makeActor,bake) {
   for(let i=0;i<count;i++){const m=mesh(ambience,new T.OctahedronGeometry(ember?.022:.027,0),ember?0xe3ab58:0x89cbb4);m.material=mat(ember?0xe3ab58:0x89cbb4,{emissive:ember?0xc56b26:0x549e88,emissiveIntensity:.55});m.castShadow=m.receiveShadow=false;m.userData={origin:[x,townElevation(p.x,p.y),z],ember,phase:i/count};}
  }
  const actors=new Map();const player=makeActor(0x427e81,'player');actors.set('player',player);scene.add(player.root);
- for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,resident.id);actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}
+ for(const resident of TOWN_RESIDENTS){const a=makeActor(resident.color,resident.id);if(resident.path)a.route=walkingRoute(resident.path);actors.set(resident.id,a);scene.add(a.root);a.root.position.set(...townPoint(resident.x,resident.y));}
  const traveller=makeActor(TOWN_TRAVELLER.color,'traveller');traveller.root.visible=false;actors.set(TOWN_TRAVELLER.id,traveller);scene.add(traveller.root);
  const storyRings=group(scene,...townPoint(2350,1790));
  for(let i=0;i<3;i++){const ring=mesh(storyRings,new T.TorusGeometry(.38,.012,6,40),0x96d3ba,0,1.24+i*.06);ring.rotation.x=Math.PI/2;ring.material=mat(0x96d3ba,{emissive:0x69b39a,emissiveIntensity:.5,transparent:true,opacity:.45,depthWrite:false});ring.castShadow=ring.receiveShadow=false;ring.visible=false;}
@@ -228,6 +233,22 @@ export function createTownWorld(makeActor,bake) {
  return {scene,shops,roofs,actors,river:riverMesh,waterGlints,glintPositions,glintDummy,debug,ambience,storyRings};
 }
 export function frameTownCamera(camera,width,height,focus){const span=Math.max(10.3,16/(width/height));camera.left=-span*width/height/2;camera.right=-camera.left;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();const x=Math.max(850,Math.min(2380,focus.x)),y=Math.max(850,Math.min(2500,focus.y)),target=new T.Vector3(...townPoint(x,y));target.y=.3;camera.position.copy(target).add(new T.Vector3(0,11,12));camera.lookAt(target);camera.updateMatrixWorld();}
+function walkingRoute(path) {
+ const route = new T.CurvePath();
+ const points = path.map(p => new T.Vector2(...p));
+ const corners = points.map((point, i) => {
+  const previous = points[(i + points.length - 1) % points.length];
+  const next = points[(i + 1) % points.length];
+  const trim = toward => point.clone().lerp(toward, Math.min(.28, 23 / point.distanceTo(toward)));
+  return { start: trim(previous), point, end: trim(next) };
+ });
+ for (const [i, corner] of corners.entries()) {
+  route.add(new T.QuadraticBezierCurve(corner.start, corner.point, corner.end));
+  route.add(new T.LineCurve(corner.end, corners[(i + 1) % corners.length].start));
+ }
+ return route;
+}
+
 export function updateTownWorld(world,game,poseActor){
  const time=game.reducedMotion?0:Math.max(0,game.time);
  const awake=townSignalAwake(game.townJourney),elapsed=game.townPulseAt==null?Infinity:game.time-game.townPulseAt,pulse=elapsed>=0&&elapsed<4?(game.reducedMotion?.25:Math.sin(elapsed*Math.PI/4)):0;
@@ -238,13 +259,43 @@ export function updateTownWorld(world,game,poseActor){
   else{m.position.set(x+Math.cos(a)*.32,y+1.24+Math.sin(a*2)*.19,z+Math.sin(a)*.32);m.scale.setScalar(.75);}
   m.rotation.set(a*.3,a,0);
  }
- for(const [id,a] of world.actors){if(id==='player'&&world.sharedPlayer)continue;const data=id===TOWN_TRAVELLER.id?TOWN_TRAVELLER:TOWN_RESIDENTS.find(r=>r.id===id);if(id===TOWN_TRAVELLER.id){a.root.visible=awake;if(!awake)continue;}const focused=game.townFocus?.actorId===id;let position=id==='player'?game.player:data,moving=id==='player'?game.moving:false,angle=id==='player'?Math.atan2(game.player.lookX,game.player.lookY):0;
-  if(data?.path&&!game.reducedMotion){const p=(time*.035)%data.path.length,i=Math.floor(p),t=p-i,from=data.path[i],to=data.path[(i+1)%data.path.length];position={x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t};angle=Math.atan2(to[0]-from[0],to[1]-from[1]);moving=true;}
-  if(focused)angle=Math.atan2(game.player.x-position.x,game.player.y-position.y);
-  a.root.position.set(...townPoint(position.x,position.y));a.root.position.y=townElevation(position.x,position.y);a.root.rotation.y=angle;
-  poseActor(a,{moving,stride:id==='player'?game.stride:game.time*4.5,time:game.time,reducedMotion:game.reducedMotion,pose:focused?(id===TOWN_TRAVELLER.id?'point-self':'nod'):'idle',carrying:id===TOWN_TRAVELLER.id,emptyBowl:id===TOWN_TRAVELLER.id});
-  if(data?.shop==='weapons'&&!game.reducedMotion&&!focused)a.rightArm.rotation.x=-.7+Math.sin(game.time*2.3)*.25;
-  if(focused&&id===TOWN_TRAVELLER.id)a.head.rotation.x=game.reducedMotion?.12:.12+Math.sin(Math.min(1,(game.time-game.townFocus.startedAt)/1.4)*Math.PI)*.12;
+ for (const [id, actor] of world.actors) {
+  const isPlayer = id === 'player', isTraveller = id === TOWN_TRAVELLER.id;
+  if (isPlayer && world.sharedPlayer) continue;
+  const resident = isTraveller ? TOWN_TRAVELLER : TOWN_RESIDENTS.find(r => r.id === id);
+  if (isTraveller) {
+   actor.root.visible = awake;
+   if (!awake) continue;
+  }
+
+  const focused = game.townFocus?.actorId === id;
+  let position = isPlayer ? game.player : resident;
+  let moving = isPlayer && game.moving, stride = isPlayer ? game.stride : 0;
+  let heading = isPlayer ? Math.atan2(game.player.lookX, game.player.lookY) : 0;
+  if (actor.route && !game.reducedMotion) {
+   const distance = time * 23, length = actor.route.getLength();
+   const progress = (distance % length) / length;
+   const point = actor.route.getPoint(progress);
+   const next = actor.route.getPoint((progress + .001) % 1);
+   position = point;
+   heading = Math.atan2(next.x - point.x, next.y - point.y);
+   moving = true;
+   stride = distance / 13;
+  }
+  if (focused) heading = Math.atan2(game.player.x - position.x, game.player.y - position.y);
+  actor.root.position.set(...townPoint(position.x, position.y));
+  actor.root.position.y = townElevation(position.x, position.y);
+  poseActor(actor, {
+   heading, moving, stride, running: isPlayer && game.keys?.has('shift'), time: game.time,
+   reducedMotion: game.reducedMotion, pose: focused ? (isTraveller ? 'point-self' : 'nod') : 'idle',
+   carrying: isTraveller, emptyBowl: isTraveller,
+  });
+  if (resident?.shop === 'weapons' && !game.reducedMotion && !focused) {
+   actor.rightArm.rotation.x = -.7 + Math.sin(game.time * 2.3) * .25;
+  }
+  if (focused && isTraveller) {
+   actor.head.rotation.x = game.reducedMotion ? .12 : .12 + Math.sin(Math.min(1, (game.time - game.townFocus.startedAt) / 1.4) * Math.PI) * .12;
+  }
  }
  world.scene.updateMatrixWorld(true);
  const [px,,pz]=townPoint(game.player.x,game.player.y),up=12/Math.sqrt(265),forward=11/Math.sqrt(265),bodyY=(townElevation(game.player.x,game.player.y)+.85)*up-pz*forward;

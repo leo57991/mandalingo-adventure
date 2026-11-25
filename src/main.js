@@ -1,17 +1,17 @@
-import { JourneyStore } from "./journey-store.js?v=ink-world-v1";
-import {createTownJourney} from './town-journey.js?v=ink-world-v1';
-import { observationCue } from "./evidence-vfx.js?v=ink-world-v1";
-import { Soundscape } from "./audio.js?v=ink-world-v1";
-import { MandalingoGame } from "./game.js?v=ink-world-v1";
-import { waitForInkSurfaces } from "./ink-art.js?v=ink-world-v1";
+import { JourneyStore } from "./journey-store.js?v=ink-world-v2";
+import {createTownJourney} from './town-journey.js?v=ink-world-v2';
+import { observationCue } from "./evidence-vfx.js?v=ink-world-v2";
+import { Soundscape } from "./audio.js?v=ink-world-v2";
+import { MandalingoGame } from "./game.js?v=ink-world-v2";
+import { waitForInkSurfaces } from "./ink-art.js?v=ink-world-v2";
 import {
   CONFIDENCE, TARGET_WORDS, TUTORIAL_STAGE, VOCABULARY, attemptWaterTarget, buildFlashcards, createJournal, createTutorialSession,
   collectBowl, getConfirmationReadiness, getEncounteredEntries, getLearningState, getWaterTaskReadiness, recordEvidence,
   resolvePortraitAsset, setConfidence, setGuess
-} from "./lessons.js?v=ink-world-v1";
-import { GAME_STATE, GameStateController } from "./game-state.js?v=ink-world-v1";
-import { InputRouter } from "./input.js?v=ink-world-v1";
-import { ModalFocusManager } from "./modal-focus.js?v=ink-world-v1";
+} from "./lessons.js?v=ink-world-v2";
+import { GAME_STATE, GameStateController } from "./game-state.js?v=ink-world-v2";
+import { InputRouter } from "./input.js?v=ink-world-v2";
+import { ModalFocusManager } from "./modal-focus.js?v=ink-world-v2";
 
 const STORAGE_KEY = "mandalingo-gatehouse-playtest-v5";
 const $ = selector => document.querySelector(selector);

@@ -1,19 +1,20 @@
-import { createTownWorld, updateTownWorld } from "./town-3d.js?v=ink-world-v1";
-import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=ink-world-v1';
-import {townElevation} from './town-layout.js?v=ink-world-v1';
-import {townSignalAwake} from './town-journey.js?v=ink-world-v1';
-import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=ink-world-v1";
-import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=ink-world-v1";
+import { createTownWorld, updateTownWorld } from "./town-3d.js?v=ink-world-v2";
+import {worldPlayerPoint,toTownPoint,fromTownPoint,TOWN_WORLD_OFFSET,CITY_WALL_EXTENSIONS} from './world-layout.js?v=ink-world-v2';
+import {townElevation} from './town-layout.js?v=ink-world-v2';
+import {townSignalAwake} from './town-journey.js?v=ink-world-v2';
+import { createJarWater, updateJarWater, JAR_WATER_LEVEL } from "./jar-water.js?v=ink-world-v2";
+import { GATE, gateAngle, gateLeaves } from "./gate-geometry.js?v=ink-world-v2";
 import * as T from "./vendor/three.module.js";
 import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
-import { inkSurface } from "./ink-art.js?v=ink-world-v1";
-import { modelInkActor } from "./ink-actor.js?v=ink-world-v1";
-import { addInkTree } from "./ink-tree.js?v=ink-world-v1";
+import { animateActorGait, settleActorGesture, updateActorMotion } from "./actor-motion.js?v=ink-world-v2";
+import { inkSurface } from "./ink-art.js?v=ink-world-v2";
+import { modelInkActor } from "./ink-actor.js?v=ink-world-v2";
+import { addBankGrass, addInkTree } from "./ink-tree.js?v=ink-world-v2";
 import {
   COLLIDERS,
   NPCS,
   RENDER_OBJECTS,
-} from "./lessons.js?v=ink-world-v1";
+} from "./lessons.js?v=ink-world-v2";
 
 // Authored x/y collisions map directly to x/z; height belongs to the renderer.
 export const worldPoint = (x, y) => [(x - 800) / 100, 0, (y - 450) / 100];
@@ -156,7 +157,9 @@ export function poseActor(
   a,
   {
     stride = 0,
+    heading,
     moving = false,
+    running = false,
     carrying = false,
     emptyBowl = false,
     pose = "idle",
@@ -166,7 +169,10 @@ export function poseActor(
     pleading = false,
   } = {},
 ) {
-  a.body.rotation.z = 0;
+  a.body.rotation.y = a.body.rotation.z = 0;
+  a.head.rotation.y = a.head.rotation.z = 0;
+  a.leftKnee.rotation.x = a.rightKnee.rotation.x = 0;
+  a.leftBoot.rotation.x = a.rightBoot.rotation.x = 0;
   a.bowl.rotation.set(0,0,0); a.bowl.scale.setScalar(1);
   if (a.leftForearm) { a.leftForearm.rotation.x = 0; a.rightForearm.rotation.x = 0; }
   const kneel = Math.max(0, Math.min(1, kneeling));
@@ -192,9 +198,11 @@ export function poseActor(
     pose === "drink-water" ? 0.23 : 0.37,
   );
   a.bowl.children[1].material = material(emptyBowl ? P.wood : P.water);
-  if (carrying || pose === "drink-water")
-    a.leftArm.rotation.x = a.rightArm.rotation.x =
-      pose === "drink-water" ? -1.8 : -1.05;
+  if (carrying || pose === "drink-water") {
+    a.leftArm.rotation.x = a.rightArm.rotation.x = pose === "drink-water" ? -1.8 : -1.05;
+    a.leftArm.rotation.z = .16;
+    a.rightArm.rotation.z = -.16;
+  }
   if (pose === "point-third" || pose === "point-player")
     a.rightArm.rotation.x = -1.4;
   if (pose === "point-self") {
@@ -205,7 +213,7 @@ export function poseActor(
     a.leftArm.rotation.x = -0.85;
     a.leftArm.rotation.z = -0.3;
   }
-  if (a.leftForearm && pose === "drink-water") {
+  if (a.root.name === "traveller" && pose === "drink-water") {
     a.leftArm.rotation.x = a.rightArm.rotation.x = -1.1;
     a.leftForearm.rotation.x = a.rightForearm.rotation.x = -1.6;
   }
@@ -225,6 +233,15 @@ export function poseActor(
     if (!reducedMotion) {
       a.body.rotation.z = Math.sin(time*1.4)*.025;
       a.body.position.y += Math.sin(time*1.6)*.008;
+    }
+  }
+  if (Number.isFinite(heading)) {
+    const motion = updateActorMotion(a, { heading, time, moving, running, reducedMotion });
+    if (!reducedMotion) {
+      animateActorGait(a, motion, { stride, time, kneel, carrying, pose });
+      settleActorGesture(a, motion, [pose, carrying, pleading].join(":"), motion.reset);
+    } else if (kneel > 0) {
+      a.leftKnee.rotation.x = a.rightKnee.rotation.x = kneel * 1.85;
     }
   }
 }
@@ -500,6 +517,7 @@ export function buildCourtyard() {
           ).scale.set(2, 0.3, 0.6);
       }
   }
+  const grass = [];
   for (const [x, z, scale, color] of [
     [-6.2, -1.2, 1, 0xbd8757],
     [6.3, -2, 1.1, 0xa9664e],
@@ -509,7 +527,11 @@ export function buildCourtyard() {
     const tree = addInkTree(scene, { color, seed: x * 7 + z });
     tree.position.set(x, 0, z);
     tree.scale.setScalar(scale);
+    for (let i = 0; i < 7; i++) {
+      grass.push([x + Math.cos(i * 2.4) * .62, -.01, z + Math.sin(i * 2.4) * .66]);
+    }
   }
+  addBankGrass(scene, grass);
   const leaves = new T.InstancedMesh(
     new T.OctahedronGeometry(0.065, 0),
     material(0xbd8742),
@@ -737,30 +759,31 @@ export class Courtyard3D {
       a.root.position.set(...worldPoint(position.x, position.y));
       a.root.visible=!(id==='thirsty-traveller'&&townSignalAwake(game.townJourney));
       if(player&&game.location==='town')a.root.position.y=townElevation(game.player.x,game.player.y);
-      if (player)
-        a.root.rotation.y = Math.atan2(game.player.lookX, game.player.lookY);
-      else if (id === "thirsty-traveller")
-        a.root.rotation.y =
-          game.resolutionPhase === "walk" ? 1.91 : game.questResolved ? 0 : 1.2;
-      else a.root.rotation.y = 0;
+      let heading = player ? Math.atan2(game.player.lookX, game.player.lookY) : 0;
+      if (id === "thirsty-traveller") {
+        heading = game.resolutionPhase === "walk" ? 1.91 : game.questResolved ? 0 : 1.2;
+      }
       if (
         !player &&
         (cue.gestureTarget === "player" || cue.gestureTarget === "gatekeeper")
       ) {
         const target =
           cue.gestureTarget === "player"
-            ? game.player
+            ? worldPlayerPoint(game)
             : game.actorPositions.gatekeeper;
-        a.root.rotation.y = Math.atan2(
+        heading = Math.atan2(
           target.x - position.x,
           target.y - position.y,
         );
       }
       const pleading = id === "thirsty-traveller" && game.travellerKneeling === 1 && cue.prop === "empty-bowl" && !game.resolution;
-      if (pleading && Math.hypot(game.player.x-position.x,game.player.y-position.y) < 220) {
-        a.root.rotation.y = Math.atan2(game.player.x-position.x,game.player.y-position.y);
+      const playerPosition = worldPlayerPoint(game);
+      if (pleading && Math.hypot(playerPosition.x-position.x,playerPosition.y-position.y) < 220) {
+        heading = Math.atan2(playerPosition.x-position.x,playerPosition.y-position.y);
       }
       poseActor(a, {
+        heading,
+        running: player && game.keys?.has("shift"),
         pleading,
         stride: player ? game.stride : game.time * 6,
         moving: player
